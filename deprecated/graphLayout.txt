@@ -1,0 +1,29 @@
+def nodeForce(graph, node, pos):
+    link_vec= numpy.array([0.0, 0.0])
+    space_vec= numpy.array([0.0, 0.0])
+
+    for other in graph.nodes():
+        if other != node:
+            vec= pos[other]- pos[node]
+            vls= numpy.sum(numpy.square(vec)) # vls= vector length square
+            space_vec -= (vec/vls)# 空间中节点间为排斥力
+
+            if other in graph[node]:
+                link_vec += vec # 连接的节点间为吸引力
+
+    pos[node] += link_vec/len( graph[node] ) + space_vec/( len(graph)-1 )
+
+def graphLayout(graph, pos= None, iterations= 30):
+    if pos is None:
+        # pos = networkx.spring_layout(top_graph)
+        pos= { node:numpy.random.rand(2) for node in graph }
+
+    for i in range(0,iterations):
+        for node in pos:
+            nodeForce(graph, node, pos)
+
+    return pos
+
+
+# pos= graphLayout(graph)
+# graph.draw(pos)

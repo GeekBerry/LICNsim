@@ -1,0 +1,22 @@
+def graphInfo(graph):# debug
+    info= { 'diameter': 0, 'distance_center': None, 'degree_distribution':{} }
+
+    min_sigma= INF
+    for node in graph.nodes():
+        distance_list, sigma= 0, 0
+        for hoop in graphHoops(graph, node):
+            sigma+= len(hoop)*distance_list
+            distance_list+= 1
+
+        # if sigma < min_sigma:# 寻找距离中心
+        #     min_sigma= sigma
+        #     info['distance_center']= node
+
+        if info['diameter'] < distance_list:# 寻找网络直径
+            info['diameter']= distance_list
+
+        # degree= len( graph[node] )# 统计度分布
+        # info['degree_distribution'].setdefault(degree, 0)
+        # info['degree_distribution'][degree]+= 1
+
+    return info
