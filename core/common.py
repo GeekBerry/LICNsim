@@ -5,7 +5,7 @@
 from core.logger import *
 from core.clock import clock, Timer
 
-IS_DEBUG= 0
+IS_DEBUG= 1
 if IS_DEBUG:
     import time
     def timeIt(func):
@@ -16,12 +16,21 @@ if IS_DEBUG:
             return ret
         return _lambda
 
+    def showCall(func, *args, **kwargs):
+        def lam(*args, **kwargs):
+            print('<', func.__name__, '>')
+            ret= func(*args, **kwargs)
+            print('</', func.__name__, '>')
+            return ret
+        return lam
+
     import cProfile
     import pstats
     def timeProfile(cmd):
         prof= cProfile.Profile()
         prof.run(cmd)
-        pstats.Stats(prof).strip_dirs().sort_stats('tottime').print_stats('', 20)# sort_stats:  ncalls, tottime, cumtime
+        pstats.Stats(prof).sort_stats('tottime').print_stats('', 20)# sort_stats:  ncalls, tottime, cumtime
+        # .strip_dirs()
 
     log= Logger( Logger.LEVEL.TRACK )
     label= LabelTable() #全局标签
