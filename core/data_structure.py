@@ -1,9 +1,19 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from collections import deque, OrderedDict
+from collections import deque, OrderedDict, defaultdict
 from core.clock import clock, Timer
-from copy import deepcopy
+
+from core.common import log, label
+
+def discard(obj, key):
+    try: obj.remove(key)
+    except: pass
+
+def topValue(obj):
+    if isinstance( obj, dict ):
+        return next( obj.values().__iter__() )
+
 #-----------------------------------------------------------------------------------------------------------------------
 class List(list):
     def size(self):
@@ -36,41 +46,100 @@ class Dict(dict):
 #-----------------------------------------------------------------------------------------------------------------------
 class SheetTable(dict):
     class Entry(dict):
-        def __init__(self, getType):
+        def __init__(self, TypeDict):
             super().__init__()
-            super().__setattr__('getType', getType)
+            super().__setattr__('TypeDict', TypeDict)  # 绕过self.__setattr__
 
         def __getitem__(self, item):
-            return self.setdefault( item, self.getType(item)() )#call或者init
+            return self.setdefault( item, self.TypeDict[item]() )  # call或者init
 
-        def __getattr__(self, item):# entry['name'] 和 entry.name 等效
+        def __getattr__(self, item):  # arg= entry['name'] 和 arg= entry.name 等效
             return self.__getitem__(item)
 
-        def __setattr__(self, key, value):
+        def __setattr__(self, key, value): # entry['name']= arg 和 entry.name= arg 等效
             self.__setitem__(key, value)
 
-
-    def __init__(self, **kwargs):#例如: SheetTable(name= str, number= int, age= lambda:18, sex= lambda:'male' )
+    def __init__(self, **kwargs):  # 例如: SheetTable(name= str, number= int, age= lambda:18, sex= lambda:'male' )
         super().__init__()
         self.TypeDict= kwargs
 
-    def addFields(self, **kwargs):
+    def updateFields(self, **kwargs):
         self.TypeDict.update(kwargs)
 
     def __getitem__(self, item):
-        return self.setdefault(item, SheetTable.Entry(self.TypeDict.__getitem__))
+        return self.setdefault(item, SheetTable.Entry(self.TypeDict))
+
+
+# if __name__ == '__main__':
+#     st = SheetTable(name=str, number=int, age=lambda: 18, sex=lambda: 'male')
+#     st[10001].name = 'zhao'
+#     print(st)  # {10001: {'name':'zhao'}}
+#
+#     age= st[20001].age
+#     print(age)  # 18
+#     print(st)  # {10001: {'name': 'zhao'}, 20001: {'age': 18}}
+#
+#     st.updateFields(age=lambda: 20)
+#     age= st[30001].age
+#     print(age)  # 20
+#
+#     st[30001].food= 'Apple'
+#     print(st[30001])  # {'food': Apple, 'age': 20}
 
 
 #=======================================================================================================================
 class DictDecorator:
     """
     为了减少子类重载数量, 不提供setdefault和get方法
+
+    例子:
+    in= DictDecorator(table= None)
+    middle= DictDecorator(table= in); in.evict_callback= middle.coreEvictEvent
+    out= DictDecorator(table= middle); middle.evict_callback= out.coreEvictEvent
+
+    def in[key]
+        in.table[key] <==> dict.__getitem__(key)
+        ->value
+        in.coreEvictEvent( key, value )
+            in.evict_callback
+        del in.table[key] <==> dict.__delitem__(key)
+
+    del middle[key]
+        del in[key]
+            in.table[key] <==> dict.__getitem__(key)
+            ->value
+            in.coreEvictEvent( key, value )
+                in.evict_callback
+                    middle.coreEvictEvent
+                        middle.evict_callback
+            del in.table[key] <==> dict.__delitem__(key)
+
+    del out[key]
+        del middle[key]
+            del in[key]
+                in.table[key] <==> dict.__getitem__(key)
+                ->value
+                in.coreEvictEvent( key, value )
+                    in.evict_callback
+                        middle.coreEvictEvent
+                            middle.evict_callback
+                                out.coreEvictEvent
+                                    out.evict_callback
+                del in.table[key] <==> dict.__delitem__(key)
     """
     def __init__(self, table):
-        if isinstance(table, dict) or isinstance(table, DictDecorator):
+        if isinstance(table, dict):
             self.table= table
+        elif isinstance(table, DictDecorator):
+            self.table= table
+            self.table.evict_callback= self.coreEvictEvent
         else:
-            raise TypeError("table 必须是 dict 或 DictDecorator 实例")
+            raise TypeError("table 必须是 DictDecorator实例 或 dict实例")
+
+        self.evict_callback= lambda key, value:None
+
+    def coreEvictEvent(self, key, value):  # 被装饰者将要删除 key value 对
+        self.evict_callback(key, value)
 
     def __len__(self):
         return len(self.table)
@@ -91,6 +160,8 @@ class DictDecorator:
         return self.table.items()
 
     def __delitem__(self, key):
+        if not isinstance( self.table, DictDecorator ): # self.table 不是装饰器, 删除时进行回调
+            self.coreEvictEvent(key, self.table[key])
         del self.table[key]
 
     def __repr__(self):
@@ -99,149 +170,144 @@ class DictDecorator:
     def __str__(self):
         return str(self.table)
 
-
 #-----------------------------------------------------------------------------------------------------------------------
 class SizeDictDecorator(DictDecorator):
     def __init__(self, table, capacity, set_refresh= True, get_refresh= True):
         super().__init__(table)
-        self._deque= deque()
+        self.deque= deque()  # 键队列 self.deque > self.table.keys()
+
         self._capacity= capacity
         self.set_refresh= set_refresh
         self.get_refresh= get_refresh
-        self.evict_call_back= lambda *args:None
+
+    def coreEvictEvent(self, key, value):
+        self.deque.remove(key)  # FIXME try?
+        super().coreEvictEvent(key, value)
 
     def setCapacity(self, capacity):
-        if capacity<0:
+        if capacity < 0:
             raise RuntimeError('capacity 必须大于 0')
         else:
             self._capacity= capacity
             self._evict()
 
     def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        if key not in self._deque:
-            self._deque.append(key)
+        super().__setitem__(key, value)  # 执行后 key 有可能不在 table 中
+
+        if key not in self.deque:
+            self.deque.append(key)
             self._evict()
-        elif self.set_refresh:# move_to_end
-            self._deque.remove(key)
-            self._deque.append(key)
+        elif self.set_refresh:  # move_to_end
+            self.deque.remove(key)
+            self.deque.append(key)
 
     def __getitem__(self, key):
         result= super().__getitem__(key)
         if self.get_refresh:
-            self._deque.remove(key)
-            self._deque.append(key)
+            discard( self.deque, key )
+            self.deque.append(key)
         return result
-
-    def __delitem__(self, key):
-        super().__delitem__(key)
-        self._deque.remove(key)
 
     def _evict(self):
         while len(self.table) > self._capacity:
-            key= self._deque[0]# top
-            value= self.table[key] # 绕过自身的__getitem__
-            self.evict_call_back(key, value)
+            key= self.deque[0]  # top
             self.__delitem__(key)
 
+# if __name__ == '__main__':
+#     t= SizeDictDecorator(SizeDictDecorator({}, 1), 2 )
+#     t.evict_callback= print
+#     t[1]= 1
+#     t[2]= 2
+#     print(t.deque, t.table.deque)
 
+
+#-----------------------------------------------------------------------------------------------------------------------
 class TimeDictDecorator(DictDecorator):
-    def __init__(self, table, time, set_refresh= True, get_refresh= True):
+    def __init__(self, table, life_time, set_refresh= True, get_refresh= True):
         super().__init__(table)
         self.timer= Timer(self.flush)
-        self.time= time
-        self.info= OrderedDict()
+        self.life_time= life_time
+        self.info= OrderedDict()  # {key:dead_time, ...}
+
         self.set_refresh= set_refresh
         self.get_refresh= get_refresh
-        self.evict_call_back= lambda *args:None
 
+    def coreEvictEvent(self, key, value):
+        del self.info[key]
+        # try:  # FIXME try???
+        #     del self.info[key]
+        # except KeyError:
+        #     pass
+        super().coreEvictEvent(key, value)
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)
-        if key not in self.info  or  self.set_refresh:
-            self.info[key]= clock.time() + self.time
+        if (key not in self.info)  or  self.set_refresh:  # 不存在 或 需要重置
+            self.info[key]= clock.time() + self.life_time
             self.info.move_to_end(key)
 
             if not self.timer:
-                self.timer.timing(self.time)
-
+                self.timer.timing(self.life_time)
 
     def __getitem__(self, key):
-        result= super().__getitem__(key)
-        if self.get_refresh:
-            del self.info[key]
-            self.info[key]= clock.time() + self.time #自己就排到后面去了
+        result= super().__getitem__(key)  # 放在最前面, 以 super().__getitem__ 来对 key 的存在性进行检查
+        if self.get_refresh:  # 需要重置
+            self.info[key]= clock.time() + self.life_time
+            self.info.move_to_end(key)
         return result
 
-
     def flush(self):
-        next_flush_time= None
-        delete_keys= []
-        for key in self.info:
-            if self.info[key]<= clock.time():
-                delete_keys.append(key)
-            else:#获取下一次驱逐事件的时间
-                next_flush_time= self.info[key] - clock.time()
-                break #找到第一个 next_flush_time 即可
+        delete_keys= [  key  for key in self.info
+            if self.info[key] <= clock.time()
+        ]
 
         for key in delete_keys:
-            self.evict_call_back(key, self.table[key])# 绕过自身的__getitem__
-            super().__delitem__(key)
-            self.info.popitem(last=False) # 一定在最前面
+            self.__delitem__(key)
 
-        if next_flush_time:
-            self.timer.timing(next_flush_time)
+        if self.info:
+            self.timer.timing( topValue(self.info) - clock.time() )
 
-#-----------------------------------------------------------------------------------------------------------------------
-class DefaultDictDecorator:# 注意!!! 不是DictDecorator的子类
-    def __init__(self, table, DefaultType):# 例如 DefaultDictDecorator({}, int)
-        self.table= table
-        self.DefaultType= DefaultType
-
-    def __contains__(self, key):
-        return self.table.__contains__(key)
-
-    def __iter__(self):
-        return self.table.__iter__()
-
-    def items(self):#FIXME　是否需要
-        return self.table.items()
-
-    def __setitem__(self, key, value):
-        self.table[key]= value
-
-    def __getitem__(self, key):
-        if key not in self:
-            self.table[key]= self.DefaultType()
-
-        if key in self:# 由于self.table可能是装饰过的表, 所以此操作后self.table中不一定有key项
-            return self.table[key]
-        else:
-            return self.DefaultType()
-
-    def __repr__(self):
-        return str(self.table)
 
 # if __name__ == '__main__':
-#     t= TimeDictDecorator(SizeDictDecorator({}, 2), 2)
+#     t= TimeDictDecorator({}, 2)
+#     t['A']= 100
+#     print(t, t.info)  # {'A':100} OrderedDict([('A', 2)])
 #
-#     t[1]= 1
-#     t[2]= 2
+#     clock.step()
+#     t['B']= 200
+#     print(t, t.info)  # {'A': 100, 'B': 200} OrderedDict([('A', 2), ('B', 3)])
 #
 #     clock.step()
-#     print(t, t.info, t.timer)
+#     clock.step()
+#     print(t, t.info)  # {'B': 200} OrderedDict([('B', 3)])
 #
-#     p= t[1]
 #     clock.step()
-#     print(t, t.info, t.timer)
+#     print(t, t.info)  # {} OrderedDict()
+
+# if __name__ == '__main__':
+#     t= TimeDictDecorator( TimeDictDecorator({}, 1), 5 )
 #
-#     t[2]= 22
+#     t['A'] = 100
+#     print(t, t.info, t.table.info)
+#
 #     clock.step()
-#     print(t, t.info, t.timer)
+#     print(t, t.info, t.table.info)
+#
 #     clock.step()
-#     print(t, t.info)
-#     clock.step()
-#     print(t)
-#     clock.step()
-#     print(t)
+#     print(t, t.info, t.table.info)
+
+
+#=======================================================================================================================
+class DefaultDictDecorator(dict):  # XXX 如何用 defaultdict 实现 ???
+    def __init__(self, table, DefaultType):
+        super().__init__(table)
+        self.DefaultType= DefaultType
+
+    def __getitem__(self, key):
+        if key in self:
+            return super().__getitem__(key)
+        else:
+            self[key]= value= self.DefaultType()
+            return value
+
 

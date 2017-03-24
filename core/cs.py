@@ -8,23 +8,27 @@ from core.data_structure import *
 class ContentStoreUnit(Unit):
     def __init__(self, capacity):# 安装在系统上
         super().__init__()
-        self.table= {}
+        self.table= DictDecorator({})
         self.capacity= capacity
 
     def install(self, announces, api):
-        #监听的 Announce
-        #发布的 Announce
-        self.publish['csHit'].append( announces['csHit'] )      #args(Packet)
-        self.publish['csMiss'].append( announces['csMiss'] )    #args(Packet)
-        self.publish['csStore'].append( announces['csStore'] )  #args(Packet)
-        self.publish['csEvict'].append( announces['csEvict'] )  #args(Packet)
+        """
+        :param announces:
+            csHit(Packet)
+            csMiss(Packet)
+            csStore(Packet)
+            csEvict(Packet)
+        :param api:
+        :return:
+        """
+        self.publish = announces
+        self.api= api
         #提供的 API
         api['CS::size']= self.size
         api['CS::setCapacity']= self.setCapacity
         api['CS::store']= self.store
         api['CS::match']= self.match
-        #使用的API
-        self.api= api
+
 
     def size(self):
         return len(self.table)
@@ -85,8 +89,11 @@ class SimulatCSUnit(ContentStoreUnit):
 
     def __init__(self, capacity, life_time):
         super().__init__(capacity)
+
         self.table= TimeDictDecorator(self.table, life_time)# 对时间进行限制
-        self.table.evict_call_back= self._evict
+        self.table.evict_callback= self._evict
+
+        label[self.table]= label[self], '.table'
 
     def install(self, announces, api):
         super().install(announces, api)
@@ -94,33 +101,34 @@ class SimulatCSUnit(ContentStoreUnit):
         api['CS::setLifeTime']= self.setLifeTime
 
     def setMode(self, mode):
-        if mode == self.MODE.MANUAL: self.table.time= INF
+        if mode == self.MODE.MANUAL: self.table.life_time= INF
         elif mode == self.MODE.FIFO: self.table.get_refresh= False
         elif mode == self.MODE.LRU:  pass
         else: pass
 
     def setLifeTime(self, life_time):
-        self.table.time= life_time
+        self.table.life_time= life_time
 
 
-# if __name__ == '__main__':
-#     log.level= 0
-#     cs= SimulatCSUnit(10, life_time= 2)
-#
-#     cs.mode= SimulatCSUnit.MODE.LRU
-#
-#     cs.store(debug_dp)
-#     cs.store(debug_dp1)
-#     clock.step()
-#     print(cs.table)
-#
-#     cs.match(debug_dp)
-#     clock.step()
-#     print(cs.table)
-#
-#     #cs.match(debug_dp)
-#     clock.step()
-#     print(cs.table)
-#
-#     clock.step()
-#     print(cs.table)
+if __name__ == '__main__':
+    log.level= 0
+    cs= SimulatCSUnit(10, life_time= 2)
+
+    cs.mode= SimulatCSUnit.MODE.FIFO
+
+    cs.store(debug_dp)
+    cs.store(debug_dp1)
+    clock.step()
+    print(cs.table)
+
+    cs.match(debug_dp)
+    clock.step()
+    print(cs.table)
+
+    #cs.match(debug_dp)
+    clock.step()
+    print(cs.table)
+
+    clock.step()
+    print(cs.table)
+

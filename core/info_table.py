@@ -19,38 +19,41 @@ class InfoUnit(Unit):
     """
     class Entry:
         def __init__(self):
-            self.recv= DefaultDictDecorator({}, lambda:-INF) # {Packet.TYPE:time, ...}
-            self.send= DefaultDictDecorator({}, lambda:-INF) # {Packet.TYPE:time, ...}
+            self.recv= defaultdict(lambda:-INF) # {Packet.TYPE:life_time, ...}
+            self.send= defaultdict(lambda:-INF) # {Packet.TYPE:life_time, ...}
 
         def __repr__(self):
             return str( self.__dict__ )
 
     class Info:
         def __new__(cls):
-            return DefaultDictDecorator( {}, InfoUnit.Entry )
+            return defaultdict( InfoUnit.Entry )
 
 
     def __init__(self, max_size, life_time):
         super().__init__()
-        self.table= {}
+
+        # 进行默认参数装饰
+        self.table= defaultdict( InfoUnit.Info )
         # 进行尺寸限制装饰
         self.table= SizeDictDecorator(self.table, max_size)
-        self.table.evict_call_back= self.infoEvictCallBack
         # 进行时间限制装饰
         self.table= TimeDictDecorator(self.table, life_time)
-        self.table.evict_call_back= self.infoEvictCallBack
-        # 进行默认参数装饰
-        self.table= DefaultDictDecorator(self.table, InfoUnit.Info)
+        self.table.before_delete_callback= self.infoEvictCallBack
+
 
     def install(self, announces, api):
+        """
+        :param announces:
+            evictInfo(TODO)
+        :param api:
+        :return:
+        """
         #监听的 Announce
         announces['inPacket'].append(self.inPacket)
         announces['outPacket'].append(self.outPacket)
-        #发布的 Announce
-        self.publish['evictInfo'].append( announces['evictInfo'] )
-        #提供的 API
+        self.publish= announces
         api['Info::getInfo']= self.getInfo
-        #调用的 API
 
     def inPacket(self, faceid, packet):
         self.table[packet.name][faceid].recv[packet.type]= clock.time()

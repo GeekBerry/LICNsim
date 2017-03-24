@@ -216,13 +216,13 @@ class GodView:
 
     def getDistance(self):#->node
         if len( self.data['stores'] ) < len(self.ALLNODES)/5: #XXX 还有比10更好的值吗
-            #start= time.clock()
+            #start= life_time.clock()
             node= self.getNearestCSNode_forStores()
-            #print("forStores", time.clock()-start)
+            #print("forStores", life_time.clock()-start)
         else:
-            #start= time.clock()
+            #start= life_time.clock()
             node= self.getNearestCSNode_outerManhattanHoop()
-            #print("outerManhattanHoop", time.clock()-start)
+            #print("outerManhattanHoop", life_time.clock()-start)
         return node
         
 

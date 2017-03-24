@@ -19,7 +19,7 @@ def graphApproximateDiameter(graph, sample_num= 10):#得到graph近似直径
     return int(avg_ecce*1.5) # 近似直径 FIXME 圆面网络是3/2==1.5 但是得出的值总会偏大
 
 #-----------------------------------------------------------------------------------------------------------------------
-log.level= log.LEVEL.ERROR
+log.level= log.LEVEL.WARING
 
 GRAPH_NAME= 'BA'
 
@@ -38,12 +38,14 @@ elif GRAPH_NAME == 'Tree':
 else:
     raise RuntimeError("必须选一种graph类型")
 
+
+graph= networkx.DiGraph( graph ) # 必须变成有向图
 #-----------------------------------------------------------------------------------------------------------------------
 DATE= time.strftime("%y%m%d%H%M%S", time.localtime())
 
 SIM_SECOND= 500# 500# 单位(s)
 CS_MODES={
-    'LRU':SimulatCSUnit.MODE.LRU,
+    # 'LRU':SimulatCSUnit.MODE.LRU,
     'FIFO':SimulatCSUnit.MODE.FIFO,
     }
 CS_TIMES= [20] # [20, 40, 60, 80, 100] # 单位(s)

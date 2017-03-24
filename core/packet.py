@@ -48,7 +48,7 @@ class Name(list):
             return None
     
     def __str__(self):# FIXME DEBUG
-        return '/'.join(self)
+        return '/'.join([ str(each) for each in self])
 
 
 # if __name__ == '__main__':
@@ -89,7 +89,13 @@ class Packet:
         return Packet(self.name, self.type, self.size)
 
     def __repr__(self):
-        return "Packet("+str(self.name)+","+str(self.type) + "," + str(self.nonce) + ')'
+        if self.type == self.TYPE.INTEREST:
+            t= 'Interset'
+        elif self.type == self.TYPE.DATA:
+            t= 'Data'
+        else: t= 'Empty'
+
+        return "Packet("+str(self.name)+","+ t + "," + str(self.nonce) + ')'
 
 
 

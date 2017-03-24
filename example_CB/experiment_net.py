@@ -12,7 +12,7 @@ class ExperimentMonitorDataBase(MonitorDataBase):
         net.loadAnnounce('respond', self._respond)
 
         self.info_table={'ask_count':0, 'dist_count':0, 'resp_count':0, 'time_count':0}
-        self.content_table.addFields(dist=list, time=list)
+        self.content_table.updateFields(dist=list, time=list)
 
     def _ask(self, nodename, packet, distance):
         entry= self.content_table[packet.name]
@@ -23,6 +23,7 @@ class ExperimentMonitorDataBase(MonitorDataBase):
         entry= self.content_table[packet.name]
         entry.pend.discard(nodename)
         entry.time.append( clock.time() - asktime )
+
 #-----------------------------------------------------------------------------------------------------------------------
 class StoreProvider:# 储存服务提供者
     def __init__(self, net, db_monitor):
@@ -33,6 +34,7 @@ class StoreProvider:# 储存服务提供者
     def getPath(self, nodename, packet):
         content_nodes= self._db_monitor.content_table[packet.name].content
         return graphNearestPath(self._graph, nodename, content_nodes)
+
 #-----------------------------------------------------------------------------------------------------------------------
 def listMean(l)->str:
     if len(l) > 0:
@@ -43,6 +45,7 @@ def division(dividend, divisor)->str:
     if divisor != 0:
         return "%6f"%( dividend/divisor )
     else: return 'NaN'
+
 
 class Filer:
     def __init__(self, filename, db_monitor, packet_name, delta, print_screen):

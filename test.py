@@ -1,7 +1,4 @@
 from core.common import *
-
-# timeProfile('import sim')
-
 # TODO 数据库
 # TODO demo 数据采集
 # TODO 物联网
@@ -72,7 +69,7 @@ import matplotlib.pyplot as plt
 # top_graph= networkx.DiGraph(top_graph)
 
 
-# net= ICNNet(top_graph, SimpleNode, NoQueueChannel)
+# ui_net= ICNNet(top_graph, SimpleNode, NoQueueChannel)
 
 # width= []
 # for src, dst in top_graph.edges():
@@ -112,3 +109,5 @@ import matplotlib.pyplot as plt
 #
 # p= normalization(l, *p)
 # print(p)
+
+

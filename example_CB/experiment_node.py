@@ -26,29 +26,32 @@ class ExperimentForwarderUnit(ForwarderUnitBase):
 
     def _inInterest(self, faceid, packet):
         if len(packet.pathI) > 0:# 转发
-            info= self.api['Info::getInfo'](packet) #已有记录: info[faceid].inI == clock.time()
+            info= self.api['Info::getInfo'](packet) #已有记录: info[faceid].inI == clock.life_time()
             sendid, packet.pathI= packet.pathI[0], packet.pathI[1:] #将头部摘取出来, 基于net的设定, NodeName= FaceID
             if not self.isOutICooling( info[sendid] ):
                 self.api['Face::send']( {sendid}, packet )
         else:
             data= self.api['CS::match'](packet)
             if data is not None:#hit
-                self.api['Face::send']( {faceid}, data ) #记录: info[send_id].outD == clock.time()
+                self.api['Face::send']( {faceid}, data ) #记录: info[send_id].outD == clock.life_time()
             else:#miss
                 path= self.api['Net::getPath'](packet)
-                log.waring('本该有CS却不存在, 新路由', path)
-                packet.pathI= path[1:]
-                self._inInterest(faceid, packet)# 单纯为了代码复用
+                if path:
+                    log.waring('本该有CS却不存在, 新路由', path)
+                    packet.pathI= path[1:]
+                    self._inInterest(faceid, packet)# 单纯为了代码复用
+                else:
+                    log.waring('不存在路由, 丢弃包', packet)
 
 
     def _inData(self, faceid, packet):
-        info= self.api['Info::getInfo'](packet) #已有记录: info[faceid].inI == clock.time()
+        info= self.api['Info::getInfo'](packet) #已有记录: info[faceid].inI == clock.life_time()
         send_ids= [ id for id in info if\
             self.isPending( info[id] )\
         ]# Pending. 遍历info而非所有id, 是因为pengding的id一定在info中有记录
 
         if len(send_ids) > 0:
-            self.api['Face::send'](send_ids, packet) #记录: info[send_id].outI == clock.time()
+            self.api['Face::send'](send_ids, packet) #记录: info[send_id].outI == clock.life_time()
             self.api['CS::store']( packet ) #FIXME 未经请求包储存??
         else:
             self.publish['unsolicited'](faceid, packet)
@@ -127,7 +130,7 @@ class ExperimentNode(NodeBase):
         #100来自于100*100网格平均响应时间
         self.install( 'fwd',    ExperimentForwarderUnit(outI_cd= 100) )
 
-        if IS_DEBUG:
+        if IS_DEBUG and PRINT_STEP:
             self.install( 'log', LogUnit() )
 
 #=======================================================================================================================

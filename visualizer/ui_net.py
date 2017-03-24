@@ -2,8 +2,9 @@
 #coding=utf-8
 
 from PyQt5.QtCore import (QLineF, QPointF, qrand, QRectF, QRect, QPoint, Qt)
-from PyQt5.QtGui import (QColor, QPainter, QPainterPath, QPen, QPolygonF, QFont, QFontMetrics)
+from PyQt5.QtGui import (QPainter, QPainterPath, QPen, QPolygonF, QFont, QFontMetrics)
 from PyQt5.QtWidgets import (QGraphicsItem, QGraphicsView, QGraphicsScene)
+
 
 import numpy
 #-----------------------------------------------------------------------------------------------------------------------
@@ -21,10 +22,10 @@ class Edge(QGraphicsItem):
             'text_font': QFont('Courier New', 10, QFont.Black),
 
             'forward_text': '',
-            'forward_color': QColor(qrand()%200,qrand()%200,qrand()%200), #FIXME QFont.Black
+            'forward_color': Qt.black,
 
             'reverse_text': '',
-            'reverse_color': QColor(qrand()%200,qrand()%200,qrand()%200), #FIXME QFont.Black
+            'reverse_color': Qt.black
             }
 
         self.show_detail= False
@@ -117,36 +118,6 @@ class Edge(QGraphicsItem):
         super().hoverLeaveEvent(event)
 
 #-----------------------------------------------------------------------------------------------------------------------
-class NetEdge: #TODO 与网络关联起来
-    def __init__(self, edge, forward:bool):
-        self.edge= edge
-        self.forward= forward
-
-    def adjust(self, src, dst):
-        if self.forward:
-            self.edge.adjust(src, dst)
-        else:pass # 非正向边不进行调整, 以免重复调用
-
-    def setText(self, text): #TODO ...变得更抽象
-        if self.forward:
-            self.edge.style['forward_text']= text
-        else:
-            self.edge.style['reverse_text']= text
-        self.edge.update()
-
-    def showDetail(self):
-        self.edge.show_detail= True
-        self.edge.update()
-
-    def hideDetail(self):
-        self.edge.show_detail= False
-        self.edge.update()
-
-    #TODO def showSpeed(...)
-    #TODO ...
-
-#=======================================================================================================================
-from core.common import AnnounceTable
 class Node(QGraphicsItem):
     Type = QGraphicsItem.UserType + 1
 
@@ -154,8 +125,8 @@ class Node(QGraphicsItem):
         super().__init__()
         self.publish= AnnounceTable()
         self.style= {
-            'rect': QRectF(0,0,0,0),
-            'color': QColor(qrand()%100+156,qrand()%100+156,qrand()%100+156), #FIXME Qt.white,
+            'rect': QRectF(),
+            'color': Qt.white,
 
             'name': '',
             'font': QFont('Courier New', 10, QFont.Black),
@@ -231,36 +202,12 @@ class Node(QGraphicsItem):
         super().hoverLeaveEvent(event)
 
 #-----------------------------------------------------------------------------------------------------------------------
-class NetNode:# TODO 面向NET
-    def __init__(self, node):
-        self.node= node
-
-    def setName(self, name):
-        self.node.style['name']= name
-
-    def setAbstract(self, abstract):
-        self.node.setAbstract(abstract)
-
-    def setSize(self, size):
-        self.node.style['rect']= QRectF(-size/2, -size/2, size, size)
-
-    def setColor(self, color):
-        self.node.style['color']= color
-
-    def pos(self):
-        return self.node.pos()
-
-    def setPos(self, point):
-        self.node.setPos(point)
-
-#=======================================================================================================================
-from core.common import Bind
-class GraphWidget(QGraphicsView):
+class UINetView(QGraphicsView):
     EDGE_LEN= 80 # 默认边长度
     NODE_SIZE= 40 # 默认Node大小
-    def __init__(self):
-        scene = QGraphicsScene()
-        super().__init__(scene)
+    def __init__(self, parent):
+        super().__init__( parent )
+        self.setScene( QGraphicsScene() )
 
         self.setCacheMode(QGraphicsView.CacheBackground)
         self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
@@ -268,93 +215,9 @@ class GraphWidget(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorViewCenter)
 
-
-    def setupGraph(self, graph):
-        self.graph= graph
-
-        AREA_SIZE= self.EDGE_LEN * len(graph)**0.5 #来自方形网平均宽度
-
-        # 构建Node
-        for nodename in self.graph:
-            node= Node()
-            node.setPos( qrand()%AREA_SIZE, qrand()%AREA_SIZE )
-            node.publish['ItemPositionHasChanged'].append( Bind(self._nodeMoved, nodename) )
-            node.publish['hoverEnterEvent'].append( Bind(self._nodeHoverEnter, nodename) )
-            node.publish['hoverLeaveEvent'].append( Bind(self._nodeHoverLeave, nodename) )
-            self.scene().addItem(node)
-
-            self.graph.node[nodename]['ui']= NetNode(node)
-            self.graph.node[nodename]['ui'].setSize( self.NODE_SIZE )
-
-        # 构建Edge
-        for src,dst in self.graph.edges():
-            if 'ui' in self.graph[dst][src]:# 反向已有, 不重复建立
-                continue
-
-            edge= Edge( self.graph.node[src]['ui'].pos(), self.graph.node[dst]['ui'].pos() )
-            self.scene().addItem(edge)
-
-            self.graph[src][dst]['ui']= NetEdge(edge, True) # True 正向
-            self.graph[dst][src]['ui']= NetEdge(edge, False) # False 反向
-
-        #---------------------------------------------------------------------------------------------------------------
-        # DEBUG Node
-        for nodename in self.graph:
-            self.graph.node[nodename]['ui'].setName( str(nodename) )
-            self.graph.node[nodename]['ui'].setAbstract( '0123456789\n0123456789' )
-        # DEBUG Edge
-        for src,dst in self.graph.edges():
-            self.graph[src][dst]['ui'].setText("%s,%s" % (src, dst))
-            self.graph[dst][src]['ui'].setText("%s,%s" % (dst, src))
-        # DEBUG 布局
-        # self._graphLayout(self.EDGE_LEN, 50) # 只能排在'构建Node'和'构建Edge'之后调用
-
-    #-------------------------------------------------------------------------------------------------------------------
-    def _nodeMoved(self, src):
-        src_pos= self.graph.node[src]['ui'].pos()
-        for dst in self.graph[src]:
-            dst_pos= self.graph.node[dst]['ui'].pos()
-            self.graph[src][dst]['ui'].adjust( src_pos, dst_pos )
-            self.graph[dst][src]['ui'].adjust( dst_pos, src_pos )
-
-    def _nodeHoverEnter(self, src):
-        for dst in self.graph[src]:
-            self.graph[src][dst]['ui'].showDetail()
-            self.graph[dst][src]['ui'].showDetail()
-
-    def _nodeHoverLeave(self, src):
-        for dst in self.graph[src]:
-            self.graph[src][dst]['ui'].hideDetail()
-            self.graph[dst][src]['ui'].hideDetail()
-
-    #-------------------------------------------------------------------------------------------------------------------
-    def _graphLayout(self, length, times): # 重新布局节点
-        ratio= length*length # ratio为此值时, 点之间距离大致为length
-        for i in range(0, times):
-            for nodename in self.graph.nodes():
-                self._calculateForces(nodename, ratio)
-
-        #TODO 如何减少调用次数???
-        rect= self.scene().itemsBoundingRect()
-        self.scene().setSceneRect(rect)
-
-    def _calculateForces(self, nodename, ratio): # 计算一个节点受力
-        force= QPointF(0.0, 0.0)
-        weight= len(self.graph[nodename])
-
-        node_pos= self.graph.node[nodename]['ui'].pos()
-        for othername in self.graph.nodes():
-            other_pos= self.graph.node[othername]['ui'].pos()
-            vec= other_pos - node_pos
-            vls= vec.x()*vec.x() + vec.y()*vec.y()
-
-            if 0 < vls < (2*self.EDGE_LEN) * (2*self.EDGE_LEN): # vec.length() 小于 2*self.EDGE_LEN 才计算斥力; 2来自于经验
-                force -= (vec/vls) * ratio# 空间中节点间为排斥力
-
-            if othername in self.graph[nodename]:
-                force += vec/weight # 连接的节点间为吸引力
-
-        self.graph.node[nodename]['ui'].setPos( node_pos + force*0.4 ) #force系数不能为1, 否则无法收敛; 0.4来自于经验,不会变化太快
+    def setUINet(self, ui_net):
+        self.ui_net= ui_net
+        self.ui_net.addToScene(self.scene())
 
     #-------------------------------------------------------------------------------------------------------------------
     def keyPressEvent(self, event):
@@ -366,7 +229,15 @@ class GraphWidget(QGraphicsView):
         elif key == Qt.Key_Right:pass
         elif key == Qt.Key_Plus: self.scaleView(1.2)
         elif key == Qt.Key_Minus: self.scaleView(1/1.2)
-        elif key == Qt.Key_P: self._graphLayout(self.EDGE_LEN, 1)
+        elif key == Qt.Key_P:
+            self.ui_net.graphLayout(self.EDGE_LEN, 1)
+            rect= self.scene().itemsBoundingRect()
+            self.scene().setSceneRect(rect)#TODO 如何减少调用次数???
+        elif key == Qt.Key_S:# FIXME DEBUG
+            self.ui_net.addToScene(self.scene())
+        elif key == Qt.Key_D:# FIXME DEBUG
+            self.ui_net.removeFromScene(self.scene())
+
         else: super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
@@ -395,62 +266,208 @@ class GraphWidget(QGraphicsView):
         if 0.07< factor < 100:
             self.scale(scaleFactor, scaleFactor)
 
+#=======================================================================================================================
+from core.common import AnnounceTable
+class NetEdge: #TODO 与网络关联起来
+    def __init__(self, edge, forward:bool):
+        self.edge= edge
+        self.forward= forward
+
+    def adjust(self, src, dst):
+        if self.forward:
+            self.edge.adjust(src, dst)
+        else:pass # 非正向边不进行调整, 以免重复调用
+
+    def setText(self, text): #TODO ...变得更抽象
+        if self.forward:
+            self.edge.style['forward_text']= text
+        else:
+            self.edge.style['reverse_text']= text
+        self.edge.update()
+
+    def showDetail(self):
+        self.edge.show_detail= True
+        self.edge.update()
+
+    def hideDetail(self):
+        self.edge.show_detail= False
+        self.edge.update()
+
+    #TODO def showSpeed(...)
+    #TODO ...
+
+#-----------------------------------------------------------------------------------------------------------------------
+class NetNode:# TODO 面向NET
+    def __init__(self, node):
+        self.node= node
+
+    def setName(self, name):
+        self.node.style['name']= name
+
+    def setAbstract(self, abstract):
+        self.node.setAbstract(abstract)
+
+    def setSize(self, size):
+        self.node.style['rect']= QRectF(-size/2, -size/2, size, size)
+
+    def setColor(self, color):
+        self.node.style['color']= color
+
+    def pos(self):
+        return self.node.pos()
+
+    def setPos(self, point):
+        self.node.setPos(point)
+
+#-----------------------------------------------------------------------------------------------------------------------
+from core.common import Bind
+class UINet:
+    EDGE_LEN= 80 # 默认边长度
+    NODE_SIZE= 40 # 默认Node大小
+    def __init__(self, graph):
+        self.graph= graph
+
+        AREA_SIZE= self.EDGE_LEN * len(graph)**0.5 #来自方形网平均宽度
+
+        # 构建Node
+        for nodename in self.graph:
+            node= Node()
+            node.setPos( qrand()%AREA_SIZE, qrand()%AREA_SIZE )
+            node.publish['ItemPositionHasChanged'].append( Bind(self._nodeMoved, nodename) )
+            node.publish['hoverEnterEvent'].append( Bind(self._nodeHoverEnter, nodename) )
+            node.publish['hoverLeaveEvent'].append( Bind(self._nodeHoverLeave, nodename) )
+
+            self.graph.node[nodename]['ui']= NetNode(node)
+            self.graph.node[nodename]['ui'].setSize( self.NODE_SIZE )
+
+        # 构建Edge
+        for src,dst in self.graph.edges():
+            if 'ui' in self.graph[dst][src]:# 反向已有, 不重复建立
+                continue
+
+            edge= Edge( self.graph.node[src]['ui'].pos(), self.graph.node[dst]['ui'].pos() )
+
+            self.graph[src][dst]['ui']= NetEdge(edge, True) # True 正向
+            self.graph[dst][src]['ui']= NetEdge(edge, False) # False 反向
+
+        #---------------------------------------------------------------------------------------------------------------
+        # DEBUG Node
+        for nodename in self.graph:
+            self.graph.node[nodename]['ui'].setName( str(nodename) )
+            self.graph.node[nodename]['ui'].setAbstract( '0123456789\n0123456789' )
+        # DEBUG Edge
+        for src,dst in self.graph.edges():
+            self.graph[src][dst]['ui'].setText("%s,%s" % (src, dst))
+            self.graph[dst][src]['ui'].setText("%s,%s" % (dst, src))
+        # DEBUG 布局
+        # self._graphLayout(self.EDGE_LEN, 50) # 只能排在'构建Node'和'构建Edge'之后调用
+
+    def nodes(self):
+        for nodename in self.graph:
+            yield self.graph.node[nodename]['ui']
+
+    def node(self, nodename):
+        return self.graph.node[nodename]['ui']
+
+    #-------------------------------------------------------------------------------------------------------------------
+    def addToScene(self, scene):
+        for nodename in self.graph:
+            net_node= self.graph.node[nodename]['ui']
+            scene.addItem( net_node.node )
+
+        for src,dst in self.graph.edges():
+            net_edge= self.graph[dst][src]['ui']
+            scene.addItem( net_edge.edge ) # addItem不怕重复添加
+
+        scene.setSceneRect( scene.itemsBoundingRect() )
+        scene.update()
+
+    def removeFromScene(self, scene):
+        for nodename in self.graph:
+            net_node= self.graph.node[nodename]['ui']
+            scene.removeItem( net_node.node )
+
+        for src,dst in self.graph.edges():
+            net_edge= self.graph[dst][src]['ui']
+            scene.removeItem( net_edge.edge ) # removeItem 不怕删除不存在item
+
+        scene.setSceneRect( scene.itemsBoundingRect() )
+        scene.update()
+
+    #-------------------------------------------------------------------------------------------------------------------
+    def graphLayout(self, length, times):
+        if len(self.graph) > 100: # 节点数量太多, 不进行布局
+            return
+
+        ratio= length*length # XXX ratio为此值时, 点之间距离大致为length
+        for i in range(0, times):
+            for nodename in self.graph:
+                self._calculateForces(nodename, ratio)
+
+    def _calculateForces(self, nodename, ratio): # 计算一个节点受力
+        force= QPointF(0.0, 0.0)
+        weight= len(self.graph[nodename])
+
+        node_pos= self.graph.node[nodename]['ui'].pos()
+        for othername in self.graph.nodes():
+            other_pos= self.graph.node[othername]['ui'].pos()
+            vec= other_pos - node_pos
+            vls= vec.x()*vec.x() + vec.y()*vec.y()
+
+            if 0 < vls < (2*self.EDGE_LEN) * (2*self.EDGE_LEN): # vec.length() 小于 2*self.EDGE_LEN 才计算斥力; 2来自于经验
+                force -= (vec/vls) * ratio# 空间中节点间为排斥力
+
+            if othername in self.graph[nodename]:
+                force += vec/weight # 连接的节点间为吸引力
+
+        self.graph.node[nodename]['ui'].setPos( node_pos + force*0.4 ) #force系数不能为1, 否则无法收敛; 0.4来自于经验,不会变化太快
+
+    #-------------------------------------------------------------------------------------------------------------------
+    def _nodeMoved(self, src):
+        src_pos= self.graph.node[src]['ui'].pos()
+        for dst in self.graph[src]:
+            dst_pos= self.graph.node[dst]['ui'].pos()
+            self.graph[src][dst]['ui'].adjust( src_pos, dst_pos )
+            self.graph[dst][src]['ui'].adjust( dst_pos, src_pos )
+
+    def _nodeHoverEnter(self, src):
+        for dst in self.graph[src]:
+            self.graph[src][dst]['ui'].showDetail()
+            self.graph[dst][src]['ui'].showDetail()
+
+    def _nodeHoverLeave(self, src):
+        for dst in self.graph[src]:
+            self.graph[src][dst]['ui'].hideDetail()
+            self.graph[dst][src]['ui'].hideDetail()
 
 #=======================================================================================================================
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QHBoxLayout, QWidget)
-from PyQt5.QtCore import (qsrand, QTime)
-
-
-import networkx
-from core.common import log, timeProfile
-log.level= log.LEVEL.WARING
-
-
-# top_graph= networkx.grid_2d_graph(100, 100)
-# top_graph= networkx.balanced_tree(2, 4)
-# top_graph= networkx.watts_strogatz_graph(20, 4, 0.3)
-top_graph = networkx.random_graphs.barabasi_albert_graph(30, 1)
-
-top_graph= networkx.DiGraph(top_graph)
-
-
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-
-        layout = QHBoxLayout()
-        # layout.addWidget(cv)
-
-        self.view = GraphWidget()
-        self.view.setupGraph(top_graph)
-
-        # for nodename in top_graph:
-        #     src, dst= nodename
-        #     top_graph.node[nodename]['ui'].setPos( QPointF(src*100, dst*100) )
-
-
-        layout.addWidget(self.view)
-
-        self.widget = QWidget()
-        self.widget.setLayout(layout)
-
-        self.setCentralWidget(self.widget)
-        self.setWindowTitle("Diagramscene")
-
-
 if __name__ == '__main__':
-    import sys
+    import sys, networkx
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtCore import qsrand, QTime
+    from core.common import log
+    log.level= log.LEVEL.WARING
+
+
+    # graph= networkx.grid_2d_graph(10, 10)
+    # graph= networkx.balanced_tree(2, 4)
+    # graph= networkx.watts_strogatz_graph(20, 4, 0.3)
+    graph = networkx.random_graphs.barabasi_albert_graph(30, 1)
+    graph= networkx.DiGraph(graph)
+
+
     app = QApplication(sys.argv)
-
     qsrand(QTime(0,0,0).secsTo(QTime.currentTime()))
-    # widget = GraphWidget()
-    # widget.show()
 
-    mainWindow = MainWindow()
-    mainWindow.setGeometry(100, 100, 800, 500)
-    mainWindow.show()
 
-    timeProfile('app.exec_()')
-    # sys.exit(app.exec_())
+    widget = UINetView()
+    widget.setGeometry(100, 100, 800, 500)
+    widget.setUINet( UINet(graph) )
+    widget.show()
+    sys.exit(app.exec_())
+
+    # from core.common import timeProfile
+    # timeProfile('app.exec_()')
+
 
 

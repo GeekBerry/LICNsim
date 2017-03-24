@@ -10,12 +10,12 @@ class PerfectChannel(Announce):
     #     self.loss= 0
 
     def __call__(self, packet):
-        clock.timing( 0, Function(super().__call__, packet) )
+        clock.timing(0, Bind(super().__call__, packet))
 
 
 class OneStepChannel(Announce):
     def __call__(self, packet):
-        clock.timing( 1, Function(super().__call__, packet) )
+        clock.timing(1, Bind(super().__call__, packet))
 
 
 class NoQueueChannel(Announce):
@@ -27,11 +27,11 @@ class NoQueueChannel(Announce):
 
     def __call__(self, packet):#发送 packet, 实现在队列时间管理
         trans_time= len(packet)/self.rate
-        clock.timing( trans_time, Function(self.__emit, packet) )
+        clock.timing(trans_time, Bind(self.__emit, packet))
 
     def __emit(self, packet):
         if random.randint(0,100) >= self.loss: # 没有丢包
-            clock.timing( self.delay, Function(super().__call__, packet) ) # Announce.__call__ 使其终端真正接收数据
+            clock.timing(self.delay, Bind(super().__call__, packet)) # Announce.__call__ 使其终端真正接收数据
         else:
             log.info(packet, '在途中丢失，丢包率是', self.loss)
 
@@ -48,11 +48,11 @@ class Channel(Announce):
         start_time= max( clock.time(), self.__finish )
         trans_time= len(packet)/self.rate
         self.__finish= start_time + trans_time
-        clock.timing( self.__finish - clock.time(), Function(self.__emit, packet) )
+        clock.timing(self.__finish - clock.time(), Bind(self.__emit, packet))
 
     def __emit(self, packet):
         if random.randint(0,100) >= self.loss: # 没有丢包
-            clock.timing(self.delay, Function(super().__call__, packet) ) # Announce.__call__ 使其终端真正接收数据
+            clock.timing(self.delay, Bind(super().__call__, packet)) # Announce.__call__ 使其终端真正接收数据
         else:
             log.info(packet, '在途中丢失，丢包率是', self.loss)
 

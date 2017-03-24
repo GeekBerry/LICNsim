@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 #coding=utf-8
 
+import random
 from core.common import Unit
 from core.data_structure import deque
+
 
 class ReplacePolicyBase(Unit):
     def __init__(self):
@@ -37,6 +39,7 @@ class ReplacePolicyBase(Unit):
     def evict(self, packet): pass
 
     def replace(self): return None
+
 #-----------------------------------------------------------------------------------------------------------------------
 class RandomPolicy(ReplacePolicyBase):
     def __init__(self):
@@ -51,6 +54,7 @@ class RandomPolicy(ReplacePolicyBase):
 
     def replace(self):
         return random.choice(self._list)
+
 #-----------------------------------------------------------------------------------------------------------------------
 class FIFOPolicy(ReplacePolicyBase):
     def __init__(self):

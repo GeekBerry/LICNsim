@@ -34,14 +34,18 @@ class AppUnitBase(Unit):
         self.app_channel= Announce() #用于发送兴趣包的通道
 
     def install(self, announces, api):
-        #发布的 Announce
-        self.publish['ask'].append( announces['ask'] )#arg( Packet )
-        self.publish['respond'].append( announces['respond'] ) #arg( Packet )
-        #调用的API
-        api['Face::create']('APP', self.app_channel, self._respond)
-        self.api= api
-        #提供的API
+        """
+        :param announces:
+            ask( Packet )
+            respond( Packet )
+        :param api:
+        :return:
+        """
         api['APP::ask']= self._ask
+        self.publish= announces
+        self.api= api
+
+        self.api['Face::create']('APP', self.app_channel, self._respond)  # 调用Face的api建立连接
 
 
     def _ask(self, packet):

@@ -31,7 +31,7 @@ class Clock:
     def time(self):
         return self.__time
 
-    def timing(self, delay, func):#-> Clock.CallBack 或 None
+    def timing(self, delay, func):  # -> Clock.CallBack 或 None
         """
         设置定时执行函数
         :param delay 执行时间，从当前时间起的step数
@@ -43,33 +43,29 @@ class Clock:
             raise KeyError("delay 设置必须大于等于0")
 
         functions= self.__todo.setdefault( self.__time+delay, [] )
-        functions.append( func )
-        return Clock.ID( self.__time+delay, len(functions)-1 )#在键为self.__time+delay的列表中第len(functions)-1项
+        functions.append(func)
+        return Clock.ID( self.__time+delay, len(functions)-1 )  # 在键为self.__time+delay的列表中第len(functions)-1项
 
-    def cancel(self, id):# 会修改id
-        # print(id.getTime(), id.getIndex(), self.__todo)#FIXME DEBUG
-
-        if type(id)==Clock.ID \
-        and id.getTime() in self.__todo\
-        and 0<= id.getIndex() < len(self.__todo[ id.getTime() ]):
-            self.__todo[ id.getTime() ][ id.getIndex() ]= None
-            id.clear()
-
+    def cancel(self, clock_id):  # 会修改id
+        if type(clock_id) == Clock.ID \
+        and clock_id.getTime() in self.__todo\
+        and 0<= clock_id.getIndex() < len( self.__todo[clock_id.getTime()] ):
+            self.__todo[clock_id.getTime()][clock_id.getIndex()]= None
+            clock_id.clear()
 
     def step(self):
         if self.__time in self.__todo:
-            for func in self.__todo[ self.__time ]:# 列表遍历时可追加
-                if func:# 如果func有效(没被cancel等)
-                    func()#执行, 一定为无参数类型
-            del self.__todo[ self.__time ] # 删除此时间事件, 不能再之前直接用pop
-        self.__time += 1 # 时间片自增
+            for func in self.__todo[self.__time]:  # 列表遍历时可追加
+                if func:  # 如果func有效(没被cancel等)
+                    func()  # 执行, 一定为无参数类型
+            del self.__todo[self.__time] # 删除此时间事件, 不能再之前直接用pop
+        self.__time += 1  # 时间片自增
 
-        #from common import log
-        #log.track('clock step', self.__time)
 
     def clear(self):
         self.__time= 0
         self.__todo= {}
+
 
 
 

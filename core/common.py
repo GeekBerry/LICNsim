@@ -5,33 +5,10 @@
 from core.logger import *
 from core.clock import clock, Timer
 
-IS_DEBUG= 1
+PRINT_STEP= 0
+IS_DEBUG= 0
+
 if IS_DEBUG:
-    import time
-    def timeIt(func):
-        def _lambda(*args, **kwargs):
-            start_time= time.clock()
-            ret= func(*args, **kwargs)
-            print(func.__name__, '运行:', (time.clock()- start_time), 's')
-            return ret
-        return _lambda
-
-    def showCall(func, *args, **kwargs):
-        def lam(*args, **kwargs):
-            print('<', func.__name__, '>')
-            ret= func(*args, **kwargs)
-            print('</', func.__name__, '>')
-            return ret
-        return lam
-
-    import cProfile
-    import pstats
-    def timeProfile(cmd):
-        prof= cProfile.Profile()
-        prof.run(cmd)
-        pstats.Stats(prof).sort_stats('tottime').print_stats('', 20)# sort_stats:  ncalls, tottime, cumtime
-        # .strip_dirs()
-
     log= Logger( Logger.LEVEL.TRACK )
     label= LabelTable() #全局标签
 
@@ -56,6 +33,7 @@ INF= 0x7FFFFFFF  #无穷大 此处用4byte整形最大正数
 import numpy
 import random
 
+
 class Impulse:
     def __init__(self, delta, function):
         self.delta= delta
@@ -64,7 +42,8 @@ class Impulse:
     def __call__(self, t):
         if t % self.delta == 0:
             return self.function(t)
-        else:return 0
+        else: return 0
+
 
 def fixedAsk(t):
     return 1
@@ -89,21 +68,21 @@ def graphHoops(graph, center):
         for node in hoop:# 找出hoop的所有相邻节点
             outer |= graph[node].keys()
         inter, hoop= hoop, outer- hoop- inter # 向外扩张一层
-
-
-def graphNearest(graph, center, stores):
-    """
-    返回graph中距离center最近且在store_set中的节点
-    :param graph:networkx.DiGraph
-    :param center:nodename
-    :param stores:set(nodename, ...)
-    :return:nodename
-    """
-    for hoop in graphHoops(graph, center):# 遍历层
-        for node in hoop:# 遍历圈中节点
-            if node in stores:
-                return node
-    return None
+#
+#
+# def graphNearest(graph, center, stores):
+#     """
+#     返回graph中距离center最近且在store_set中的节点
+#     :param graph:networkx.DiGraph
+#     :param center:nodename
+#     :param stores:set(nodename, ...)
+#     :return:nodename
+#     """
+#     for hoop in graphHoops(graph, center):# 遍历层
+#         for node in hoop:# 遍历圈中节点
+#             if node in stores:
+#                 return node
+#     return None
 
 
 def graphNearestPath(graph, center, content_nodes):
@@ -112,37 +91,39 @@ def graphNearestPath(graph, center, content_nodes):
     :param graph:networkx.DiGraph
     :param center:nodename
     :param content_nodes:set(nodename, ...)
-    :return:[nodename, ...]
+    :return:[nodename, ...] OR None
 
     graph:
       3--4--6
      /    \
-    1--2---5
+    1--2--{5}
 
     graphNearestPath(graph, 1, {5})过程:
-        inter   current outer   cur_path            next_path
+        inter   current outer   cur_paths            next_paths
     1>  {}      {1}     {2,3}   [ [1] ]             [ [1,2], [1,3] ]
     2>  {1}     {2,3}   {5,4}   [ [1,2], [1,3] ]    [ [1,2,5], [1,3,4] ]
     3>  {2,3}   {5,4}   {6}     [ [1,2,5]return ...
     return [1,2,5]
     """
     inter, current, outer= set(), {center}, set()
-    cur_path, next_path= [ [center] ], []
+    cur_paths, next_paths= [ [center] ], []
 
-    while len(cur_path)>0:
-        for path in cur_path:# 层遍历
-            if path[-1] in content_nodes:
+    while len(cur_paths)>0:
+        for path in cur_paths:  # 层遍历
+            tie_node= path[-1]
+            if tie_node in content_nodes:  # 该路径末尾节点在目标集合中
                 return path
 
-            for node in graph[ path[-1] ].keys():
-                if node not in current  and  node not in inter:
+            for node in graph.neighbors(tie_node):
+                if (node not in current) and (node not in inter):
                     outer.add(node)
-                    next_path.append( path+[node] )
+                    next_paths.append( path+[node] )
 
-        cur_path, next_path= next_path, []
+        cur_paths, next_paths= next_paths, []
         inter, current= current, outer
 
     return None
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 class UniformPosition:
@@ -174,19 +155,13 @@ class ZipfPosition:
 #=======================================================================================================================
 EMPTY_FUNC= lambda *args: None
 
-class Function:
-    def __init__(self, func, *args, **kwargs):
+class Bind:
+    def __init__(self, func, *args):
         self.func= func
         self.args= args
-        self.kwargs= kwargs
 
-    def __call__(self):
-        log.track(self.func, self.args, self.kwargs)
-        return self.func(*self.args, **self.kwargs)
-
-class Bind(Function):
     def __call__(self, *args, **kwargs):
-        return self.func(*self.args, *args, **kwargs) #FIXME self.kwargs
+        return self.func(*self.args, *args, **kwargs)
 
 #-----------------------------------------------------------------------------------------------------------------------
 class CallTable(dict):
@@ -211,9 +186,11 @@ class CallTable(dict):
         callback= self.setdefault( name, CallTable.CallBack() )
         callback.func= func
 
-class Announce(list):#-> void, raise KeyError
+
+class Announce(list):  # -> void, raise KeyError
     def __call__(self, *args, **kwargs):
         for callback in self:
+            log.track(label[self], '将调用', label[callback], '(', args, kwargs, ')')
             callback(*args, **kwargs)
 
         if len(self) == 0:
@@ -222,12 +199,13 @@ class Announce(list):#-> void, raise KeyError
     def __hash__(self):
         return hash( id(self) )
 
+
 class AnnounceTable(dict):
     def __getitem__(self, name):
         announce= self.get(name)
         if announce is None:
-            announce= self[name]= Announce()
-            label[announce]= label[self],'[',name,']'
+            self[name]= announce= Announce()
+            label[announce]= label[self], '[', name, ']'
         return announce
 
 #=======================================================================================================================
@@ -237,21 +215,41 @@ class Unit:
         label[self.publish]= label[self],".pub"
 
     def install(self, announces, api):
-        #监听的 Announce
-        #发布的 Announce
-        #提供的 API
-        #调用的 API
+        # 监听的 Announce
+        # 发布的 Announce
+        # 提供的 API
+        # 调用的 API
         pass
 
 
 
+#=======================================================================================================================
+import time
+
+def timeIt(func):
+    def _lambda(*args, **kwargs):
+        start_time= time.clock()
+        ret= func(*args, **kwargs)
+        print(func.__name__, '运行:', (time.clock()- start_time), 's')
+        return ret
+    return _lambda
 
 
+def showCall(func, *args, **kwargs):
+    def lam(*args, **kwargs):
+        print('<', func, '>')
+        ret= func(*args, **kwargs)
+        print('</', func, '>')
+        return ret
+    return lam
 
 
-
-
-
+import cProfile
+import pstats
+def timeProfile(cmd):
+    prof= cProfile.Profile()
+    prof.run(cmd)
+    pstats.Stats(prof).strip_dirs().sort_stats('tottime').print_stats('', 20)# sort_stats:  ncalls, tottime, cumtime
 
 
 

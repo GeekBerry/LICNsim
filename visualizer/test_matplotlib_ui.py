@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from deprecated.graphLayout import graphLayout
 
 import networkx, numpy
 import matplotlib.pyplot as plt
@@ -50,7 +49,7 @@ class MyMplCanvas(FigureCanvas):
     def init(self):
         # self.pos= _graphLayout(top_graph,iterations= 100)
         # self.pos= {0:numpy.array([0.0,0.0]), 1:numpy.array([1.0,0.0]) , 2:numpy.array([20.0,0.0])}
-        self.pos= None
+        self.pos= networkx.spring_layout(top_graph)
 
     def paint(self, painter, option, widget):
         pass
@@ -59,7 +58,6 @@ class MyMplCanvas(FigureCanvas):
     def update(self):#不能叫update
         self.axes.cla()# 清空当前坐标
 
-        self.pos= graphLayout(top_graph, pos= self.pos, iterations= 1)
         networkx.draw_networkx(top_graph, self.pos, ax= self.axes, node_size= 1, with_labels = True)
 
         array= [
