@@ -27,8 +27,7 @@ class InfoUnit(Unit):
 
     class Info:
         def __new__(cls):
-            return defaultdict( InfoUnit.Entry )
-
+            return defaultdict(InfoUnit.Entry)
 
     def __init__(self, max_size, life_time):
         super().__init__()
@@ -55,11 +54,11 @@ class InfoUnit(Unit):
         self.publish= announces
         api['Info::getInfo']= self.getInfo
 
-    def inPacket(self, faceid, packet):
-        self.table[packet.name][faceid].recv[packet.type]= clock.time()
+    def inPacket(self, face_id, packet):
+        self.table[packet.name][face_id].recv[packet.type]= clock.time()
 
-    def outPacket(self, faceid, packet):
-        self.table[packet.name][faceid].send[packet.type]= clock.time()
+    def outPacket(self, face_id, packet):
+        self.table[packet.name][face_id].send[packet.type]= clock.time()
 
     def getInfo(self, packet):
         return self.table[packet.name]

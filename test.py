@@ -1,4 +1,4 @@
-from core.common import *
+# from core.common import *
 # TODO 数据库
 # TODO demo 数据采集
 # TODO 物联网
@@ -57,7 +57,7 @@ from core.common import *
 
 
 # import networkx
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 # top_graph= networkx.path_graph(3)
@@ -110,4 +110,15 @@ import matplotlib.pyplot as plt
 # p= normalization(l, *p)
 # print(p)
 
+
+
+
+
+#=======================================================================================================================
+from core.common import CppDll
+
+main= CppDll('main')
+d= {1:100}
+p= main.foo(d)
+print(p)
 

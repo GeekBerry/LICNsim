@@ -7,8 +7,13 @@ from core.clock import clock, Timer
 from core.common import log, label
 
 def discard(obj, key):
-    try: obj.remove(key)
-    except: pass
+    if hasattr(obj, '__delitem__'):
+        try: del obj[key]
+        except: pass
+    elif hasattr(obj, 'remove'):
+        try: obj.remove(key)
+        except: pass
+    else: raise RuntimeError('不能使用discard函数')
 
 def topValue(obj):
     if isinstance( obj, dict ):
@@ -174,8 +179,7 @@ class DictDecorator:
 class SizeDictDecorator(DictDecorator):
     def __init__(self, table, capacity, set_refresh= True, get_refresh= True):
         super().__init__(table)
-        self.deque= deque()  # 键队列 self.deque > self.table.keys()
-
+        self.deque= deque()
         self._capacity= capacity
         self.set_refresh= set_refresh
         self.get_refresh= get_refresh
@@ -193,7 +197,6 @@ class SizeDictDecorator(DictDecorator):
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)  # 执行后 key 有可能不在 table 中
-
         if key not in self.deque:
             self.deque.append(key)
             self._evict()
@@ -220,7 +223,6 @@ class SizeDictDecorator(DictDecorator):
 #     t[2]= 2
 #     print(t.deque, t.table.deque)
 
-
 #-----------------------------------------------------------------------------------------------------------------------
 class TimeDictDecorator(DictDecorator):
     def __init__(self, table, life_time, set_refresh= True, get_refresh= True):
@@ -233,11 +235,7 @@ class TimeDictDecorator(DictDecorator):
         self.get_refresh= get_refresh
 
     def coreEvictEvent(self, key, value):
-        del self.info[key]
-        # try:  # FIXME try???
-        #     del self.info[key]
-        # except KeyError:
-        #     pass
+        del self.info[key]  # 使用 discard ???
         super().coreEvictEvent(key, value)
 
     def __setitem__(self, key, value):
@@ -266,7 +264,6 @@ class TimeDictDecorator(DictDecorator):
 
         if self.info:
             self.timer.timing( topValue(self.info) - clock.time() )
-
 
 # if __name__ == '__main__':
 #     t= TimeDictDecorator({}, 2)
@@ -309,5 +306,6 @@ class DefaultDictDecorator(dict):  # XXX 如何用 defaultdict 实现 ???
         else:
             self[key]= value= self.DefaultType()
             return value
+
 
 

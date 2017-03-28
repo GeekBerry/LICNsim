@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.8
+# Created by: PyQt5 UI code generator 5.8.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -38,6 +38,9 @@ class Ui_main_window(object):
         self.dock_tool.setObjectName("dock_tool")
         self.dockWidgetContents = QtWidgets.QWidget()
         self.dockWidgetContents.setObjectName("dockWidgetContents")
+        self.gridLayout_2 = QtWidgets.QGridLayout(self.dockWidgetContents)
+        self.gridLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout_2.setObjectName("gridLayout_2")
         self.dock_tool.setWidget(self.dockWidgetContents)
         main_window.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.dock_tool)
         self.action_tool_dock = QtWidgets.QAction(main_window)

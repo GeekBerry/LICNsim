@@ -8,7 +8,7 @@ from core.data_structure import *
 class ContentStoreUnit(Unit):
     def __init__(self, capacity):# 安装在系统上
         super().__init__()
-        self.table= DictDecorator({})
+        self.table = {}  # DictDecorator({})
         self.capacity= capacity
 
     def install(self, announces, api):

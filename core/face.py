@@ -5,8 +5,8 @@ from core.common import *
 from core.data_structure import *
 
 class Face:
-    def __init__(self, faceid):
-        self.faceid= faceid
+    def __init__(self, face_id):
+        self.face_id= face_id
         self.downstream= None
         self.upstream= None
         self.can_recv= True
@@ -15,7 +15,7 @@ class Face:
     def download(self, packet): # 接收一个包
         if self.can_recv:
             log.info(label[self], '接收', str(packet) )
-            self.downstream(self.faceid, packet)
+            self.downstream(self.face_id, packet)
         else:
             log.debug('can_recv 为 False , 不能接收数据包')
 
@@ -59,13 +59,13 @@ class RepeatChecker:# 在一个step内保证不会往一个faceid发送,相同�
         self.refresh_time= -INF # 上次更新时间
         self.info_set= set()
 
-    def isRepeat(self, faceid, packet):
+    def isRepeat(self, face_id, packet):
         if self.refresh_time < clock.time():# 清空以前结果
             self.info_set.clear()
             self.refresh_time= clock.time()
             clock.timing(1, self.info_set.clear)#定时, 以免不调用__call__时info长期得不到清空, 只要delay大于1即可
 
-        info_tuple= (faceid, packet.name, packet.type)
+        info_tuple= (face_id, packet.name, packet.type)
         if info_tuple in self.info_set:# 重复包
             return True
         else:
@@ -96,7 +96,7 @@ class FaceUnit(Unit):
         #调用的 API
 
     #--------------------------------------------------------------------------
-    def create(self, faceid, src_channel, dst_channel):# API
+    def create(self, face_id, src_channel, dst_channel):# API
         """
             Channel                       Face                           FaceUnit
         +-------------+               +----------+                  +----------------+
@@ -104,53 +104,53 @@ class FaceUnit(Unit):
         +-------------+               |          |                  | ============== |>> outPacket
         | src_channel | ---download-->| can_recv |---downstream-->  | | loop check | |>> inPacket
         +-------------+               +----------+                  +----------------+
-        :param faceid:Any
+        :param face_id:Any
         :param src_channel:isinstance(Channel)
         :param dst_channel:isinstance(Channel)
         :return:None
         """
-        self.destroy(faceid) #不破不立
+        self.destroy(face_id) #不破不立
 
-        face= self.table.setdefault( faceid, Face(faceid) )
+        face= self.table.setdefault( face_id, Face(face_id) )
         src_channel.append( face.download )
         face.upstream= dst_channel
         face.downstream= self.receive
 
-        label[ face ]= label[self],'[',str(faceid),']'
+        label[ face ]= label[self],'[',str(face_id),']'
         log.info("创建", label[ face ] )
 
-    def destroy(self, faceid):
-        face= self.table.pop(faceid)
+    def destroy(self, face_id):
+        face= self.table.pop(face_id)
         if face is not None:
             face.downstream= EMPTY_FUNC# 不会再下发数据包
             del label[face]
 
     def getSendIds(self):
-        send_ids= [ faceid
-            for faceid, face in self.table.items()
+        send_ids= [ face_id
+            for face_id, face in self.table.items()
                 if face.can_send
             ]
         return set( send_ids )
 
     #--------------------------------------------------------------------------
-    def receive(self, faceid, packet):
+    def receive(self, face_id, packet):
         if self.loop_checker.isLoop(packet):
-            log.waring(label[self], '循环包', faceid, packet)
+            log.waring(label[self], '循环包', face_id, packet)
         else:
-            self.publish['inPacket'](faceid, packet)
+            self.publish['inPacket'](face_id, packet)
 
     def send(self, faceids, packet):
-        for faceid in faceids:
-            if faceid not in self.table:# 排除无效faceid
-                log.waring("invFaceid",faceid)
+        for face_id in faceids:
+            if face_id not in self.table:# 排除无效faceid
+                log.waring("invFaceid",face_id)
                 continue
 
-            if self.repeat_checker.isRepeat(faceid, packet):# 排除重复包
-                log.waring(label[self], '重复包', faceid, packet)
+            if self.repeat_checker.isRepeat(face_id, packet):# 排除重复包
+                log.waring(label[self], '重复包', face_id, packet)
                 continue
 
-            self.table[faceid].upload(packet)#发送
-            self.publish['outPacket'](faceid, packet)
+            self.table[face_id].upload(packet)#发送
+            self.publish['outPacket'](face_id, packet)
 
 #=======================================================================================================================
 # if __name__ == '__main__':

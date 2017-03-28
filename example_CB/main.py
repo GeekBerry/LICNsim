@@ -63,24 +63,26 @@ POS_FUNC_S= {
 }
 #=======================================================================================================================
 for     csmode,   cstime,   numfunc,    lam,     posfunc   in \
-product(CS_MODES, CS_TIMES, NUM_FUNC_S, LAMBDAS, POS_FUNC_S):#笛卡尔积
+product(CS_MODES, CS_TIMES, NUM_FUNC_S, LAMBDAS, POS_FUNC_S):  # 笛卡尔积
 
     filename= "result//%s_%s_SIZE%d_%s%d_%s%d_%s.txt"%(DATE, GRAPH_NAME, len(graph), csmode, cstime, numfunc, lam, posfunc)
     print("实验", filename)
     starttime= time.clock()
 
-    ratio= lam * 2 * DIAMETER #单位(step/s)
+    ratio= lam * 2 * DIAMETER  # 单位(step/s)
 
-    num_func= Impulse(DIAMETER * 2, NUM_FUNC_S[numfunc]) # 将 num_func 增加一个脉冲来控制间隔
+    num_func= Impulse(DIAMETER * 2, NUM_FUNC_S[numfunc])  # 将 num_func 增加一个脉冲来控制间隔
 
     net= ICNNet(graph, ExperimentNode, OneStepChannel)
-    sim= Simulation(net, num_func= num_func, pos_func= POS_FUNC_S[posfunc])
+    net.publish['transfer'].append(print)
+
+    sim= Simulation(net, num_func=num_func, pos_func=POS_FUNC_S[posfunc])
     sim.setCSMode(CS_MODES[csmode])
     sim.setCSTime(cstime * ratio)
-    sim.setSourceNode( DATANODE )# 要在设置mode之后
+    sim.setSourceNode( DATANODE )  # 要在设置mode之后
 
     filer= Filer(filename, sim.db_monitor, sim.name,  delta= ratio, print_screen= True)
-    sim.simulate(steps= SIM_SECOND*ratio + 1)# 发送间隔为响应最大延迟
+    sim.simulate(steps= SIM_SECOND*ratio + 1)  # 发送间隔为响应最大延迟
     filer.close()
     clock.clear()
 

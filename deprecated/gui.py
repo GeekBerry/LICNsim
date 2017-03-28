@@ -68,13 +68,13 @@ class StoreTrackApp:
 
     def storeData(self, packet):
         if packet.name == self.trackname:
-            self.data['stores'].add( self.api['Node::getName']() )
+            self.data['stores'].add( self.api['NodeItem::getName']() )
             self.data['storecount'] += 1
 
 
     def evictData(self, packet):
         if packet.name ==  self.trackname:
-            self.data['stores'].discard( self.api['Node::getName']() )
+            self.data['stores'].discard( self.api['NodeItem::getName']() )
             self.data['evictcount'] += 1
 
 #--------------------------------------------------------------------------
@@ -105,19 +105,19 @@ class PendTrackApp:
 
     def inInterest(self, faceid, packet):
         if packet.name == self.trackname:
-            self.data['pends'].add( self.api['Node::getName']() )
+            self.data['pends'].add( self.api['NodeItem::getName']() )
 
 
     def sendData(self, faceid, packet):
         if packet.name == self.trackname:
-            self.data['pends'].discard( self.api['Node::getName']() )
-            #self.data['satisfy'].append( self.api['Node::getName']() )
+            self.data['pends'].discard( self.api['NodeItem::getName']() )
+            #self.data['satisfy'].append( self.api['NodeItem::getName']() )
 
 
     def unsatisfy(self, name, entry):
         if name == self.trackname:
-            self.data['pends'].discard( self.api['Node::getName']() )
-            #self.data['unsatisfy'].append( self.api['Node::getName']() )
+            self.data['pends'].discard( self.api['NodeItem::getName']() )
+            #self.data['unsatisfy'].append( self.api['NodeItem::getName']() )
 
 #--------------------------------------------------------------------------
 class IOAPP:
@@ -157,7 +157,7 @@ class IOAPP:
             self.sendtime= clock.time()
             self.sender(packet)
             self.data['askcount'] += 1
-            self.data['ask'].append( self.api['Node::getName']() )
+            self.data['ask'].append( self.api['NodeItem::getName']() )
 
 
     def receive(self, packet):
@@ -173,7 +173,7 @@ class IOAPP:
     def unsatisfy(self, name, entry):
         if 'APP' in entry.in_i  and  name == self.sendname:
             self.sendtime= None
-            self.data['nack'].append( self.api['Node::getName']() )
+            self.data['nack'].append( self.api['NodeItem::getName']() )
             self.data['nackcount'] += 1
 
 
@@ -206,7 +206,7 @@ class GodView:
 
     def inInterest(self, faceid, packet):#DEBUG
         if faceid == 'APP':
-            srcnode= self.api['Node::getName']() 
+            srcnode= self.api['NodeItem::getName']()
             dstnode= self.api['getDistance']()
             dst= manhattanDistance(srcnode, dstnode)
 
@@ -227,7 +227,7 @@ class GodView:
         
 
     def getNearestCSNode_forStores(self):#->node
-        nodename= self.api['Node::getName']()
+        nodename= self.api['NodeItem::getName']()
     
         def getDistanceFromSelf(dstnode):
             return manhattanDistance( nodename, dstnode)
@@ -240,7 +240,7 @@ class GodView:
 
     def getNearestCSNode_outerManhattanHoop(self):
         import numpy as np
-        center= self.api['Node::getName']()
+        center= self.api['NodeItem::getName']()
         hoop= [np.array(center)]
 
         while hoop:

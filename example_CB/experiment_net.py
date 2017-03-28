@@ -17,17 +17,17 @@ class ExperimentMonitorDataBase(MonitorDataBase):
     def _ask(self, nodename, packet, distance):
         entry= self.content_table[packet.name]
         entry.pend.add(nodename)
-        entry.dist.append( distance )
+        entry.dist.append(distance)
 
     def _respond(self, nodename, packet, asktime):
         entry= self.content_table[packet.name]
         entry.pend.discard(nodename)
-        entry.time.append( clock.time() - asktime )
+        entry.time.append(clock.time() - asktime)
 
 #-----------------------------------------------------------------------------------------------------------------------
-class StoreProvider:# 储存服务提供者
+class StoreProvider:  # 储存位置服务提供者
     def __init__(self, net, db_monitor):
-        net.storeAPI('Net::getPath', self.getPath )
+        net.storeAPI('Net::getPath', self.getPath)
         self._graph= net.graph
         self._db_monitor= db_monitor
 
@@ -40,6 +40,7 @@ def listMean(l)->str:
     if len(l) > 0:
         return "%6f"%( numpy.mean(l) )
     else: return 'NaN'
+
 
 def division(dividend, divisor)->str:
     if divisor != 0:
@@ -124,17 +125,17 @@ class Simulation:
         self.db_monitor= ExperimentMonitorDataBase(self.net)
         StoreProvider(self.net, self.db_monitor)
 
-    def setCSMode(self, mode):#配置CS类型
+    def setCSMode(self, mode):  # 配置CS类型
         for node in self.net.nodes():
             node.api['CS::setMode'](mode)
 
-    def setCSTime(self, time):#配置CS时间
+    def setCSTime(self, time):  # 配置CS时间
         for node in self.net.nodes():
             node.api['CS::setLifeTime'](time)
 
     def setSourceNode(self, nodename):
-        self.net.node( nodename ).api['CS::setMode'](SimulatCSUnit.MODE.MANUAL)# 源节点: 替换 or 不被替换
-        self.net.node( nodename ).api['CS::store']( self.dpacket )# 要在CS类型配置之后,才会被正确驱逐
+        self.net.node( nodename ).api['CS::setMode'](SimulatCSUnit.MODE.MANUAL)  # 源节点: 替换 or 不被替换
+        self.net.node( nodename ).api['CS::store']( self.dpacket )  # 要在CS类型配置之后,才会被正确驱逐
 
     def asks(self, nodenames):
         for nodename in nodenames:
@@ -142,7 +143,7 @@ class Simulation:
 
     def simulate(self, steps):
         for i in range(0, steps):
-            nodenum= self.num_func(i) # FIXME i 如何对应 t
+            nodenum= self.num_func(i)  # FIXME i 如何对应 t
             nodenames= self.pos_func( nodenum )
             self.asks(nodenames)
 

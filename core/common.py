@@ -29,6 +29,7 @@ else:
 # 全局变量
 INF= 0x7FFFFFFF  #无穷大 此处用4byte整形最大正数
 
+
 #=======================================================================================================================
 import numpy
 import random
@@ -164,8 +165,10 @@ class Bind:
         return self.func(*self.args, *args, **kwargs)
 
 #-----------------------------------------------------------------------------------------------------------------------
-class CallTable(dict):
-    class CallBack:#用于CallTable[name]还不存在时,返回一个绑定指向列表的量
+from core.data_structure import defaultdict
+
+class CallTable(dict):  # FIXME 能否利用defaultdict实现
+    class CallBack:  # 用于CallTable[name]还不存在时,返回一个绑定指向列表的量
         def __init__(self):
             self.func= None
 
@@ -186,8 +189,15 @@ class CallTable(dict):
         callback= self.setdefault( name, CallTable.CallBack() )
         callback.func= func
 
+if __name__ == '__main__':
+    t= CallTable()
+    p= t['1']
+    t['1']= print
+    p(1,2,3)
 
-class Announce(list):  # -> void, raise KeyError
+
+
+class Announce(list):
     def __call__(self, *args, **kwargs):
         for callback in self:
             log.track(label[self], '将调用', label[callback], '(', args, kwargs, ')')
@@ -196,17 +206,9 @@ class Announce(list):  # -> void, raise KeyError
         if len(self) == 0:
             log.info(label[self], args, "没人订阅")
 
-    def __hash__(self):
-        return hash( id(self) )
-
-
-class AnnounceTable(dict):
-    def __getitem__(self, name):
-        announce= self.get(name)
-        if announce is None:
-            self[name]= announce= Announce()
-            label[announce]= label[self], '[', name, ']'
-        return announce
+class AnnounceTable(defaultdict):
+    def __init__(self):
+        super().__init__(Announce)
 
 #=======================================================================================================================
 class Unit:
@@ -237,9 +239,9 @@ def timeIt(func):
 
 def showCall(func, *args, **kwargs):
     def lam(*args, **kwargs):
-        print('<', func, '>')
+        print('<', func.__name__, ', time=', clock.time(), '>')
         ret= func(*args, **kwargs)
-        print('</', func, '>')
+        print('</', func.__name__, '>')
         return ret
     return lam
 
@@ -252,7 +254,32 @@ def timeProfile(cmd):
     pstats.Stats(prof).strip_dirs().sort_stats('tottime').print_stats('', 20)# sort_stats:  ncalls, tottime, cumtime
 
 
+import os
+import sys
+from ctypes import CDLL, py_object
+class CppDll:
+    PYTHON_DIR= '\\'.join(sys.executable.split('\\')[0:-1])
+    GCC= 'E:/program/Dev-Cpp/MinGW64/bin/gcc'
+    INCLUDE= f' -I{PYTHON_DIR}/INCLUDE -DBUILDING_DLL=1'
+    LIBS= f' -L{PYTHON_DIR}/LIBS'
+    LIB= f' -static-libgcc {PYTHON_DIR}/LIBS/python36.lib'
 
+    def __init__(self, file_name):
+        if not os.path.exists(f'{file_name}.cpp'):
+            raise OSError(f'找不到文件 {file_name}.cpp')
+
+        if not os.path.exists(f'{file_name}.dll')\
+        or os.stat( f'{file_name}.cpp' ).st_mtime > os.stat( f'{file_name}.dll' ).st_mtime: # gcc修改时间 > dll修改时间
+            os.system(f'{self.GCC} -c {file_name}.cpp -o {file_name}.o {self.INCLUDE} -std=gnu++11')
+            os.system(f'{self.GCC} -shared {file_name}.o -o {file_name}.dll {self.LIBS} {self.LIB}')
+        self.cdll = CDLL( f'{os.getcwd()}/{file_name}.dll' )  # os.getcwd() ???
+
+    def __getattr__(self, item):  # FIXME??? 是否需要对类型强制要求
+        # cpp文件中函数对应形式为 PyObject* xxx(PyObject* pointer)
+        func= self.cdll[item]
+        func.argtypes= (py_object,)
+        func.restype= py_object
+        return func
 
 
 

@@ -9,14 +9,14 @@ from core.packet import Packet
 class NodeBase:
     def __init__(self):
         self.api= CallTable()
-        label[ self.api ]= label[self],'.api'
+        label[self.api]= label[self], '.api'
         self.announces= AnnounceTable()
-        label[ self.announces ]= label[self],'.anno'
+        label[self.announces]= label[self], '.anno'
 
     def install(self, name, unit):
-        unit.install( self.announces, self.api )
+        unit.install(self.announces, self.api)
         setattr(self, name, unit)
-        label[ unit ]= label[self],'.',name
+        label[unit]= label[self], '.', name
 
 #-----------------------------------------------------------------------------------------------------------------------
 class ForwarderUnitBase(Unit):
@@ -24,7 +24,7 @@ class ForwarderUnitBase(Unit):
         announces['inPacket'].append(self._inPacket)
         self.api= api
 
-    def _inPacket(self, faceid, packet):
+    def _inPacket(self, face_id, packet):
         pass
 
 
@@ -50,7 +50,7 @@ class AppUnitBase(Unit):
 
     def _ask(self, packet):
         self.publish['ask'](packet)
-        self.app_channel(packet)# 发送packet
+        self.app_channel(packet)  # 发送packet
 
     def _respond(self, packet):
         self.publish['respond'](packet)
@@ -59,10 +59,10 @@ class AppUnitBase(Unit):
 class LogUnit(Unit):
     def install(self, announces, api):
         for name in announces:
-            announces[name].insert(0, Bind(self.logout, name) )
+            announces[name].insert( 0, Bind(self.logout, name) )
 
     def logout(self, name, *args):
-        print('[',clock.time(),']', label[self], name, *args)
+        print('[', clock.time(), ']', label[self], name, *args)
 #=======================================================================================================================
 
 

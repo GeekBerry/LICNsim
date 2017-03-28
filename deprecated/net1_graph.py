@@ -29,7 +29,7 @@ class Grid:
         #构造节点
         for nodename in self.nodes():
             node= TestNode( nodename, self.allpos[nodename] )
-            log.lable[node]= "Node"+str(nodename)
+            log.lable[node]= "NodeItem"+str(nodename)
             self.graph.node[nodename]['ndn']= node
 
         #构造通道

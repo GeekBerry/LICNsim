@@ -118,6 +118,36 @@ class Edge(QGraphicsItem):
         super().hoverLeaveEvent(event)
 
 #-----------------------------------------------------------------------------------------------------------------------
+from core.common import AnnounceTable
+class NetEdge: #TODO 与网络关联起来
+    def __init__(self, edge, forward:bool):
+        self.edge= edge
+        self.forward= forward
+
+    def adjust(self, src, dst):
+        if self.forward:
+            self.edge.adjust(src, dst)
+        else:pass # 非正向边不进行调整, 以免重复调用
+
+    def setText(self, text): #TODO ...变得更抽象
+        if self.forward:
+            self.edge.style['forward_text']= text
+        else:
+            self.edge.style['reverse_text']= text
+        self.edge.update()
+
+    def showDetail(self):
+        self.edge.show_detail= True
+        self.edge.update()
+
+    def hideDetail(self):
+        self.edge.show_detail= False
+        self.edge.update()
+
+    #TODO def showSpeed(...)
+    #TODO ...
+
+#=======================================================================================================================
 class Node(QGraphicsItem):
     Type = QGraphicsItem.UserType + 1
 
@@ -202,101 +232,7 @@ class Node(QGraphicsItem):
         super().hoverLeaveEvent(event)
 
 #-----------------------------------------------------------------------------------------------------------------------
-class UINetView(QGraphicsView):
-    EDGE_LEN= 80 # 默认边长度
-    NODE_SIZE= 40 # 默认Node大小
-    def __init__(self, parent):
-        super().__init__( parent )
-        self.setScene( QGraphicsScene() )
 
-        self.setCacheMode(QGraphicsView.CacheBackground)
-        self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
-        self.setRenderHint(QPainter.Antialiasing) # 设置线段抗锯齿
-        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        self.setResizeAnchor(QGraphicsView.AnchorViewCenter)
-
-    def setUINet(self, ui_net):
-        self.ui_net= ui_net
-        self.ui_net.addToScene(self.scene())
-
-    #-------------------------------------------------------------------------------------------------------------------
-    def keyPressEvent(self, event):
-        key = event.key()
-
-        if key == Qt.Key_Up:pass
-        elif key == Qt.Key_Down:pass
-        elif key == Qt.Key_Left:pass
-        elif key == Qt.Key_Right:pass
-        elif key == Qt.Key_Plus: self.scaleView(1.2)
-        elif key == Qt.Key_Minus: self.scaleView(1/1.2)
-        elif key == Qt.Key_P:
-            self.ui_net.graphLayout(self.EDGE_LEN, 1)
-            rect= self.scene().itemsBoundingRect()
-            self.scene().setSceneRect(rect)#TODO 如何减少调用次数???
-        elif key == Qt.Key_S:# FIXME DEBUG
-            self.ui_net.addToScene(self.scene())
-        elif key == Qt.Key_D:# FIXME DEBUG
-            self.ui_net.removeFromScene(self.scene())
-
-        else: super().keyPressEvent(event)
-
-    def mousePressEvent(self, event):
-        self.mouse_start_pos= event.pos()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.RightButton: #Qt.LeftButton:# 鼠标右键拖动背景
-            delta= self.mouse_start_pos - event.pos()
-            h_value= self.horizontalScrollBar().value()
-            v_value= self.verticalScrollBar().value()
-            self.horizontalScrollBar().setValue( delta.x() + h_value )
-            self.verticalScrollBar().setValue( delta.y() + v_value )
-            self.mouse_start_pos= event.pos()
-        super().mouseMoveEvent(event)
-
-    def wheelEvent(self, event):
-        # self.scaleView(math.pow(2.0, -event.angleDelta().y() / 240.0))
-        if event.angleDelta().y() < 0: # 简化版
-            self.scaleView(0.7)
-        else:
-            self.scaleView( 1/0.7 )
-
-    def scaleView(self, scaleFactor):
-        factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
-        if 0.07< factor < 100:
-            self.scale(scaleFactor, scaleFactor)
-
-#=======================================================================================================================
-from core.common import AnnounceTable
-class NetEdge: #TODO 与网络关联起来
-    def __init__(self, edge, forward:bool):
-        self.edge= edge
-        self.forward= forward
-
-    def adjust(self, src, dst):
-        if self.forward:
-            self.edge.adjust(src, dst)
-        else:pass # 非正向边不进行调整, 以免重复调用
-
-    def setText(self, text): #TODO ...变得更抽象
-        if self.forward:
-            self.edge.style['forward_text']= text
-        else:
-            self.edge.style['reverse_text']= text
-        self.edge.update()
-
-    def showDetail(self):
-        self.edge.show_detail= True
-        self.edge.update()
-
-    def hideDetail(self):
-        self.edge.show_detail= False
-        self.edge.update()
-
-    #TODO def showSpeed(...)
-    #TODO ...
-
-#-----------------------------------------------------------------------------------------------------------------------
 class NetNode:# TODO 面向NET
     def __init__(self, node):
         self.node= node
@@ -319,13 +255,14 @@ class NetNode:# TODO 面向NET
     def setPos(self, point):
         self.node.setPos(point)
 
-#-----------------------------------------------------------------------------------------------------------------------
+#=======================================================================================================================
 from core.common import Bind
 class UINet:
     EDGE_LEN= 80 # 默认边长度
     NODE_SIZE= 40 # 默认Node大小
     def __init__(self, graph):
         self.graph= graph
+        self.scene= QGraphicsScene()
 
         AREA_SIZE= self.EDGE_LEN * len(graph)**0.5 #来自方形网平均宽度
 
@@ -362,6 +299,8 @@ class UINet:
         # DEBUG 布局
         # self._graphLayout(self.EDGE_LEN, 50) # 只能排在'构建Node'和'构建Edge'之后调用
 
+        self.addToScene()
+
     def nodes(self):
         for nodename in self.graph:
             yield self.graph.node[nodename]['ui']
@@ -370,29 +309,30 @@ class UINet:
         return self.graph.node[nodename]['ui']
 
     #-------------------------------------------------------------------------------------------------------------------
-    def addToScene(self, scene):
+    def addToScene(self):
         for nodename in self.graph:
             net_node= self.graph.node[nodename]['ui']
-            scene.addItem( net_node.node )
+            self.scene.addItem( net_node.node )
 
         for src,dst in self.graph.edges():
             net_edge= self.graph[dst][src]['ui']
-            scene.addItem( net_edge.edge ) # addItem不怕重复添加
+            self.scene.addItem( net_edge.edge ) # addItem不怕重复添加
 
-        scene.setSceneRect( scene.itemsBoundingRect() )
-        scene.update()
+        self.scene.setSceneRect( self.scene.itemsBoundingRect() )
+        self.scene.update()
 
-    def removeFromScene(self, scene):
+
+    def removeFromScene(self):
         for nodename in self.graph:
             net_node= self.graph.node[nodename]['ui']
-            scene.removeItem( net_node.node )
+            self.scene.removeItem( net_node.node )
 
         for src,dst in self.graph.edges():
             net_edge= self.graph[dst][src]['ui']
             scene.removeItem( net_edge.edge ) # removeItem 不怕删除不存在item
 
-        scene.setSceneRect( scene.itemsBoundingRect() )
-        scene.update()
+        self.scene.setSceneRect( self.scene.itemsBoundingRect() )
+        self.scene.update()
 
     #-------------------------------------------------------------------------------------------------------------------
     def graphLayout(self, length, times):
@@ -403,6 +343,9 @@ class UINet:
         for i in range(0, times):
             for nodename in self.graph:
                 self._calculateForces(nodename, ratio)
+
+        rect= self.scene.itemsBoundingRect()
+        self.scene.setSceneRect(rect)#TODO 如何减少调用次数???
 
     def _calculateForces(self, nodename, ratio): # 计算一个节点受力
         force= QPointF(0.0, 0.0)
@@ -441,6 +384,63 @@ class UINet:
             self.graph[dst][src]['ui'].hideDetail()
 
 #=======================================================================================================================
+class UINetView(QGraphicsView):
+    EDGE_LEN= 80 # 默认边长度
+    NODE_SIZE= 40 # 默认Node大小ppp
+    def __init__(self, parent= None):
+        super().__init__( parent )
+
+        self.setCacheMode(QGraphicsView.CacheBackground)
+        self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
+        self.setRenderHint(QPainter.Antialiasing) # 设置线段抗锯齿
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.AnchorViewCenter)
+
+    def setUINet(self, ui_net):
+        self.setScene( ui_net.scene )
+        self.ui_net= ui_net
+
+    #-------------------------------------------------------------------------------------------------------------------
+    def keyPressEvent(self, event):
+        key = event.key()
+
+        if key == Qt.Key_Up:pass
+        elif key == Qt.Key_Down:pass
+        elif key == Qt.Key_Left:pass
+        elif key == Qt.Key_Right:pass
+        elif key == Qt.Key_Plus: self.scaleView(1.2)
+        elif key == Qt.Key_Minus: self.scaleView(1/1.2)
+        elif key == Qt.Key_P:
+            self.ui_net.graphLayout(self.EDGE_LEN, 1)
+        else: super().keyPressEvent(event)
+
+    def mousePressEvent(self, event):
+        self.mouse_start_pos= event.pos()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.RightButton: #Qt.LeftButton:# 鼠标右键拖动背景
+            delta= self.mouse_start_pos - event.pos()
+            h_value= self.horizontalScrollBar().value()
+            v_value= self.verticalScrollBar().value()
+            self.horizontalScrollBar().setValue( delta.x() + h_value )
+            self.verticalScrollBar().setValue( delta.y() + v_value )
+            self.mouse_start_pos= event.pos()
+        super().mouseMoveEvent(event)
+
+    def wheelEvent(self, event):
+        # self.scaleView(math.pow(2.0, -event.angleDelta().y() / 240.0))
+        if event.angleDelta().y() < 0: # 简化版
+            self.scaleView(0.7)
+        else:
+            self.scaleView( 1/0.7 )
+
+    def scaleView(self, scaleFactor):
+        factor = self.transform().scale(scaleFactor, scaleFactor).mapRect(QRectF(0, 0, 1, 1)).width()
+        if 0.07< factor < 100:
+            self.scale(scaleFactor, scaleFactor)
+
+#=======================================================================================================================
 if __name__ == '__main__':
     import sys, networkx
     from PyQt5.QtWidgets import QApplication
@@ -448,21 +448,20 @@ if __name__ == '__main__':
     from core.common import log
     log.level= log.LEVEL.WARING
 
-
     # graph= networkx.grid_2d_graph(10, 10)
     # graph= networkx.balanced_tree(2, 4)
     # graph= networkx.watts_strogatz_graph(20, 4, 0.3)
     graph = networkx.random_graphs.barabasi_albert_graph(30, 1)
     graph= networkx.DiGraph(graph)
 
-
     app = QApplication(sys.argv)
-    qsrand(QTime(0,0,0).secsTo(QTime.currentTime()))
-
+    qsrand(  QTime(0,0,0).secsTo( QTime.currentTime() )  )
 
     widget = UINetView()
+    net= UINet(graph)
+
     widget.setGeometry(100, 100, 800, 500)
-    widget.setUINet( UINet(graph) )
+    widget.setUINet( net )
     widget.show()
     sys.exit(app.exec_())
 

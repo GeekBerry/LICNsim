@@ -16,45 +16,45 @@ class ExperimentForwarderUnit(ForwarderUnitBase):
         self.publish['unsatisfied'].append( announces['unsatisfied'] ) # TODO
         self.publish['unsolicited'].append( announces['unsolicited'] )
 
-    def _inPacket(self, faceid, packet):
+    def _inPacket(self, face_id, packet):
         if packet.type == Packet.TYPE.INTEREST:
-            self._inInterest(faceid, packet)
+            self._inInterest(face_id, packet)
         elif packet.type == Packet.TYPE.DATA:
-            self._inData(faceid, packet)
+            self._inData(face_id, packet)
         else:pass
 
 
-    def _inInterest(self, faceid, packet):
+    def _inInterest(self, face_id, packet):
         if len(packet.pathI) > 0:# 转发
-            info= self.api['Info::getInfo'](packet) #已有记录: info[faceid].inI == clock.life_time()
+            info= self.api['Info::getInfo'](packet) #已有记录: info[face_id].inI == clock.life_time()
             sendid, packet.pathI= packet.pathI[0], packet.pathI[1:] #将头部摘取出来, 基于net的设定, NodeName= FaceID
             if not self.isOutICooling( info[sendid] ):
                 self.api['Face::send']( {sendid}, packet )
         else:
             data= self.api['CS::match'](packet)
             if data is not None:#hit
-                self.api['Face::send']( {faceid}, data ) #记录: info[send_id].outD == clock.life_time()
+                self.api['Face::send']( {face_id}, data ) #记录: info[send_id].outD == clock.life_time()
             else:#miss
                 path= self.api['Net::getPath'](packet)
                 if path:
                     log.waring('本该有CS却不存在, 新路由', path)
                     packet.pathI= path[1:]
-                    self._inInterest(faceid, packet)# 单纯为了代码复用
+                    self._inInterest(face_id, packet)# 单纯为了代码复用
                 else:
                     log.waring('不存在路由, 丢弃包', packet)
 
 
-    def _inData(self, faceid, packet):
-        info= self.api['Info::getInfo'](packet) #已有记录: info[faceid].inI == clock.life_time()
-        send_ids= [ id for id in info if\
-            self.isPending( info[id] )\
-        ]# Pending. 遍历info而非所有id, 是因为pengding的id一定在info中有记录
+    def _inData(self, face_id, packet):
+        info= self.api['Info::getInfo'](packet)  # 已有记录: info[face_id].inI == clock.life_time()
+        send_ids= [ each_id for each_id in info
+            if self.isPending(info[each_id])
+        ]  # Pending. 遍历info而非所有id, 是因为pengding的id一定在info中有记录
 
         if len(send_ids) > 0:
-            self.api['Face::send'](send_ids, packet) #记录: info[send_id].outI == clock.life_time()
-            self.api['CS::store']( packet ) #FIXME 未经请求包储存??
+            self.api['Face::send'](send_ids, packet)  # 记录: info[send_id].outI == clock.life_time()
+            self.api['CS::store'](packet)  # FIXME 未经请求包储存??
         else:
-            self.publish['unsolicited'](faceid, packet)
+            self.publish['unsolicited'](face_id, packet)
 
     #--------------------------------------------------------------------------
     def isPending(self, entry):#face同时接收到I和D, 该face不算Pending
@@ -87,7 +87,7 @@ class ExperimentAppUnit(AppUnitBase):
 
             # publish 要先于 app_channel 调用
             # 1: 避免app_channel中修改packet
-            # 2: 避免publish['_respond']先于publish['_ask']产生(CS命中的情况下)
+            # 2: 避免 publish['respond'] 先于 publish['ask'] 产生(CS命中的情况下)
             self.publish['ask']( packet, len(packet.pathI) )
             self.app_channel(packet)# 发送packet
 

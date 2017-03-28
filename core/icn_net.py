@@ -1,13 +1,5 @@
-#!/usr/bin/python3
-#coding=utf-8
-
-import networkx
-
-from core.common import Bind, label
-from core.data_structure import SheetTable
 from core.common import Bind, AnnounceTable
 
-#=======================================================================================================================
 class ICNNet:
     def __init__(self, graph, NodeType, ChannelType):
         self.graph= graph
@@ -80,47 +72,3 @@ class ICNNet:
     #
     # def edge(self, scr, dst):
     #     return self.graph[scr][dst]['icn']
-
-#-----------------------------------------------------------------------------------------------------------------------
-class MonitorDataBase:# TODO 对于时间的记录,  TODO 持久化
-    def __init__(self, net):
-        net.loadAnnounce('csStore', self._store)
-        net.loadAnnounce('csEvict', self._evict)
-        net.loadAnnounce('csHit',   self._hit)
-        net.loadAnnounce('csMiss',  self._miss)
-        net.loadAnnounce('inPacket',  self._inPacket)
-        net.loadAnnounce('outPacket', self._outPacket)
-        net.listen(self._listen)
-
-        self.content_table= SheetTable(pend=set, content=set, store= int, evict=int)
-        self.node_table= SheetTable(store=int, evict=int, hit=int, miss=int, recv=int, send=int)
-        self.channel_table= SheetTable(trans=int)
-
-    def _store(self, nodename, packet):
-        entry= self.content_table[packet.name]
-        entry.content.add(nodename)
-        entry.store+= 1
-
-    def _evict(self, nodename, packet):
-        entry= self.content_table[packet.name]
-        entry.content.discard(nodename)
-        entry.evict+= 1
-
-    def _hit(self, nodename, packet):
-        self.node_table[nodename].hit+= 1
-
-    def _miss(self, nodename, packet):
-        self.node_table[nodename].miss+= 1
-
-    def _inPacket(self, nodename, faceid, packet):
-        self.node_table[nodename].recv+= 1
-
-    def _outPacket(self, nodename, faceid, packet):
-        self.node_table[nodename].send+= 1
-
-    def _listen(self, src, dst, packet):
-        self.channel_table[src, dst].trans+= packet.size
-
-
-#-----------------------------------------------------------------------------------------------------------------------
-
