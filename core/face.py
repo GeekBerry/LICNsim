@@ -40,6 +40,7 @@ class LoopChecker:
         else:
             self.info_set[info_tuple]= None #当做set来用
             return False
+
 # if __name__ == '__main__':
 #     log.level= 4
 #     lc= LoopChecker()
@@ -54,6 +55,7 @@ class LoopChecker:
 #     p= lc.isLoop(debug_dp)
 #     print(p)
 
+#-----------------------------------------------------------------------------------------------------------------------
 class RepeatChecker:# 在一个step内保证不会往一个faceid发送,相同类型(PACKET.TYPE)和名字(Name)的包(Packet)
     def __init__(self):
         self.refresh_time= -INF # 上次更新时间
@@ -86,8 +88,8 @@ class FaceUnit(Unit):
     def install(self, announces, api):
         #监听的 Announce
         #发布的 Announce
-        self.publish['inPacket'].append(announces['inPacket'])
-        self.publish['outPacket'].append(announces['outPacket'])
+        self.publish['inPacket']= announces['inPacket']     # args(FaceId, Packet)
+        self.publish['outPacket']= announces['outPacket']   # args(FaceId, Packet)
         #提供的 API
         api['Face::create']= self.create
         api['Face::destroy']= self.destroy
@@ -96,24 +98,24 @@ class FaceUnit(Unit):
         #调用的 API
 
     #--------------------------------------------------------------------------
-    def create(self, face_id, src_channel, dst_channel):# API
+    def create(self, face_id, in_channel, out_channel):# API
         """
             Channel                       Face                           FaceUnit
         +-------------+               +----------+                  +----------------+
         | dst_channel | <--upstream---| can_send |<----upload-----  | |repeat check| |<-- send ---
         +-------------+               |          |                  | ============== |>> outPacket
-        | src_channel | ---download-->| can_recv |---downstream-->  | | loop check | |>> inPacket
+        | in_channel | ---download-->| can_recv |---downstream-->  | | loop check | |>> inPacket
         +-------------+               +----------+                  +----------------+
         :param face_id:Any
-        :param src_channel:isinstance(Channel)
-        :param dst_channel:isinstance(Channel)
+        :param in_channel:isinstance(Channel)
+        :param out_channel:isinstance(Channel)
         :return:None
         """
         self.destroy(face_id) #不破不立
 
         face= self.table.setdefault( face_id, Face(face_id) )
-        src_channel.append( face.download )
-        face.upstream= dst_channel
+        in_channel.append(face.download)
+        face.upstream= out_channel
         face.downstream= self.receive
 
         label[ face ]= label[self],'[',str(face_id),']'

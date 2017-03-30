@@ -41,6 +41,9 @@ class Ui_main_window(object):
         self.gridLayout_2 = QtWidgets.QGridLayout(self.dockWidgetContents)
         self.gridLayout_2.setContentsMargins(0, 0, 0, 0)
         self.gridLayout_2.setObjectName("gridLayout_2")
+        self.pushButton = QtWidgets.QPushButton(self.dockWidgetContents)
+        self.pushButton.setObjectName("pushButton")
+        self.gridLayout_2.addWidget(self.pushButton, 0, 0, 1, 1)
         self.dock_tool.setWidget(self.dockWidgetContents)
         main_window.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.dock_tool)
         self.action_tool_dock = QtWidgets.QAction(main_window)
@@ -51,7 +54,8 @@ class Ui_main_window(object):
         self.menubar.addAction(self.menu_view.menuAction())
 
         self.retranslateUi(main_window)
-        self.action_tool_dock.triggered['bool'].connect(self.dock_tool.show)
+        self.action_tool_dock.triggered.connect(self.dock_tool.show)
+        self.pushButton.clicked.connect(self.ui_net_view.buttonSlot)
         QtCore.QMetaObject.connectSlotsByName(main_window)
 
     def retranslateUi(self, main_window):
@@ -60,6 +64,7 @@ class Ui_main_window(object):
         self.menu_view.setTitle(_translate("main_window", "View"))
         self.toolBar.setWindowTitle(_translate("main_window", "toolBar"))
         self.dock_tool.setWindowTitle(_translate("main_window", "Dock Tool"))
+        self.pushButton.setText(_translate("main_window", "PushButton"))
         self.action_tool_dock.setText(_translate("main_window", "Tool Dock"))
 
 from visualizer.ui_net import UINetView

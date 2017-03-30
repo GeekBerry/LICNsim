@@ -25,15 +25,15 @@ class LabelTable:
             self.table[ id(obj) ]= self._defaultLable(obj)
         return self.Reference(  lambda: self.table[ id(obj) ]  )
 
-    def __setitem__(self, obj, value):# value:( str| LabelTable.Reference, ...)
+    def __setitem__(self, obj, value):  # value:( str| LabelTable.Reference, ...)
         if type(value) is str:
             self.table[ id(obj) ]= value,
         elif type(value) is tuple:
             contents= []
-            for each in value:# 将参数字符化
+            for each in value:  # 将参数字符化
                 if type(each) is LabelTable.Reference:# 标签直接储存
                     contents.append(each)
-                else:# 用字符串记录以免储存引用
+                else:  # 用字符串记录以免储存引用
                     contents.append( str(each) )
             self.table[ id(obj) ]= contents
         else:
@@ -50,6 +50,7 @@ class LabelTable:
             return obj.__qualname__,
         else:
             return "%s<%X>"%( obj.__class__.__qualname__, id(obj) ),
+
 
 class NoLabelTable:
     def __setitem__(self, obj, value):
@@ -76,10 +77,10 @@ class Logger:
 
     def __init__(self, level):
         self.level= level
-        #self.file= open('log.md', 'w')
+        # self.file= open('log.md', 'w')
 
     def __del__(self):
-        #self.file.close()
+        # self.file.close()
         pass
 
     def track(self, *content):

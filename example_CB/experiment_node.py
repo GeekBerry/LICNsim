@@ -23,26 +23,24 @@ class ExperimentForwarderUnit(ForwarderUnitBase):
             self._inData(face_id, packet)
         else:pass
 
-
     def _inInterest(self, face_id, packet):
-        if len(packet.pathI) > 0:# 转发
-            info= self.api['Info::getInfo'](packet) #已有记录: info[face_id].inI == clock.life_time()
-            sendid, packet.pathI= packet.pathI[0], packet.pathI[1:] #将头部摘取出来, 基于net的设定, NodeName= FaceID
+        if len(packet.pathI) > 0:  # 转发
+            info= self.api['Info::getInfo'](packet)  # 已有记录: info[face_id].inI == clock.life_time()
+            sendid, packet.pathI= packet.pathI[0], packet.pathI[1:]  # 将头部摘取出来, 基于net的设定, NodeName= FaceID
             if not self.isOutICooling( info[sendid] ):
                 self.api['Face::send']( {sendid}, packet )
         else:
             data= self.api['CS::match'](packet)
             if data is not None:#hit
-                self.api['Face::send']( {face_id}, data ) #记录: info[send_id].outD == clock.life_time()
+                self.api['Face::send']( {face_id}, data )  # 记录: info[send_id].outD == clock.life_time()
             else:#miss
                 path= self.api['Net::getPath'](packet)
                 if path:
                     log.waring('本该有CS却不存在, 新路由', path)
                     packet.pathI= path[1:]
-                    self._inInterest(face_id, packet)# 单纯为了代码复用
+                    self._inInterest(face_id, packet)  # 单纯为了代码复用
                 else:
                     log.waring('不存在路由, 丢弃包', packet)
-
 
     def _inData(self, face_id, packet):
         info= self.api['Info::getInfo'](packet)  # 已有记录: info[face_id].inI == clock.life_time()
@@ -78,25 +76,25 @@ class ExperimentAppUnit(AppUnitBase):
 
     def _ask(self, packet):
         if packet.type == Packet.TYPE.INTEREST:
-            self.pending.setdefault( packet.name, [] ) #[] 请求时间列表
+            self.pending.setdefault( packet.name, [] )  # [] 请求时间列表
             self.pending[packet.name].append( clock.time() )
 
             # 距离等于路径节点间隔, 如[1,2,3], distance== A -(1)-> B -(2)-> C ==2
             path= self.api['Net::getPath'](packet)
-            setattr(packet, 'pathI', path[1:] )#不要第0位, 去掉路劲中的当前节点名
+            setattr(packet, 'pathI', path[1:] )  # 不要第0位, 去掉路劲中的当前节点名
 
             # publish 要先于 app_channel 调用
             # 1: 避免app_channel中修改packet
             # 2: 避免 publish['respond'] 先于 publish['ask'] 产生(CS命中的情况下)
             self.publish['ask']( packet, len(packet.pathI) )
-            self.app_channel(packet)# 发送packet
+            self.app_channel(packet)  # 发送packet
 
 
     def _respond(self, packet):
         if packet.type == Packet.TYPE.DATA  and  packet.name in self.pending:
             ask_time_list= self.pending.pop(packet.name)
             for ask_time in ask_time_list:
-                if clock.time()-ask_time > 200:#200 网络最大响应时间
+                if clock.time()-ask_time > 200:  # 200 网络最大响应时间
                     # FIXME 注意, 如果环路问题没解决, 会出现以下问题
                     # t0: I-> 但是loop, t10000: I->, t10010: <-D responed为[t1, t10000] 则 响应时间为[10010, 10]
                     # 所以需要设置个时间来取出合理响应时间,
@@ -119,18 +117,15 @@ class NoLoopChecker:# 因为路由策略的保障, 不检查兴趣包的循环
 class ExperimentNode(NodeBase):
     def __init__(self):
         super().__init__()
-        self.install( 'faces',  FaceUnit( NoLoopChecker(), RepeatChecker() ) )
-        self.install( 'info',   InfoUnit(max_size= 2, life_time= 100000) )
-
-        # capacity=1: 实验为一个包测试, life_time=None:使得必须在之后被设置
-        self.install( 'cs',     SimulatCSUnit(capacity= 1, life_time= None))
-        self.install( 'policy', FIFOPolicy() )
-        self.install( 'app',    ExperimentAppUnit() )
-
-        #100来自于100*100网格平均响应时间
-        self.install( 'fwd',    ExperimentForwarderUnit(outI_cd= 100) )
+        self.install('faces',  FaceUnit( NoLoopChecker(), RepeatChecker() ) )
+        self.install('info',   InfoUnit(max_size= 2, life_time= 100000) )
+        self.install('cs',     SimulatCSUnit(capacity= 1, life_time= None) )  # capacity=1: 实验为一个包测试, life_time=None:使得必须在之后被设置
+        self.install('policy', FIFOPolicy() )
+        self.install('app',    ExperimentAppUnit() )
+        self.install('fwd',    ExperimentForwarderUnit(outI_cd= 100) )  # 100来自于100*100网格平均响应时间
 
         if IS_DEBUG and PRINT_STEP:
             self.install( 'log', LogUnit() )
+
 
 #=======================================================================================================================

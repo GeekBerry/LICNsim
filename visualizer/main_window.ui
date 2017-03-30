@@ -64,7 +64,15 @@
     <number>1</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
-    <layout class="QGridLayout" name="gridLayout_2"/>
+    <layout class="QGridLayout" name="gridLayout_2">
+     <item row="0" column="0">
+      <widget class="QPushButton" name="pushButton">
+       <property name="text">
+        <string>PushButton</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <action name="action_tool_dock">
@@ -84,23 +92,42 @@
    <class>UINetView</class>
    <extends>QGraphicsView</extends>
    <header>visualizer.ui_net</header>
+   <slots>
+    <slot>buttonSlot()</slot>
+   </slots>
   </customwidget>
  </customwidgets>
  <resources/>
  <connections>
   <connection>
    <sender>action_tool_dock</sender>
-   <signal>triggered(bool)</signal>
+   <signal>triggered()</signal>
    <receiver>dock_tool</receiver>
    <slot>show()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>39</x>
-     <y>372</y>
+     <x>72</x>
+     <y>35</y>
     </hint>
     <hint type="destinationlabel">
-     <x>39</x>
+     <x>46</x>
      <y>372</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>ui_net_view</receiver>
+   <slot>buttonSlot()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>54</x>
+     <y>389</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>182</x>
+     <y>400</y>
     </hint>
    </hints>
   </connection>

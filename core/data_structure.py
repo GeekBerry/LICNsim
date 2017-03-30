@@ -165,7 +165,7 @@ class DictDecorator:
         return self.table.items()
 
     def __delitem__(self, key):
-        if not isinstance( self.table, DictDecorator ): # self.table 不是装饰器, 删除时进行回调
+        if not isinstance(self.table, DictDecorator):  # self.table 不是装饰器, 删除时进行回调
             self.coreEvictEvent(key, self.table[key])
         del self.table[key]
 
@@ -207,7 +207,7 @@ class SizeDictDecorator(DictDecorator):
     def __getitem__(self, key):
         result= super().__getitem__(key)
         if self.get_refresh:
-            discard( self.deque, key )
+            discard(self.deque, key)
             self.deque.append(key)
         return result
 
@@ -295,17 +295,17 @@ class TimeDictDecorator(DictDecorator):
 
 
 #=======================================================================================================================
-class DefaultDictDecorator(dict):  # XXX 如何用 defaultdict 实现 ???
-    def __init__(self, table, DefaultType):
-        super().__init__(table)
-        self.DefaultType= DefaultType
-
-    def __getitem__(self, key):
-        if key in self:
-            return super().__getitem__(key)
-        else:
-            self[key]= value= self.DefaultType()
-            return value
+# class DefaultDictDecorator(dict):  # XXX 如何用 defaultdict 实现 ???
+#     def __init__(self, table, DefaultType):
+#         super().__init__(table)
+#         self.DefaultType= DefaultType
+#
+#     def __getitem__(self, key):
+#         if key in self:
+#             return super().__getitem__(key)
+#         else:
+#             self[key]= value= self.DefaultType()
+#             return value
 
 
 

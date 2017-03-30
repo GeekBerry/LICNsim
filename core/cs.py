@@ -8,27 +8,23 @@ from core.data_structure import *
 class ContentStoreUnit(Unit):
     def __init__(self, capacity):# 安装在系统上
         super().__init__()
-        self.table = {}  # DictDecorator({})
+        self.table = {}
         self.capacity= capacity
 
     def install(self, announces, api):
-        """
-        :param announces:
-            csHit(Packet)
-            csMiss(Packet)
-            csStore(Packet)
-            csEvict(Packet)
-        :param api:
-        :return:
-        """
-        self.publish = announces
-        self.api= api
-        #提供的 API
+        #监听的 Announce
+        #发布的 Announce
+        self.publish['csHit']= announces['csHit']       # args(Packet)
+        self.publish['csMiss']= announces['csMiss']     # args(Packet)
+        self.publish['csStore']= announces['csStore']   # args(Packet)
+        self.publish['csEvict']= announces['csEvict']   # args(Packet)
+        # 提供的 API
         api['CS::size']= self.size
         api['CS::setCapacity']= self.setCapacity
         api['CS::store']= self.store
         api['CS::match']= self.match
-
+        # 调用的 API
+        self.replace= api['Policy::replace']
 
     def size(self):
         return len(self.table)
@@ -63,7 +59,7 @@ class ContentStoreUnit(Unit):
 
     def _limit(self, size):
         while self.size() > size:
-            name= self.api['Policy::replace']()
+            name= self.replace()
             packet= self.table.pop(name)
             self._evict(name, packet)
 
@@ -89,10 +85,8 @@ class SimulatCSUnit(ContentStoreUnit):
 
     def __init__(self, capacity, life_time):
         super().__init__(capacity)
-
         self.table= TimeDictDecorator(self.table, life_time)# 对时间进行限制
         self.table.evict_callback= self._evict
-
         label[self.table]= label[self], '.table'
 
     def install(self, announces, api):

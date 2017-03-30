@@ -6,12 +6,12 @@ from core.common import *
 
 #-----------------------------------------------------------------------------------------------------------------------
 class ExperimentMonitorDataBase(MonitorDataBase):
-    def __init__(self, net):
-        super().__init__(net)
-        net.loadAnnounce('ask', self._ask)
-        net.loadAnnounce('respond', self._respond)
+    def install(self, announces, api):
+        super().install(announces, api)
+        announces['ask'].append(self._ask)
+        announces['respond'].append(self._respond)
 
-        self.info_table={'ask_count':0, 'dist_count':0, 'resp_count':0, 'time_count':0}
+        self.info_table= {'ask_count':0, 'dist_count':0, 'resp_count':0, 'time_count':0}
         self.content_table.updateFields(dist=list, time=list)
 
     def _ask(self, nodename, packet, distance):
@@ -26,14 +26,16 @@ class ExperimentMonitorDataBase(MonitorDataBase):
 
 #-----------------------------------------------------------------------------------------------------------------------
 class StoreProvider:  # 储存位置服务提供者
-    def __init__(self, net, db_monitor):
-        net.storeAPI('Net::getPath', self.getPath)
-        self._graph= net.graph
-        self._db_monitor= db_monitor
+    def __init__(self, graph):
+        self.graph= graph
+
+    def install(self, announces, api):
+        api['ICNNet::storeAPI']('Net::getPath', self.getPath)
+        self.db= api['DB::self']()
 
     def getPath(self, nodename, packet):
-        content_nodes= self._db_monitor.content_table[packet.name].content
-        return graphNearestPath(self._graph, nodename, content_nodes)
+        content_nodes= self.db.content_table[packet.name].content
+        return graphNearestPath(self.graph, nodename, content_nodes)
 
 #-----------------------------------------------------------------------------------------------------------------------
 def listMean(l)->str:
@@ -41,24 +43,22 @@ def listMean(l)->str:
         return "%6f"%( numpy.mean(l) )
     else: return 'NaN'
 
-
 def division(dividend, divisor)->str:
     if divisor != 0:
         return "%6f"%( dividend/divisor )
     else: return 'NaN'
 
-
 class Filer:
-    def __init__(self, filename, db_monitor, packet_name, delta, print_screen):
+    def __init__(self, filename, packet_name, delta, print_screen):
         self.file= open(filename, 'w')
         self.delta= delta
         self.print_screen= print_screen
-        self.db= db_monitor #FIXME
-        self.packet_name= packet_name #FIXME
-        # 表头
-        self.head()
-        # 定时器
-        self.timer= Timer(self.write)
+        self.packet_name= packet_name  # FIXME
+        self.timer= Timer(self.write)  # 定时器
+
+    def install(self, announces, api):
+        self.db= api['DB::self']()
+        self.head()  # 表头
         self.timer.timing(self.delta)
 
     def head(self):
@@ -106,10 +106,12 @@ class Filer:
         self.file.close()
 
 #-----------------------------------------------------------------------------------------------------------------------
-from core.cs import SimulatCSUnit
 from core.packet import Name, Packet
+from core.channel import OneStepChannel
+from example_CB.experiment_node import ExperimentNode, SimulatCSUnit
+
 class Simulation:
-    def __init__(self, net, num_func, pos_func):
+    def __init__(self, graph, num_func, pos_func):
         """
         :param num_func: def(int)->int 请求量生成函数,
         :param pos_func: def(int)->[nodename,...] 位置生成函数
@@ -118,34 +120,44 @@ class Simulation:
         self.ipacket= Packet(self.name, Packet.TYPE.INTEREST)
         self.dpacket= Packet(self.name, Packet.TYPE.DATA)
 
-        self.net= net
         self.num_func= num_func
         self.pos_func= pos_func
 
-        self.db_monitor= ExperimentMonitorDataBase(self.net)
-        StoreProvider(self.net, self.db_monitor)
+        self.icn_net= ICNNet(graph, ExperimentNode, OneStepChannel)
+        self.db= ExperimentMonitorDataBase()
+        self.store_povider= StoreProvider(graph)
+
+        self.timer= Timer(self.step)  # FIXME
+
+    def install(self, announces, api):
+        self.icn_net.install(announces, api)
+        self.db.install(announces, api)
+        self.store_povider.install(announces, api)
+        # 监听的 announce
+        announces['step'].append(self.simulate)
 
     def setCSMode(self, mode):  # 配置CS类型
-        for node in self.net.nodes():
+        for node in self.icn_net.nodes():
             node.api['CS::setMode'](mode)
 
     def setCSTime(self, time):  # 配置CS时间
-        for node in self.net.nodes():
+        for node in self.icn_net.nodes():
             node.api['CS::setLifeTime'](time)
 
     def setSourceNode(self, nodename):
-        self.net.node( nodename ).api['CS::setMode'](SimulatCSUnit.MODE.MANUAL)  # 源节点: 替换 or 不被替换
-        self.net.node( nodename ).api['CS::store']( self.dpacket )  # 要在CS类型配置之后,才会被正确驱逐
+        self.icn_net.node(nodename).api['CS::setMode'](SimulatCSUnit.MODE.MANUAL)  # 源节点: 替换 or 不被替换
+        self.icn_net.node(nodename).api['CS::store'](self.dpacket)  # 要在CS类型配置之后,才会被正确驱逐
 
     def asks(self, nodenames):
         for nodename in nodenames:
-            self.net.node(nodename).api['APP::ask']( self.ipacket.fission() )
+            self.icn_net.node(nodename).api['APP::ask']( self.ipacket.fission() )
 
     def simulate(self, steps):
         for i in range(0, steps):
-            nodenum= self.num_func(i)  # FIXME i 如何对应 t
-            nodenames= self.pos_func( nodenum )
-            self.asks(nodenames)
-
+            clock.timing(0, self.step)  # 不能直接调用, self.step, 以免self.step先于其他部件,如Filer执行
             clock.step()
 
+    def step(self):
+        nodenum= self.num_func( clock.time() )
+        nodenames= self.pos_func(nodenum)
+        self.asks(nodenames)

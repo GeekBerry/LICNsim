@@ -40,19 +40,15 @@ class InfoUnit(Unit):
         self.table= TimeDictDecorator(self.table, life_time)
         self.table.before_delete_callback= self.infoEvictCallBack
 
-
     def install(self, announces, api):
-        """
-        :param announces:
-            evictInfo(TODO)
-        :param api:
-        :return:
-        """
-        #监听的 Announce
+        # 监听的 Announce
         announces['inPacket'].append(self.inPacket)
         announces['outPacket'].append(self.outPacket)
-        self.publish= announces
+        # 发布的 Announce
+        self.publish['evictInfo']= announces['evictInfo']
+        # 提供的 API
         api['Info::getInfo']= self.getInfo
+        # 调用的 API
 
     def inPacket(self, face_id, packet):
         self.table[packet.name][face_id].recv[packet.type]= clock.time()

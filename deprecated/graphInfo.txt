@@ -8,14 +8,14 @@ def graphInfo(graph):# debug
             sigma+= len(hoop)*distance_list
             distance_list+= 1
 
-        # if sigma < min_sigma:# 寻找距离中心
+        # if sigma < min_sigma:
         #     min_sigma= sigma
         #     info['distance_center']= node
 
-        if info['diameter'] < distance_list:# 寻找网络直径
+        if info['diameter'] < distance_list:
             info['diameter']= distance_list
 
-        # degree= len( graph[node] )# 统计度分布
+        # degree= len( graph[node] )
         # info['degree_distribution'].setdefault(degree, 0)
         # info['degree_distribution'][degree]+= 1
 

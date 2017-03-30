@@ -6,12 +6,12 @@ class Name(list):
     def isPrefix(self, other):
         if len(self) > len(other):
             return False 
-        else:# TODO 更高效的比较方法
-            return self == other[0: len(self) ]
+        else:  # TODO 更高效的比较方法
+            return self == other[0: len(self)]
 
     def __hash__(self):
         """使其可以做dict的主键"""
-        return hash( id(self) )# TODO hash( tuple(self) )那个比较好
+        return hash( tuple(self) )  # TODO 如何提高效率
 
     def __add__(self, other):
         return Name( super().__add__(other) )

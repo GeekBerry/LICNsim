@@ -6,7 +6,7 @@ from core.logger import *
 from core.clock import clock, Timer
 
 PRINT_STEP= 0
-IS_DEBUG= 0
+IS_DEBUG= 1
 
 if IS_DEBUG:
     log= Logger( Logger.LEVEL.TRACK )
@@ -45,14 +45,20 @@ class Impulse:
             return self.function(t)
         else: return 0
 
+class FixedAsk:
+    def __init__(self, lam=1):
+        self.lam= lam
 
-def fixedAsk(t):
-    return 1
+    def __call__(self, t):
+        return self.lam
+
+# def fixedAsk(t):
+#     return 1
 
 def possionAsk(t):
     return numpy.random.poisson(1)
 
-class exponentAsk:
+class ExponentAsk:
     def __init__(self, lam):
         self.lam= lam
 
@@ -60,6 +66,8 @@ class exponentAsk:
         return 1 if random.random() < numpy.exp(-t*self.lam) else 0
 
 #=======================================================================================================================
+import networkx
+
 def graphHoops(graph, center):
     inter= set()
     hoop= {center}
@@ -69,8 +77,8 @@ def graphHoops(graph, center):
         for node in hoop:# 找出hoop的所有相邻节点
             outer |= graph[node].keys()
         inter, hoop= hoop, outer- hoop- inter # 向外扩张一层
-#
-#
+
+
 # def graphNearest(graph, center, stores):
 #     """
 #     返回graph中距离center最近且在store_set中的节点
@@ -125,6 +133,20 @@ def graphNearestPath(graph, center, content_nodes):
 
     return None
 
+
+def graphNodeAvgDistance(graph, center)->float:
+    distance, sigma= 0, 0
+    for hoop in graphHoops(graph, center):
+        sigma+= len(hoop)*distance
+        distance+= 1
+    return sigma/len(graph)
+
+
+def graphApproximateDiameter(graph, sample_num= 10):  # 得到graph近似直径
+    nodes= random.sample( graph.nodes(), sample_num )  # sample_num: 取样测试偏心率的点数量 如果sample_num>len(graph), 会出现个采样错误
+    ecce_dict= networkx.eccentricity(graph, nodes)  # 计算测试点偏心率
+    avg_ecce= numpy.mean(  list( ecce_dict.values() )  )
+    return int(avg_ecce*1.5)  # 近似直径 FIXME 圆面网络是3/2==1.5 但是得出的值总会偏大
 
 #-----------------------------------------------------------------------------------------------------------------------
 class UniformPosition:
@@ -189,12 +211,11 @@ class CallTable(dict):  # FIXME 能否利用defaultdict实现
         callback= self.setdefault( name, CallTable.CallBack() )
         callback.func= func
 
-if __name__ == '__main__':
-    t= CallTable()
-    p= t['1']
-    t['1']= print
-    p(1,2,3)
-
+# if __name__ == '__main__':
+#     t= CallTable()
+#     p= t['1']
+#     t['1']= print
+#     p(1,2,3)
 
 
 class Announce(list):
@@ -224,9 +245,14 @@ class Unit:
         pass
 
 
-
 #=======================================================================================================================
 import time
+
+def debug(*args):
+    if IS_DEBUG:
+        print(*args)
+    else:
+        raise RuntimeError('非debug模式, 需要删除')
 
 def timeIt(func):
     def _lambda(*args, **kwargs):
@@ -236,7 +262,6 @@ def timeIt(func):
         return ret
     return _lambda
 
-
 def showCall(func, *args, **kwargs):
     def lam(*args, **kwargs):
         print('<', func.__name__, ', time=', clock.time(), '>')
@@ -245,7 +270,6 @@ def showCall(func, *args, **kwargs):
         return ret
     return lam
 
-
 import cProfile
 import pstats
 def timeProfile(cmd):
@@ -253,11 +277,16 @@ def timeProfile(cmd):
     prof.run(cmd)
     pstats.Stats(prof).strip_dirs().sort_stats('tottime').print_stats('', 20)# sort_stats:  ncalls, tottime, cumtime
 
-
 import os
 import sys
 from ctypes import CDLL, py_object
 class CppDll:
+    """
+    main= CppDll('main')
+    d= {1:100}
+    p= main.foo(d)
+    print(p)
+    """
     PYTHON_DIR= '\\'.join(sys.executable.split('\\')[0:-1])
     GCC= 'E:/program/Dev-Cpp/MinGW64/bin/gcc'
     INCLUDE= f' -I{PYTHON_DIR}/INCLUDE -DBUILDING_DLL=1'
