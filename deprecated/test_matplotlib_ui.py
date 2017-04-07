@@ -54,9 +54,8 @@ class MyMplCanvas(FigureCanvas):
     def paint(self, painter, option, widget):
         pass
 
-
-    def update(self):#不能叫update
-        self.axes.cla()# 清空当前坐标
+    def update(self):  # 不能叫update
+        self.axes.cla()  # 清空当前坐标
 
         networkx.draw_networkx(top_graph, self.pos, ax= self.axes, node_size= 1, with_labels = True)
 

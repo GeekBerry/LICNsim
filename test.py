@@ -1,5 +1,4 @@
 # from core.common import *
-# TODO 数据库
 # TODO demo 数据采集
 # TODO 物联网
 # TODO 图形库
@@ -54,8 +53,6 @@
 # graph.draw(pos)
 
 
-
-
 # import networkx
 # import matplotlib.pyplot as plt
 
@@ -79,46 +76,9 @@
 # networkx.draw(top_graph, pos, with_labels = True, node_size = 1)
 # plt.show()
 
-
 #=======================================================================================================================
-# d= {1:(0,200), 2:(100,0)}
-#
-# l= [[1,2],[3,4], [0,10]]
-#
-#
-# max_x= max( d.values(), key= lambda key:key[0])
-#
-#
-# def boundingRect(l):
-#     min_x, max_x= INF, -INF
-#     min_y, max_y= INF, -INF
-#
-#     for x, y in l:
-#         if x < min_x: min_x= x
-#         if max_x < x: max_x= x
-#         if y < min_y: min_y= y
-#         if max_y < y: max_y= y
-#
-#     return max_x-min_x, max_y-min_y, min_x, min_y
-#
-# def normalization(l, w, h, offset_x, offset_y):
-#     return [ ((x-offset_x)/w,(h-offset_y)/h) for x, y in l]
-#
-# p= boundingRect(l)
-# print(p)
-#
-# p= normalization(l, *p)
-# print(p)
 
+L = ('spam', 'Spam', 'SPAM!')
+L.re
 
-
-
-
-#=======================================================================================================================
-from core.common import CppDll
-
-main= CppDll('main')
-d= {1:100}
-p= main.foo(d)
-print(p)
-
+print(L[::-1])

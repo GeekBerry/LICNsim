@@ -1,55 +1,69 @@
 #!/usr/bin/python3
 #coding=utf-8
-import random
+import random, re
 
-class Name(list):
-    def isPrefix(self, other):
-        if len(self) > len(other):
-            return False 
-        else:  # TODO 更高效的比较方法
-            return self == other[0: len(self)]
-
-    def __hash__(self):
-        """使其可以做dict的主键"""
-        return hash( tuple(self) )  # TODO 如何提高效率
-
-    def __add__(self, other):
-        return Name( super().__add__(other) )
-
-    def __and__(self, other):
-        """
-        abc & ab & ad == a
-        """
-        prefix=[]
-
-        length= range(  0,  min( len(self), len(other) )  )
-        for i in length:
-            if self[i] == other[i]:
-                prefix.append(self[i])
-            else:
-                break
-
-        return Name(prefix)
-
-
-    def __sub__(self, other):
-        """
-        'abc' - 'ab' == 'c'
-        'abc' - 'ax' == 'abc'
-        'abc' - 'abc' == ''
-        'abc' - 'abcde' == None
-        """
-        if len(self) >= len(other):
-            if other.isPrefix(self):
-                return self[ len(other):]
-            else:
-                return self
+class Name(str):
+    def __new__(cls, string='/'):
+        match= re.match(r'(/[^/]+)+|/', string)
+        if match and match.end() == len(string):
+            return str.__new__(cls, string)
         else:
-            return None
-    
-    def __str__(self):# FIXME DEBUG
-        return '/'.join([ str(each) for each in self])
+            raise ValueError("string 格式不正确, 必须符合 r'(/[^/]+)+|/' ")
 
+# class Name(list):
+#     def __init__(self, arg= None):
+#         if isinstance(arg, str):
+#             # re.match(r'(/\w+)+|/', string)  TODO
+#             super().__init__( arg.split('/')[1:] )
+#         else:
+#             super().__init__(arg)
+#
+#     def isPrefix(self, other):
+#         if len(self) > len(other):
+#             return False
+#         else:  # TODO 更高效的比较方法
+#             return self == other[0: len(self)]
+#
+#     def __hash__(self):
+#         """使其可以做dict的主键"""
+#         return hash( tuple(self) )  # TODO 如何提高效率
+#
+#     def __add__(self, other):
+#         return Name( super().__add__(other) )
+#
+#     def __and__(self, other):
+#         """
+#         abc & ab & ad == a
+#         """
+#         prefix=[]
+#
+#         length= range(  0,  min( len(self), len(other) )  )
+#         for i in length:
+#             if self[i] == other[i]:
+#                 prefix.append(self[i])
+#             else:
+#                 break
+#
+#         return Name(prefix)
+#
+#
+#     def __sub__(self, other):
+#         """
+#         'abc' - 'ab' == 'c'
+#         'abc' - 'ax' == 'abc'
+#         'abc' - 'abc' == ''
+#         'abc' - 'abcde' == None
+#         """
+#         if len(self) >= len(other):
+#             if other.isPrefix(self):
+#                 return self[ len(other):]
+#             else:
+#                 return self
+#         else:
+#             return None
+#
+#     def __str__(self):  # FIXME DEBUG
+#         return '/'+'/'.join([ str(each) for each in self])
 
 # if __name__ == '__main__':
 #     print("测试代码")

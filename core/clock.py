@@ -67,9 +67,7 @@ class Clock:
         self.__todo= {}
 
 
-
-
-class Timer: #管理callback
+class Timer: # 管理callback
     def __init__(self, func, *args):
         self._func= func
         self._args= args

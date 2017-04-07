@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from core.common import *
+from constants import INF
+from core.common import Unit
 from core.data_structure import *
 #-----------------------------------------------------------------------------------------------------------------------
 class InfoUnit(Unit):

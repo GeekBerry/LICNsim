@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from core.common import *
+from random import randint
+from core.clock import clock
+from core.common import log
+from core.data_structure import Announce, Bind
 
 class PerfectChannel(Announce):
     # def __init__(self):
@@ -30,7 +33,7 @@ class NoQueueChannel(Announce):
         clock.timing(trans_time, Bind(self.__emit, packet))
 
     def __emit(self, packet):
-        if random.randint(0,100) >= self.loss: # 没有丢包
+        if randint(0,100) >= self.loss: # 没有丢包
             clock.timing(self.delay, Bind(super().__call__, packet)) # Announce.__call__ 使其终端真正接收数据
         else:
             log.info(packet, '在途中丢失，丢包率是', self.loss)
@@ -51,7 +54,7 @@ class Channel(Announce):
         clock.timing(self.__finish - clock.time(), Bind(self.__emit, packet))
 
     def __emit(self, packet):
-        if random.randint(0,100) >= self.loss: # 没有丢包
+        if randint(0,100) >= self.loss: # 没有丢包
             clock.timing(self.delay, Bind(super().__call__, packet)) # Announce.__call__ 使其终端真正接收数据
         else:
             log.info(packet, '在途中丢失，丢包率是', self.loss)

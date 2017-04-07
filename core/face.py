@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from core.common import *
+from core.common import log, label, Unit
 from core.data_structure import *
+from constants import INF
 
 class Face:
     def __init__(self, face_id):
@@ -104,7 +105,7 @@ class FaceUnit(Unit):
         +-------------+               +----------+                  +----------------+
         | dst_channel | <--upstream---| can_send |<----upload-----  | |repeat check| |<-- send ---
         +-------------+               |          |                  | ============== |>> outPacket
-        | in_channel | ---download-->| can_recv |---downstream-->  | | loop check | |>> inPacket
+        | in_channel  | ---download-->| can_recv |---downstream-->  | | loop check | |>> inPacket
         +-------------+               +----------+                  +----------------+
         :param face_id:Any
         :param in_channel:isinstance(Channel)

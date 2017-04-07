@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>main_window</class>
+ <widget class="QMainWindow" name="main_window">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1075</width>
+    <height>733</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>LICNsim</string>
+  </property>
+  <widget class="QWidget" name="central_widget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="1" column="0">
+     <widget class="NetView" name="ui_net_view">
+      <property name="accessibleName">
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QLabel" name="ui_net_label">
+      <property name="text">
+       <string>ui_net_label</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1075</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolbar_play">
+   <property name="windowTitle">
+    <string>播放工具栏</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="action_step"/>
+  </widget>
+  <widget class="QDockWidget" name="dock">
+   <property name="windowTitle">
+    <string>CS表</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dock_widget_contents">
+    <layout class="QGridLayout" name="gridLayout_3">
+     <item row="0" column="0">
+      <widget class="CSTableWidget" name="dock_table"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QToolBar" name="toolbar_view">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="action_stores"/>
+   <addaction name="action_hits"/>
+  </widget>
+  <action name="action_step">
+   <property name="icon">
+    <iconset>
+     <normaloff>images/step.png</normaloff>images/step.png</iconset>
+   </property>
+   <property name="text">
+    <string>下一步</string>
+   </property>
+  </action>
+  <action name="action_node">
+   <property name="icon">
+    <iconset>
+     <normaloff>images/node.png</normaloff>images/node.png</iconset>
+   </property>
+   <property name="text">
+    <string>Node</string>
+   </property>
+  </action>
+  <action name="action_egde">
+   <property name="icon">
+    <iconset>
+     <normaloff>images/edge.png</normaloff>images/edge.png</iconset>
+   </property>
+   <property name="text">
+    <string>Egde</string>
+   </property>
+  </action>
+  <action name="action_stores">
+   <property name="icon">
+    <iconset>
+     <normaloff>images/store.png</normaloff>images/store.png</iconset>
+   </property>
+   <property name="text">
+    <string>CS信息</string>
+   </property>
+  </action>
+  <action name="action_hits">
+   <property name="icon">
+    <iconset>
+     <normaloff>images/hit.png</normaloff>images/hit.png</iconset>
+   </property>
+   <property name="text">
+    <string>命中率</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CSTableWidget</class>
+   <extends>QTableWidget</extends>
+   <header>visualizer</header>
+   <slots>
+    <slot>playStep()</slot>
+   </slots>
+  </customwidget>
+  <customwidget>
+   <class>NetView</class>
+   <extends>QGraphicsView</extends>
+   <header>visualizer</header>
+   <slots>
+    <signal>setLabelText(QString)</signal>
+    <slot>viewStores()</slot>
+    <slot>viewHits()</slot>
+   </slots>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>action_step</sender>
+   <signal>triggered()</signal>
+   <receiver>main_window</receiver>
+   <slot>playSteps()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>537</x>
+     <y>366</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_stores</sender>
+   <signal>triggered()</signal>
+   <receiver>ui_net_view</receiver>
+   <slot>viewStores()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>537</x>
+     <y>265</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_hits</sender>
+   <signal>triggered()</signal>
+   <receiver>ui_net_view</receiver>
+   <slot>viewHits()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>537</x>
+     <y>265</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ui_net_view</sender>
+   <signal>setLabelText(QString)</signal>
+   <receiver>ui_net_label</receiver>
+   <slot>setText(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>537</x>
+     <y>274</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>537</x>
+     <y>71</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>playSteps()</slot>
+ </slots>
+</ui>

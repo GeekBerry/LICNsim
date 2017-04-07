@@ -1,62 +1,41 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-
+import constants
 from core.logger import *
-from core.clock import clock, Timer
 
-PRINT_STEP= 0
-IS_DEBUG= 1
-
-if IS_DEBUG:
-    log= Logger( Logger.LEVEL.TRACK )
-    label= LabelTable() #全局标签
-
-    from core.packet import Packet
-    from core.packet import Name
-    debug_ip= Packet(Name(['DEBUG_PACKET']), Packet.TYPE.INTEREST)
-    debug_ip1= Packet(Name(['DEBUG_PACKET', 1]), Packet.TYPE.INTEREST)
-    debug_ip2= Packet(Name(['DEBUG_PACKET', 2]), Packet.TYPE.INTEREST)
-    debug_dp= Packet(Name(['DEBUG_PACKET']), Packet.TYPE.DATA)
-    debug_dp1= Packet(Name(['DEBUG_PACKET', 1]), Packet.TYPE.DATA)
-    debug_dp2= Packet(Name(['DEBUG_PACKET', 2]), Packet.TYPE.DATA)
-
-else:
-    log= Logger( Logger.LEVEL.NOLOG )
-    label= NoLabelTable()
-
-
-# 全局变量
-INF= 0x7FFFFFFF  #无穷大 此处用4byte整形最大正数
-
+# log= Logger( Logger.LEVEL.TRACK )
+# label= LabelTable() #全局标签
+log= Logger( Logger.LEVEL.NOLOG )
+label= NoLabelTable()
 
 #=======================================================================================================================
 import numpy
 import random
 
-
-class Impulse:
-    def __init__(self, delta, function):
-        self.delta= delta
-        self.function= function
-
-    def __call__(self, t):
-        if t % self.delta == 0:
-            return self.function(t)
-        else: return 0
+# class Impulse:
+#     def __init__(self, delta, function):
+#         self.delta= delta
+#         self.function= function
+#
+#     def __call__(self, t):
+#         if t % self.delta == 0:
+#             return self.function(t)
+#         else: return 0
 
 class FixedAsk:
-    def __init__(self, lam=1):
+    def __init__(self, lam):
         self.lam= lam
 
     def __call__(self, t):
         return self.lam
 
-# def fixedAsk(t):
-#     return 1
+class PossionAsk:
+    def __init__(self, lam):
+        self.lam= lam
 
-def possionAsk(t):
-    return numpy.random.poisson(1)
+    def __call__(self, t):
+        return numpy.random.poisson(self.lam)
 
 class ExponentAsk:
     def __init__(self, lam):
@@ -78,7 +57,6 @@ def graphHoops(graph, center):
             outer |= graph[node].keys()
         inter, hoop= hoop, outer- hoop- inter # 向外扩张一层
 
-
 # def graphNearest(graph, center, stores):
 #     """
 #     返回graph中距离center最近且在store_set中的节点
@@ -92,7 +70,6 @@ def graphHoops(graph, center):
 #             if node in stores:
 #                 return node
 #     return None
-
 
 def graphNearestPath(graph, center, content_nodes):
     """
@@ -133,14 +110,12 @@ def graphNearestPath(graph, center, content_nodes):
 
     return None
 
-
 def graphNodeAvgDistance(graph, center)->float:
     distance, sigma= 0, 0
     for hoop in graphHoops(graph, center):
         sigma+= len(hoop)*distance
         distance+= 1
     return sigma/len(graph)
-
 
 def graphApproximateDiameter(graph, sample_num= 10):  # 得到graph近似直径
     nodes= random.sample( graph.nodes(), sample_num )  # sample_num: 取样测试偏心率的点数量 如果sample_num>len(graph), 会出现个采样错误
@@ -150,7 +125,7 @@ def graphApproximateDiameter(graph, sample_num= 10):  # 得到graph近似直径
 
 #-----------------------------------------------------------------------------------------------------------------------
 class UniformPosition:
-    def __init__(self, graph):
+    def __init__(self, graph, *args):
         self.nodes= [ node for node in graph.nodes() ]
 
     def __call__(self, num):
@@ -166,7 +141,7 @@ class ZipfPosition:
     def __call__(self, num): # FIXME 函数运行时间不定
         nodes= set()
         while len(nodes) < num:
-            distance= INF
+            distance= constants.INF
             while distance >= self.length:
                 distance = numpy.random.zipf(self.alpha)
 
@@ -175,85 +150,77 @@ class ZipfPosition:
 
         return nodes
 
-#=======================================================================================================================
-EMPTY_FUNC= lambda *args: None
-
-class Bind:
-    def __init__(self, func, *args):
-        self.func= func
-        self.args= args
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*self.args, *args, **kwargs)
-
 #-----------------------------------------------------------------------------------------------------------------------
-from core.data_structure import defaultdict
+class GridPosLogic:
+        CENTER, OUTSIDE, UP, DOWN, LEFT, RIGHT, LEFTUP, RIGHTDOWN, RIGHTUP, LEFTDOWN= range(0, 10)
+        def __init__(self, cx, cy):
+            self.sx, self.sy = 1, 1
+            self.cx, self.cy= cx, cy
+            self.ex, self.ey= 2*self.cx - 1, 2*self.cy - 1
 
-class CallTable(dict):  # FIXME 能否利用defaultdict实现
-    class CallBack:  # 用于CallTable[name]还不存在时,返回一个绑定指向列表的量
-        def __init__(self):
-            self.func= None
+            self.hsx, self.hsy= (self.sx+self.cx)//2, (self.sy+self.cy)//2
+            self.hex, self.hey= (self.cx+self.ex)//2, (self.cy+self.ey)//2
 
-        def __eq__(self, other):
-            return self.func is other
+        def reset(self):
+            self.vector= [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-        def __call__(self, *args):
-            if self.func is not None:
-                return self.func(*args)
-            else:
-                log.error(str(args), "未找到对应函数,无法执行")
-                raise RuntimeError('未找到对应函数',self.func,'无法执行')
+        def insert(self, point):
+            x,y = point[0], point[1]
 
-    def __getitem__(self, name):
-        return self.setdefault( name, CallTable.CallBack() )
+            if self.inCenter(x,y):
+                self.vector[self.CENTER]+=1
+            else: self.vector[self.OUTSIDE]+=1
 
-    def __setitem__(self, name, func):
-        callback= self.setdefault( name, CallTable.CallBack() )
-        callback.func= func
+            if self.inUp(x,y):
+                self.vector[self.UP]+=1
+            else: self.vector[self.DOWN]+=1
 
-# if __name__ == '__main__':
-#     t= CallTable()
-#     p= t['1']
-#     t['1']= print
-#     p(1,2,3)
+            if self.inLeft(x,y):
+                self.vector[self.LEFT]+=1
+            else: self.vector[self.RIGHT]+=1
 
+            if self.inLeftUp(x,y):
+                self.vector[self.LEFTUP]+=1
+            else: self.vector[self.RIGHTDOWN]+=1
 
-class Announce(list):
-    def __call__(self, *args, **kwargs):
-        for callback in self:
-            log.track(label[self], '将调用', label[callback], '(', args, kwargs, ')')
-            callback(*args, **kwargs)
+            if self.inRightUp(x,y):
+                self.vector[self.RIGHTUP]+=1
+            else: self.vector[self.LEFTDOWN]+=1
 
-        if len(self) == 0:
-            log.info(label[self], args, "没人订阅")
+        def inCenter(self, x,y):
+            return self.hsx<=x<self.hex and self.hsy<=y<self.hey
 
-class AnnounceTable(defaultdict):
-    def __init__(self):
-        super().__init__(Announce)
+        def inUp(self, x,y):
+            return self.sy<=y<self.cy
 
-#=======================================================================================================================
-class Unit:
-    def __init__(self):
-        self.publish= AnnounceTable()
-        label[self.publish]= label[self],".pub"
+        def inLeft(self, x,y):
+            return self.sx<=x<self.cx
 
-    def install(self, announces, api):
-        # 监听的 Announce
-        # 发布的 Announce
-        # 提供的 API
-        # 调用的 API
-        pass
+        def inLeftUp(self, x,y):
+            return x+y <= self.ex
+
+        def inRightUp(self, x,y):
+            return y<=x
+
+class GridPosLogicSmallGrid:
+    def __init__(self, cx, cy):
+        self.sx, self.sy= 1, 1
+        self.ex, self.ey= 2*cx - 1, 2*cy - 1
+
+    def reset(self):
+        self.vector= [0]*100
+
+    def insert(self, point):
+        x, y = point[0], point[1]
+
+        px= x*10 // (self.ex+1)
+        py= y*10 // (self.ey+1)
+
+        self.vector[ px*10 + py ]+=1
 
 
 #=======================================================================================================================
 import time
-
-def debug(*args):
-    if IS_DEBUG:
-        print(*args)
-    else:
-        raise RuntimeError('非debug模式, 需要删除')
-
 def timeIt(func):
     def _lambda(*args, **kwargs):
         start_time= time.clock()
@@ -262,11 +229,15 @@ def timeIt(func):
         return ret
     return _lambda
 
-def showCall(func, *args, **kwargs):
+show_call_deep= 0
+def showCall(func):
     def lam(*args, **kwargs):
-        print('<', func.__name__, ', time=', clock.time(), '>')
+        global show_call_deep
+        print('\t'*show_call_deep, 'START: ',func)
+        show_call_deep += 1
         ret= func(*args, **kwargs)
-        print('</', func.__name__, '>')
+        show_call_deep -= 1
+        print('\t'*show_call_deep, 'END: ',func)
         return ret
     return lam
 
@@ -277,9 +248,10 @@ def timeProfile(cmd):
     prof.run(cmd)
     pstats.Stats(prof).strip_dirs().sort_stats('tottime').print_stats('', 20)# sort_stats:  ncalls, tottime, cumtime
 
+#-----------------------------------------------------------------------------------------------------------------------
 import os
 import sys
-from ctypes import CDLL, py_object
+import ctypes
 class CppDll:
     """
     main= CppDll('main')
@@ -301,17 +273,41 @@ class CppDll:
         or os.stat( f'{file_name}.cpp' ).st_mtime > os.stat( f'{file_name}.dll' ).st_mtime: # gcc修改时间 > dll修改时间
             os.system(f'{self.GCC} -c {file_name}.cpp -o {file_name}.o {self.INCLUDE} -std=gnu++11')
             os.system(f'{self.GCC} -shared {file_name}.o -o {file_name}.dll {self.LIBS} {self.LIB}')
-        self.cdll = CDLL( f'{os.getcwd()}/{file_name}.dll' )  # os.getcwd() ???
+        self.cdll = ctypes.CDLL( f'{os.getcwd()}/{file_name}.dll' )  # os.getcwd() ???
 
     def __getattr__(self, item):  # FIXME??? 是否需要对类型强制要求
         # cpp文件中函数对应形式为 PyObject* xxx(PyObject* pointer)
         func= self.cdll[item]
-        func.argtypes= (py_object,)
-        func.restype= py_object
+        func.argtypes= (ctypes.py_object,)
+        func.restype= ctypes.py_object
         return func
 
+#-----------------------------------------------------------------------------------------------------------------------
+def getSysKwargs()->dict:
+    return dict([ part.split('=') for part in sys.argv[1:] ])
 
+def setSysKwargs(**kwargs)->str:
+    string= ''
+    for k,v in kwargs.items():
+        string += f'{k}={v} '
+    return string
 
+def python(filename, **kwargs):
+    os.system(f'python {filename} {setSysKwargs(**kwargs)}')
+#=======================================================================================================================
+from core.data_structure import AnnounceTable
+class Unit:
+    def __init__(self):
+
+        self.publish= AnnounceTable()
+        label[self.publish]= label[self],".pub"
+
+    def install(self, announces, api):
+        # 监听的 Announce
+        # 发布的 Announce
+        # 提供的 API
+        # 调用的 API
+        pass
 
 
 

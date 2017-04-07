@@ -13,8 +13,8 @@ class ExperimentForwarderUnit(ForwarderUnitBase):
     def install(self, announces, api):
         super().install(announces, api)
         #发布的 Announce
-        self.publish['unsatisfied'].append( announces['unsatisfied'] ) # TODO
-        self.publish['unsolicited'].append( announces['unsolicited'] )
+        self.publish['unsatisfied']= announces['unsatisfied'] # TODO
+        self.publish['unsolicited']= announces['unsolicited']
 
     def _inPacket(self, face_id, packet):
         if packet.type == Packet.TYPE.INTEREST:
@@ -24,23 +24,25 @@ class ExperimentForwarderUnit(ForwarderUnitBase):
         else:pass
 
     def _inInterest(self, face_id, packet):
-        if len(packet.pathI) > 0:  # 转发
-            info= self.api['Info::getInfo'](packet)  # 已有记录: info[face_id].inI == clock.life_time()
-            sendid, packet.pathI= packet.pathI[0], packet.pathI[1:]  # 将头部摘取出来, 基于net的设定, NodeName= FaceID
-            if not self.isOutICooling( info[sendid] ):
-                self.api['Face::send']( {sendid}, packet )
-        else:
-            data= self.api['CS::match'](packet)
-            if data is not None:#hit
-                self.api['Face::send']( {face_id}, data )  # 记录: info[send_id].outD == clock.life_time()
-            else:#miss
+        data= self.api['CS::match'](packet)
+        if data is None:
+            # 对path进行检查
+            if len(packet.pathI) <= 0:
                 path= self.api['Net::getPath'](packet)
                 if path:
                     log.waring('本该有CS却不存在, 新路由', path)
-                    packet.pathI= path[1:]
-                    self._inInterest(face_id, packet)  # 单纯为了代码复用
+                    path.pop(0)  # 当前节点标号
+                    packet.pathI= path
                 else:
                     log.waring('不存在路由, 丢弃包', packet)
+            # 转发
+            sendid= packet.pathI.pop(0)  # 将头部摘取出来, 基于net的设定, NodeName= FaceID
+            info= self.api['Info::getInfo'](packet)  # 已有记录: info[face_id].inI == clock.life_time()
+            if not self.isOutICooling( info[sendid] ):
+                self.api['Face::send']( {sendid}, packet )
+        else:
+            self.api['Face::send']( {face_id}, data )  # 记录: info[send_id].outD == clock.life_time()
+
 
     def _inData(self, face_id, packet):
         info= self.api['Info::getInfo'](packet)  # 已有记录: info[face_id].inI == clock.life_time()
@@ -124,8 +126,7 @@ class ExperimentNode(NodeBase):
         self.install('app',    ExperimentAppUnit() )
         self.install('fwd',    ExperimentForwarderUnit(outI_cd= 100) )  # 100来自于100*100网格平均响应时间
 
-        if IS_DEBUG and PRINT_STEP:
-            self.install( 'log', LogUnit() )
+        # self.install( 'log', LogUnit() )
 
 
 #=======================================================================================================================

@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from core.common import *
+from constants import INF
+from core.common import Unit, label, log
 from core.data_structure import *
-
 
 class ContentStoreUnit(Unit):
     def __init__(self, capacity):# 安装在系统上
@@ -64,9 +64,9 @@ class ContentStoreUnit(Unit):
             self._evict(name, packet)
 
     def _evict(self, name, packet):
-        self.publish['csEvict']( packet )
+        self.publish['csEvict'](packet)
 
-# if __name__ == '__main__' and 0:
+# if __name__ == '__main__':
 #     t= ContentStoreUnit(1)
 #
 #     t.store(debug_dp)
@@ -105,6 +105,7 @@ class SimulatCSUnit(ContentStoreUnit):
 
 
 if __name__ == '__main__':
+    from constants import *
     log.level= 0
     cs= SimulatCSUnit(10, life_time= 2)
 
@@ -119,7 +120,6 @@ if __name__ == '__main__':
     clock.step()
     print(cs.table)
 
-    #cs.match(debug_dp)
     clock.step()
     print(cs.table)
 
