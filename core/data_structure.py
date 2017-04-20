@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from collections import deque, OrderedDict, defaultdict
+from collections import deque, OrderedDict, defaultdict, namedtuple
+
 from core.clock import clock, Timer
 
 
@@ -79,64 +80,69 @@ class Dict(dict):
             return None
 
 #-----------------------------------------------------------------------------------------------------------------------
+class NameEntry:
+    def __init__(self, INDEX, data):
+        super().__setattr__('__INDEXS__', INDEX)
+        super().__setattr__('__data__', data)
+
+    def __getattr__(self, key):
+        return self.__data__[ self.__INDEXS__[key] ]
+
+    def __setattr__(self, key, value):
+        self.__data__[ self.__INDEXS__[key] ]= value
+
+    def __repr__(self):
+        return f'NameEntry{repr(self.__data__)}'
+
+
+class NameList:  # 类似于nametuple  TODO 手动修改list的容量
+    def __init__(self, **kwargs):
+        self.__INDEX__= dict(   zip(  kwargs.keys(), range( 0,len(kwargs) )  )   )
+        self.kwargs= kwargs
+
+    def genData(self, kwargs):
+        for k,v in self.kwargs.items():
+            if k in kwargs:
+                yield kwargs[k]
+            else:
+                yield v()
+
+    def __call__(self, *args, **kwargs):
+        if args:
+            if kwargs:
+                raise Exception('can use "args" and "kwargs" at same time')
+            if len(args) != len(self.kwargs):
+                raise Exception(f'len{args} != len{list(self.kwargs.keys())}')
+            return NameEntry(self.__INDEX__, args)
+
+        self_fileds= set(self.kwargs.keys())
+        differ= set( kwargs.keys() ) - self_fileds
+        if differ:
+            raise Exception(f'no field named, {differ}, field are {self_fileds}')
+        return NameEntry(self.__INDEX__, list(self.genData(kwargs)))
+
+
 class SheetTable(dict):
-    class Entry(dict):
-        def __init__(self, TypeDict):
-            super().__init__()
-            super().__setattr__('TypeDict', TypeDict)  # 绕过self.__setattr__
-
-        def __getitem__(self, item):
-            return self.setdefault( item, self.TypeDict[item]() )  # call或者init
-
-        def __getattr__(self, item):  # arg= entry['name'] 和 arg= entry.name 等效
-            return self.__getitem__(item)
-
-        def __setattr__(self, key, value): # entry['name']= arg 和 entry.name= arg 等效
-            self.__setitem__(key, value)
-
     def __init__(self, **kwargs):  # 例如: SheetTable(name= str, number= int, age= lambda:18, sex= lambda:'male' )
         super().__init__()
-        self.TypeDict= kwargs
+        self.Entry= NameList(**kwargs)
 
-    def updateFields(self, **kwargs):
-        self.TypeDict.update(kwargs)
+    def __getitem__(self, key):
+        return self.setdefault(  key, self.Entry()  )
 
-    def __getitem__(self, item):
-        return self.setdefault(item, SheetTable.Entry(self.TypeDict))
-
-    # def __repr__(self):
-    #     values_names= self.TypeDict.keys_names()
-    #     string= '\n%16s\t'%('key') + '\t'.join([ '%16s'%(field) for field in values_names ]) + '\n'
-    #     row= 0
-    #     for key, entry in self.items():
-    #         string+= '%16s\t'%(str(key)[0:16])
-    #         for field in values_names:
-    #             cell= str( entry[field] )
-    #             cell= cell[0:16]
-    #             string+= '%16s\t'%(cell)
-    #         string+= '\n'
-    #
-    #         row += 1
-    #         if row > 20:
-    #             string+= '...\n'
-    #             break
-    #     return string
 
 # if __name__ == '__main__':
 #     st = SheetTable(name=str, number=int, age=lambda: 18, sex=lambda: 'male')
 #     st[10001].name = 'zhao'
-#     print(st)  # {10001: {'name':'zhao'}}
+#     print(st)  # {10001: NameEntry['zhao', 0, 18, 'male']}
 #
 #     age= st[20001].age
 #     print(age)  # 18
-#     print(st)  # {10001: {'name': 'zhao'}, 20001: {'age': 18}}
+#     print(st)  # {10001: NameEntry['zhao', 0, 18, 'male'], 20001: NameEntry['', 0, 18, 'male']}
 #
-#     st.updateFields(age=lambda: 20)
 #     age= st[30001].age
 #     print(age)  # 20
-#
-#     st[30001].food= 'Apple'
-#     print(st[30001])  # {'food': Apple, 'age': 20}
+
 
 #=======================================================================================================================
 class DictDecorator(dict):
@@ -232,23 +238,28 @@ class CallBackDictDecorator(DictDecorator):
 
 #-----------------------------------------------------------------------------------------------------------------------
 class SizeDictDecorator(CallBackDictDecorator):
-    def __init__(self, table, capacity, set_refresh= True, get_refresh= True):
+    def __init__(self, table, max_size, set_refresh= True, get_refresh= True):
         super().__init__(table)
         self.deque= deque()
-        self._capacity= capacity
+        self._max_size= max_size
         self.set_refresh= set_refresh
         self.get_refresh= get_refresh
+
+    @property
+    def max_size(self):
+        return self._max_size
+
+    @max_size.setter
+    def max_size(self, value):
+        if value < 0:
+            raise RuntimeError('max_size 必须大于 0')
+        else:
+            self._max_size= value
+            self._evict()
 
     def coreEvictEvent(self, key, value):
         self.deque.remove(key)
         super().coreEvictEvent(key, value)
-
-    def setCapacity(self, capacity):
-        if capacity < 0:
-            raise RuntimeError('capacity 必须大于 0')
-        else:
-            self._capacity= capacity
-            self._evict()
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)  # 执行后 key 有可能不在 table 中
@@ -267,7 +278,7 @@ class SizeDictDecorator(CallBackDictDecorator):
         return result
 
     def _evict(self):
-        while len(self) > self._capacity:
+        while len(self) > self._max_size:
             key= self.deque[0]  # top
             del self[key]
 
@@ -325,6 +336,7 @@ class TimeDictDecorator(CallBackDictDecorator):
         if self.info:
             self.timer.timing( topValue(self.info) - clock.time() )
 
+
 # if __name__ == '__main__':
 #     t= TimeDictDecorator({}, 2)
 #     t['A']= 100
@@ -340,7 +352,7 @@ class TimeDictDecorator(CallBackDictDecorator):
 #
 #     clock.step()
 #     print(t, t.info)  # {} OrderedDict()
-#
+
 # if __name__ == '__main__':
 #     t= TimeDictDecorator({}, 1)
 #     info= t.info
@@ -350,55 +362,137 @@ class TimeDictDecorator(CallBackDictDecorator):
 #     print(t, t.info, info)  # {'A': 100} OrderedDict([('A', 9)]) OrderedDict([('A', 5)])
 #
 #     clock.step()
-#     print(t, t.info, info)  # {'A': 100} OrderedDict([('A', 9)]) OrderedDict([('A', 5)])
-#
-#     clock.step()
 #     print(t, t.info, info)  # {} OrderedDict() OrderedDict()
 
 
 #=======================================================================================================================
-# class DefaultDictDecorator(dict):  # XXX 如何用 defaultdict 实现 ???
-#     def __init__(self, table, DefaultType):
-#         super().__init__(table)
-#         self.DefaultType= DefaultType
+class SizeQueue:
+    def __init__(self, max_size):
+        self.max_size= max_size
+        self._cur_size= 0
+        self._queue= deque()
+
+    def __bool__(self):
+        return bool(self._queue)
+
+    def append(self, size, data) ->bool:
+        if self._cur_size + size > self.max_size:
+            return False
+        else:
+            self._cur_size += size
+            self._queue.append( (size,data,) )
+            return True
+
+    def top(self):
+        return next(iter(self._queue))
+
+    def pop(self):
+        try:
+            size,data= self._queue.popleft()
+        except IndexError:
+            return None
+        else:
+            self._cur_size -= size
+            assert self._cur_size >= 0  # DEBUG
+            return size, data
+
+
+class SizeLeakyBucket:
+    def __init__(self, callback, rate, max_size):
+        self.callback= callback
+        self.rate= rate
+
+        self._queue= SizeQueue(max_size)
+        self._accum= self.rate
+        self._block= False
+        self._exe_time= 0  # 安排执行leaky时间
+
+    @property
+    def max_size(self):
+        return self._queue.max_size
+
+    @max_size.setter
+    def max_size(self, value):
+        self._queue.max_size= value
+
+    def __call__(self, *args, size=1)->bool:
+        if self._queue.append(size, args):
+            if not self._block:
+                self._leaky()
+            return True
+        else:
+            return False
+
+    def _leaky(self):
+        if self._exe_time != clock.time():
+            self._accum= self.rate
+            self._exe_time= clock.time()
+
+        while self._queue:
+            size, args= self._queue.top()
+            if size <= self._accum:
+                self._queue.pop()
+                self._accum -= size
+                self.callback(*args)
+                self._block= False
+            else:
+                self._exe_time+= 1
+                self._accum += self.rate
+                clock.timing(1, self._leaky)  # 下回合继续
+                self._block= True
+                return
+
+
+# if __name__ == '__main__':
+#     bucket= SizeLeakyBucket(2, 10, print)
 #
-#     def __getitem__(self, key):
-#         if key in self:
-#             return super().__getitem__(key)
-#         else:
-#             self[key]= value= self.DefaultType()
-#             return value
+#     print(clock.time())  # 0
+#     bucket.append('ABCEDFG')
+#     clock.step()
+#
+#     print(clock.time())  # 1
+#     bucket.append('D')
+#     clock.step()
+#
+#     print(clock.time())  # 2
+#     # bucket.append('DEF')
+#     clock.step()
+#
+#     print(clock.time())  # 3
+#     clock.step()
+#
+#     print(clock.time())  # 4
+#     clock.step()
 
 #=======================================================================================================================
 EMPTY_FUNC= lambda *args: None
 
 class Bind:
-    def __init__(self, func, *args):
+    def __init__(self, func= EMPTY_FUNC, *args):
         self.func= func
         self.args= args  # 注意, 没有进行拷贝
+
+    def __bool__(self):
+        return self.func is EMPTY_FUNC
+
+    def clear(self):
+        self.func= EMPTY_FUNC
+        self.args= None
 
     def __call__(self, *args, **kwargs):
         return self.func(*self.args, *args, **kwargs)
 
+    def __str__(self):
+        from core.common import objName
+        return f'Bind( {objName(self.func)}, {", ".join([str(each) for each in self.args])})'
+
 #-----------------------------------------------------------------------------------------------------------------------
 class CallTable(dict):  # FIXME 能否利用defaultdict实现
-    class CallBack:  # 用于CallTable[name]还不存在时,返回一个绑定指向列表的量
-        def __init__(self):
-            self.func= None
-
-        def __eq__(self, other):
-            return self.func is other
-
-        def __call__(self, *args):
-            if self.func is not None:
-                return self.func(*args)
-            # else: raise RuntimeError('未找到对应函数',self.func,'无法执行')
-
     def __getitem__(self, name):
-        return self.setdefault( name, CallTable.CallBack() )
+        return self.setdefault( name, Bind(EMPTY_FUNC) )
 
     def __setitem__(self, name, func):
-        callback= self.setdefault( name, CallTable.CallBack() )
+        callback= self.setdefault( name,  Bind(EMPTY_FUNC) )
         callback.func= func
 
 # if __name__ == '__main__':
@@ -407,173 +501,52 @@ class CallTable(dict):  # FIXME 能否利用defaultdict实现
 #     t['1']= print
 #     p(1,2,3)
 
-class Announce(List):
-    def __call__(self, *args, **kwargs):
-        for callback in self:
-            callback(*args, **kwargs)
-
-        # if not self: raise RuntimeWarning(self, args, "没人订阅")
-
-class AnnounceTable(defaultdict):
+class Announce:
     def __init__(self):
-        super().__init__(Announce)
+        self.callbacks= []
+
+    def __len__(self):
+        return len(self.callbacks)
+
+    def __iter__(self):
+        return iter(self.callbacks)
+
+    def __call__(self, *args):
+        for callback in self.callbacks:
+            callback(*args)
+
+    def append(self, func):
+        self.callbacks.append(func)
+
+    def __repr__(self):
+        from core.common import objName
+        return str([objName(callback) for callback in self.callbacks])
+
+
+# class AnnounceTable(defaultdict):
+#     def __init__(self):
+#         super().__init__(Announce)
+
+
+class AnnounceTable:  # 带log版本
+    def __init__(self):
+        self.logger= Announce()
+        self._table= {}
+
+    def items(self):
+        return self._table.items()
+
+    def __getitem__(self, action):
+        announce= self._table.get(action)
+        if announce is None:
+            self._table[action]= announce= Announce()
+            announce.append( Bind(self.logger, action) )
+        return announce
+
+    def __setitem__(self, action, announce):
+        if not isinstance(announce, Announce):
+            raise TypeError('value 必须是 Announce 子类型')
+        self._table[action]= announce
 
 #-----------------------------------------------------------------------------------------------------------------------
-import inspect
-import pydblite
-
-class DataBaseTable(pydblite.pydblite._BasePy3):
-    class AccessRecord(DictDecorator):  # 提供元素访问语法糖, 使得对元素的修改可以更新索引
-        def __init__(self, record, db):  # 必须第一个参数就是被装饰者
-            super().__init__(record)  # 其实不需要初始化
-            super().__setattr__('_db', db)
-
-        def __setattr__(self, key, value):
-            self._db.update(self, **{key:value})
-
-        def __getattr__(self, item):
-            return self[item]
-
-    def __init__(self, path= ':memory:', *args, **kwargs):
-        super().__init__(path, *args, **kwargs)
-        self.mode= 'override'
-
-    def insert(self, *args, **kw):
-        raise RuntimeError('insert 被禁用, 请使用 access')
-
-    def ids(self):
-        for _id in self.records:
-            yield _id
-
-    def fromIds(self, ids):
-        for _id in ids:
-            yield self[_id]
-
-    def __call__(self, *args, **kwargs):  # select
-        """
-        db('a') 同 pydblite._BasePy3 用法
-        db(a= 1, b= lambda num: 1<num<2, ...)  之间为 'and' 关系
-        itertools.chain( db(a= 1), db(b= 2) ) 之间为 'or' 关系
-        :param args:
-        :param kwargs:
-        :return: 迭代器
-        """
-        if args:
-            return super()(*args, **kwargs)
-        # 区分有索引项和无索引项
-        keys = kwargs.keys()  # 加速提取
-        ixs = set(keys) & set(self.indices.keys())
-        no_ix = set(keys) - ixs
-        # 对有索引的项进行集合并操作
-        if ixs:
-            ix = ixs.pop()
-            res= set( self.keyIndex(ix, kwargs[ix]) )  # 解决如何产生第一个集合的问题
-            while res and ixs:
-                ix = ixs.pop()
-                res &= set( self.keyIndex(ix, kwargs[ix]) )
-        else:
-            res= self.ids()
-        # 对无索引的项进行过滤
-        for field in no_ix:
-            value= kwargs[field]
-            res= self.keyFilter(field, value, res)
-        # 必须返回可反复遍历的对象
-        return LazyIter( self.fromIds(res) )  # LazyIter 惰性生成列表
-
-    def keyIndex(self, field, value)->list:  # list[_id, ...]
-         if inspect.isfunction(value):  # 表达式
-            _ids= []
-            for key, ids in self.indices[field].items():  # 遍历索引键
-                if value(key):
-                    _ids += ids
-            return _ids
-         else:
-            return self.indices[field].get(value, [])
-
-    def keyFilter(self, field, value, ids_iter):
-        if ids_iter is None:
-            ids_iter= self.ids()  # 不存在带索引的项, 则在全局中查找
-
-        if inspect.isfunction( value ):  # 表达式
-            return filter(lambda _id: value( self[_id][field] ), ids_iter)
-        else:
-            return filter(lambda _id: value == self[_id][field], ids_iter)
-
-    def create(self, *keys, **values):
-        """
-        mydb.create('a', 'b', c=0) 不带默认值的为主键 (a,b)为主键
-        :param keys: 主键列表
-        :param values: 域字典
-        :return:None
-        """
-        self._primary= keys
-
-        pairs= [ pair for pair in zip( values.keys(), values.values() ) ]
-        super().create(*keys, *pairs, mode= self.mode)
-        self.create_index(*self._primary)
-        return self
-
-    def access(self, *keys, **kwargs)->AccessRecord:
-        """
-        indices:('k1', 'k2')
-        access(k1= 1, k2= 2) -> KeyError
-        access(k1, k2)
-        access(k1, k2, k1= new_k1)
-        access(k1, k2).k1 += 1
-        access(k1, k2)['k1']= new_k1  错误, 不能直接对索引项进行修改
-        :param keys:
-        :param kwargs:
-        :return:
-        """
-        if len(keys) != len(self._primary):
-            raise KeyError('keys 参数数量必须与主键长度一致')
-
-        primarys= {k:v for k, v in zip(self._primary, keys)}
-
-        record= self._find(**primarys)
-        if record is None:  # 插入
-            kwargs.update(primarys)  # 注意, 是更新kwargs, 而非更新primarys
-            record= self._insert(**kwargs)
-        else:
-            if kwargs:
-                self.update(record, **kwargs)
-        return self.AccessRecord(record, self)
-
-    def _insert(self, **kwargs)->dict:
-        _id= super().insert(**kwargs)
-        return self[_id]
-
-    def _find(self, **primarys)->dict or None:
-        try:
-            return top( self(**primarys) )
-        except StopIteration:
-            return None
-
-
-# if __name__ == '__main__':
-#     mydb = DataBaseTable()
-#     mydb.create('k1', 'k2', v1=0, v2=0)
-#     mydb.create_index('v1')
-#
-#     p= mydb.access(1,2, v2= 100)
-#     print('insert', p)  # insert {'k1': 1, 'k2': 2, 'v1': 0, 'v2': 100, '__id__': 0, '__version__': 0}
-#
-#     p= mydb.access(1,2, v2= 200)
-#     print('update', p)  # update {'k1': 1, 'k2': 2, 'v1': 0, 'v2': 200, '__id__': 0, '__version__': 1}
-#     p.update({'v2':222})
-#     print('unsafe', p)  # unsafe {'k1': 1, 'k2': 2, 'v1': 0, 'v2': 222, '__id__': 0, '__version__': 1}
-#
-#     mydb.access(1,2).v1+= 1  # 索引项可以这样修改
-#     # mydb.access(1,2)['v1']+= 1  索引项不能这样修改 !!!
-#     print('records', mydb.records)  # records {0: {'k1': 1, 'k2': 2, 'v1': 1, 'v2': 200, '__id__': 0, '__version__': 2}}
-#
-#     mydb.access(1,2)['v2']= 300  # 非索引项可以这样修改, 但'__version__'不会更新
-#     print('records', mydb.records)  # records {0: {'k1': 1, 'k2': 2, 'v1': 1, 'v2': 300, '__id__': 0, '__version__': 2}}
-#
-#     print('========')
-#     records= mydb(k1=1,k2=2)
-#     mydb.update(records, k1= 3)
-#     print('records', mydb.records)  # records {0: {'k1': 3, 'k2': 2, 'v1': 1, 'v2': 300, '__id__': 0, '__version__': 3}}
-#     print(mydb.indices)  # {'k1': {3: [0]}, 'k2': {2: [0]}, 'v1': {1: [0]}}
-
 

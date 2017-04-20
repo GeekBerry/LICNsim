@@ -156,8 +156,8 @@ def step(i):#i: 帧号
     # info['distance']= monitor.data['distance']
 
     #------------------------------- 文件操作  ------------------------------------
-    resultfile.write( '%d\t%d\t%d\t%s\t%s\n'%( info['CS'], info['evict'], info['ask'], info['avg_distance'], info['avg_step']) )
-    #resultfile.write( json.dumps(info)+'\r\n' )
+    resultfile._write( '%d\t%d\t%d\t%s\t%s\n'%( info['CS'], info['evict'], info['ask'], info['avg_distance'], info['avg_step']) )
+    #resultfile._write( json.dumps(info)+'\r\n' )
     resultfile.flush()
     #--------------------------------------------------------------------------
     return monitor.draw()
@@ -210,7 +210,7 @@ allrespond= {}
 
 global resultfile
 resultfile= open('NODE%d_UNIFORM%d_LRU_CS%d.txt'%(NODENUM, EXPECT, CS_LIFE), 'w')
-resultfile.write("CSnum\tEvict\tAsknum\tavgDst\tavgStep\n")
+resultfile._write("CSnum\tEvict\tAsknum\tavgDst\tavgStep\n")
 
 
 global info

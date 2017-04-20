@@ -1,38 +1,80 @@
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QMainWindow
+#!/usr/bin/python3
+#coding=utf-8
+
+from debug import showCall
 
 from core.clock import clock
-from core.common import showCall
+from core.icn_net import ICNNetHelper
+from core.data_structure import AnnounceTable, CallTable
 
-from visualizer.ui_node_info import Ui_NodeInfo
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QMainWindow
+from visualizer.common import QtUiBase
+from visualizer.net_scene import NetScene
 from visualizer.node_info_dialog import NodeInfoDialog
+from visualizer.ui.ui_node_info import Ui_NodeInfo
 
-class MainWindow(QMainWindow):
-    def __init__(self, *args):
-        super().__init__(*args)
+#=======================================================================================================================
+class MainWindow(QMainWindow, QtUiBase):
+    def __init__(self, UIForm, graph, monitor, logger=None):
+        QMainWindow.__init__(self)
+        QtUiBase.setupUi(self, UIForm)
+        self.updateStatusBar()
 
-    def setNet(self, icn_net, ui_net, db):
-        self.icn_net= icn_net
-        self.ui_net= ui_net
-        self.db= db
+        self.api= CallTable()
+        self.announces= AnnounceTable()
+        if logger is not None:
+            logger.addAnnounceTable('MainWindow', self.announces)
 
-    @showCall
-    def install(self, announces, api):
-        self.publish= announces
-        self.api= api
-        api['Main::showNodeInfo']= self.newNodeInfoDialog
+        self.graph= graph
+        self.monitor= monitor
+        self.logger= logger
+
+        self.api['Main::showNodeInfo']= self.newNodeInfoDialog
+        self.api['Main::setLabelNetNode']= self.ui.label_net_node.setText  # 代理label_net实现install
+        self.api['Main::setLabelNetEdge']= self.ui.label_net_edge.setText  # 代理label_net实现install
+
+        self.scene= NetScene(self.graph)  # NetScene
+        self.scene.install(self.announces, self.api)
+
+        self.ui.view_net.init(self.graph, self.scene, self.monitor)  # NetView
+        self.ui.view_net.install(self.announces, self.api)
+
+        self.ui.table_contents.init(self.monitor)  # CSTableWidget
+        self.ui.table_contents.install(self.announces, self.api)
+
+        self.ui.tree_packet_head.init(self.monitor) # PacketHeadTreeWidget
+        self.ui.tree_packet_head.install(self.announces, self.api)
 
     @pyqtSlot()
     def playSteps(self):
-        steps= 400  # TODO 获取steps
+        steps= 100  # TODO 获取steps
         for i in range(0, steps):
             clock.step()
-        self.publish['playSteps'](steps)  # 一定要先step, 再publish
+        self.updateStatusBar()
+        self.announces['playSteps'](steps)  # 一定要先step, 再publish
+
+    @pyqtSlot()
+    def viewName(self):
+        self.ui.view_net.showName()
+
+    @pyqtSlot()
+    def viewHits(self):
+        self.ui.view_net.showHitRatio()
+
+    @pyqtSlot()
+    def viewRate(self):
+        self.ui.view_net.showRate()
+
+    @pyqtSlot()
+    def viewTransfer(self):
+        self.ui.view_net.showTransfer()
 
     @showCall
     def newNodeInfoDialog(self, node_name):
-        dialog= NodeInfoDialog(self)  # 如果不以self为parent, 窗口会一闪而过
-        ui_node_info= Ui_NodeInfo()
-        ui_node_info.setupUi(dialog)
-        dialog.setWindowTitle( f'Node{node_name}信息' )
+        icn_node= ICNNetHelper.node(self.graph, node_name)
+        dialog= NodeInfoDialog(self, Ui_NodeInfo, icn_node, self.logger)  # 如果不以self为parent, 窗口会一闪而过
         dialog.show()
+
+    def updateStatusBar(self):
+        self.statusBar().showMessage( f'steps:{clock.time()}' )

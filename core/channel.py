@@ -1,82 +1,76 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from random import randint
+import random
+import itertools
+from core.common import Hardware
 from core.clock import clock
-from core.common import log
-from core.data_structure import Announce, Bind
+from core.data_structure import Announce
+from core.data_structure import SizeLeakyBucket
 
-class PerfectChannel(Announce):
-    # def __init__(self):
-    #     self.rate= 0xFFFFFFFF #XXX 一个很大的数字
-    #     self.delay= 0
-    #     self.loss= 0
+
+class Channel(Hardware, Announce):
+    def __init__(self, src, dst, rate:int, buffer_size:int, delay:int, loss:float):
+        Hardware.__init__(self, f'Channel({src}->{dst})')
+        Announce.__init__(self)
+
+        self.delay= delay
+        self.loss= loss
+        self._order_iter= itertools.count()  # 标记该Channel处理的包序号
+        self._bucket= SizeLeakyBucket(self._begin, rate, buffer_size)
+
+    @property
+    def rate(self):
+        return self._bucket.rate
+
+    @rate.setter
+    def rate(self, value):
+        self._bucket.rate= value
+
+    @property
+    def buffer_size(self):
+        return self._bucket.max_size
+
+    @buffer_size.setter
+    def buffer_size(self, value):
+        self._bucket.max_size= value
 
     def __call__(self, packet):
-        clock.timing(0, Bind(super().__call__, packet))
+        order= next(self._order_iter)
+        if not self._bucket(order, packet, size= len(packet)):  # size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
+            self.announces['full'](order, packet)
 
+    def _begin(self, order, packet):
+        self.announces['begin'](order, packet)
+        clock.timing(self.delay, self._finish, order, packet)
 
-class OneStepChannel(Announce):
-    def __call__(self, packet):
-        clock.timing(1, Bind(super().__call__, packet))
-
-
-class NoQueueChannel(Announce):
-    def __init__(self):
-        super().__init__()
-        self.rate= 1    #int 单位byte/step
-        self.delay= 0   #int 单位step
-        self.loss= 0    #int 单位loss%
-
-    def __call__(self, packet):#发送 packet, 实现在队列时间管理
-        trans_time= len(packet)/self.rate
-        clock.timing(trans_time, Bind(self.__emit, packet))
-
-    def __emit(self, packet):
-        if randint(0,100) >= self.loss: # 没有丢包
-            clock.timing(self.delay, Bind(super().__call__, packet)) # Announce.__call__ 使其终端真正接收数据
+    def _finish(self, order, packet):
+        if self.loss and random.random() < self.loss:
+            self.announces['loss'](order, packet)
         else:
-            log.info(packet, '在途中丢失，丢包率是', self.loss)
+            self.announces['finish'](order, packet)
+            super().__call__(packet)
 
 
-class Channel(Announce):
-    def __init__(self):
-        super().__init__()
-        self.rate= 1    #int 单位byte/step
-        self.delay= 0   #int 单位step
-        self.loss= 0    #int 单位loss%
-        self.__finish= 0#float 当前处理结束时间
 
-    def __call__(self, packet):#发送 packet, 实现在队列时间管理
-        start_time= max( clock.time(), self.__finish )
-        trans_time= len(packet)/self.rate
-        self.__finish= start_time + trans_time
-        clock.timing(self.__finish - clock.time(), Bind(self.__emit, packet))
+#=======================================================================================================================
+from constants import INF
 
-    def __emit(self, packet):
-        if randint(0,100) >= self.loss: # 没有丢包
-            clock.timing(self.delay, Bind(super().__call__, packet)) # Announce.__call__ 使其终端真正接收数据
-        else:
-            log.info(packet, '在途中丢失，丢包率是', self.loss)
+def PerfectChannel(src, dst):
+    return  Channel(src, dst, rate= INF, buffer_size= INF, delay=0, loss= 0.0)
+
+def OneStepChannel(src, dst):
+    return  Channel(src, dst, rate= INF, buffer_size= INF, delay=1, loss= 0.0)
 
 
-"""
-class Channel(Announce):# 链路层 + 物理层
-    def __init__(self):
-        self._capacity= 0xFFFF
-        self.rate= 1    #int 单位byte/step
-        self.delay= 0   #int 单位step
-        self.loss= 0    #int 单位loss%
-        self.buffer= LeakyBucket(self._capacity, self.rate, self.__emit)
+if __name__ == '__main__':
+    channel= OneStepChannel(None, None)
 
-    def __call__(self, packet):#发送 packet, 实现在队列时间管理
-        if not self.buffer.push( packet, len(packet) ):
-            log.waring('缓存溢出丢包', str(packet) )
+    channel.buffer_size= 10
+    channel.rate= 1
 
-    def __emit(self, packet):
-        if random.randint(0,100) >= self.loss: # 没有丢包
-            clock.timing(self.delay, Announce.__call__, self, packet) # Announce.__call__ 使其终端真正接收数据
-        else:
-            log.info(packet, '在途中丢失，丢包率是', self.loss)
-"""
+    print(channel._bucket._queue.max_size)
+    print(channel._bucket.rate)
+
+
 

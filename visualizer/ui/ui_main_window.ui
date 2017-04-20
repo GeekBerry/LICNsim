@@ -15,31 +15,41 @@
   </property>
   <widget class="QWidget" name="central_widget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="1" column="0">
-     <widget class="NetView" name="ui_net_view">
+    <item row="0" column="0">
+     <widget class="QLabel" name="label_net_node">
+      <property name="text">
+       <string>label_net</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QLabel" name="label_net_edge">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="2">
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="1" column="0" colspan="3">
+     <widget class="NetView" name="view_net">
       <property name="accessibleName">
        <string/>
       </property>
      </widget>
     </item>
-    <item row="0" column="0">
-     <widget class="QLabel" name="ui_net_label">
-      <property name="text">
-       <string>ui_net_label</string>
-      </property>
-     </widget>
-    </item>
    </layout>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1075</width>
-     <height>23</height>
-    </rect>
-   </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolbar_play">
@@ -54,24 +64,24 @@
    </attribute>
    <addaction name="action_step"/>
   </widget>
-  <widget class="QDockWidget" name="dock">
+  <widget class="QDockWidget" name="dock_name_store">
    <property name="windowTitle">
-    <string>CS表</string>
+    <string>NameStore表</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>8</number>
    </attribute>
-   <widget class="QWidget" name="dock_widget_contents">
+   <widget class="QWidget" name="dockWidgetContents_2">
     <layout class="QGridLayout" name="gridLayout_3">
      <item row="0" column="0">
-      <widget class="CSTableWidget" name="dock_table"/>
+      <widget class="CSTableWidget" name="table_contents"/>
      </item>
     </layout>
    </widget>
   </widget>
   <widget class="QToolBar" name="toolbar_view">
    <property name="windowTitle">
-    <string>toolBar</string>
+    <string>显示工具栏</string>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -79,13 +89,36 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="action_stores"/>
    <addaction name="action_hits"/>
+   <addaction name="action_stores"/>
+   <addaction name="action_rate"/>
+   <addaction name="action_transfer"/>
+  </widget>
+  <widget class="QDockWidget" name="dock_packet_head">
+   <property name="windowTitle">
+    <string>Packet传输表</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QGridLayout" name="gridLayout_2">
+     <item row="0" column="0">
+      <widget class="PacketHeadTreeWidget" name="tree_packet_head">
+       <column>
+        <property name="text">
+         <string notr="true">1</string>
+        </property>
+       </column>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
   <action name="action_step">
    <property name="icon">
-    <iconset>
-     <normaloff>images/step.png</normaloff>images/step.png</iconset>
+    <iconset resource="../../res.qrc">
+     <normaloff>:/icon/visualizer/images/step.png</normaloff>:/icon/visualizer/images/step.png</iconset>
    </property>
    <property name="text">
     <string>下一步</string>
@@ -100,19 +133,22 @@
     <string>Node</string>
    </property>
   </action>
-  <action name="action_egde">
+  <action name="action_rate">
    <property name="icon">
-    <iconset>
-     <normaloff>images/edge.png</normaloff>images/edge.png</iconset>
+    <iconset resource="../../res.qrc">
+     <normaloff>:/icon/visualizer/images/bytes.png</normaloff>:/icon/visualizer/images/bytes.png</iconset>
    </property>
    <property name="text">
-    <string>Egde</string>
+    <string>信道速率</string>
+   </property>
+   <property name="toolTip">
+    <string>信道速率</string>
    </property>
   </action>
   <action name="action_stores">
    <property name="icon">
-    <iconset>
-     <normaloff>images/store.png</normaloff>images/store.png</iconset>
+    <iconset resource="../../res.qrc">
+     <normaloff>:/icon/visualizer/images/store.png</normaloff>:/icon/visualizer/images/store.png</iconset>
    </property>
    <property name="text">
     <string>CS信息</string>
@@ -120,11 +156,23 @@
   </action>
   <action name="action_hits">
    <property name="icon">
-    <iconset>
-     <normaloff>images/hit.png</normaloff>images/hit.png</iconset>
+    <iconset resource="../../res.qrc">
+     <normaloff>:/icon/visualizer/images/hit.png</normaloff>:/icon/visualizer/images/hit.png</iconset>
    </property>
    <property name="text">
     <string>命中率</string>
+   </property>
+  </action>
+  <action name="action_transfer">
+   <property name="icon">
+    <iconset resource="../../res.qrc">
+     <normaloff>:/icon/visualizer/images/transfer.png</normaloff>:/icon/visualizer/images/transfer.png</iconset>
+   </property>
+   <property name="text">
+    <string>传输图</string>
+   </property>
+   <property name="toolTip">
+    <string>Transfer</string>
    </property>
   </action>
  </widget>
@@ -145,10 +193,18 @@
     <signal>setLabelText(QString)</signal>
     <slot>viewStores()</slot>
     <slot>viewHits()</slot>
+    <slot>viewEdgeBytes(bool)</slot>
    </slots>
   </customwidget>
+  <customwidget>
+   <class>PacketHeadTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>visualizer</header>
+  </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../../res.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>action_step</sender>
@@ -169,8 +225,8 @@
   <connection>
    <sender>action_stores</sender>
    <signal>triggered()</signal>
-   <receiver>ui_net_view</receiver>
-   <slot>viewStores()</slot>
+   <receiver>main_window</receiver>
+   <slot>viewName()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -178,14 +234,14 @@
     </hint>
     <hint type="destinationlabel">
      <x>537</x>
-     <y>265</y>
+     <y>366</y>
     </hint>
    </hints>
   </connection>
   <connection>
    <sender>action_hits</sender>
    <signal>triggered()</signal>
-   <receiver>ui_net_view</receiver>
+   <receiver>main_window</receiver>
    <slot>viewHits()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -194,28 +250,48 @@
     </hint>
     <hint type="destinationlabel">
      <x>537</x>
-     <y>265</y>
+     <y>366</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>ui_net_view</sender>
-   <signal>setLabelText(QString)</signal>
-   <receiver>ui_net_label</receiver>
-   <slot>setText(QString)</slot>
+   <sender>action_rate</sender>
+   <signal>triggered()</signal>
+   <receiver>main_window</receiver>
+   <slot>viewRate()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>537</x>
-     <y>274</y>
+     <x>-1</x>
+     <y>-1</y>
     </hint>
     <hint type="destinationlabel">
      <x>537</x>
-     <y>71</y>
+     <y>366</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_transfer</sender>
+   <signal>triggered()</signal>
+   <receiver>main_window</receiver>
+   <slot>viewTransfer()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>537</x>
+     <y>366</y>
     </hint>
    </hints>
   </connection>
  </connections>
  <slots>
   <slot>playSteps()</slot>
+  <slot>viewName()</slot>
+  <slot>viewHits()</slot>
+  <slot>viewTransfer()</slot>
+  <slot>viewRate()</slot>
  </slots>
 </ui>

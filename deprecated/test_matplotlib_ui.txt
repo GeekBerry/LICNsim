@@ -38,9 +38,9 @@ class MyMplCanvas(FigureCanvas):
 
         #self.axes.hold(False)# 每次plot()调用的时候，我们希望原来的坐标轴被清除(所以False)
 
-        # timer = QtCore.QTimer(self)
-        # timer.timeout.connect(self.step)
-        # timer.start(100)
+        # _timer = QtCore.QTimer(self)
+        # _timer.timeout.connect(self.step)
+        # _timer.start(100)
         self.init()
 
     def type(self):

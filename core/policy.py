@@ -11,12 +11,12 @@ class ReplacePolicyBase(Unit):
         super().__init__()
 
     def install(self, announces, api):
+        super().install(announces, api)
         #监听的 Announce
         announces['csStore'].append(self.store)
         announces['csEvict'].append(self.evict)
         announces['csHit'].append(self.hit)
         announces['csMiss'].append(self.miss)
-        #发布的 Announce
         #提供的 API
         api['Policy::replace']= self.replace
         #调用的 API
@@ -86,7 +86,7 @@ class LRUPolicy(ReplacePolicyBase):
         self._deque.remove(packet.name)
 
     def replace(self):
-        return self._deque[0]# top
+        return self._deque[0]  # top
 #-----------------------------------------------------------------------------------------------------------------------
 class LFUPolicy(ReplacePolicyBase):
     class Entry:
@@ -94,13 +94,13 @@ class LFUPolicy(ReplacePolicyBase):
             self.name= name
             self.num= num
 
-        def __eq__(self, other):# '==' 比较name名字
+        def __eq__(self, other):  # '==' 比较name名字
             return self.name == other.name
 
 
     def __init__(self):
         super().__init__()
-        self._deque= deque() #[ (name,used_num), ...]
+        self._deque= deque()  # [ (name,used_num), ...]
 
     def store(self, packet):
         self._deque.append( self.Entry(packet.name, 1) )
@@ -118,4 +118,4 @@ class LFUPolicy(ReplacePolicyBase):
         self._deque.remove( self.Entry(packet.name, None) )
 
     def replace(self):
-        return self._deque[0]# top
+        return self._deque[0]  # top

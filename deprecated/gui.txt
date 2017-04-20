@@ -35,13 +35,13 @@ class EdgeTrackApp:#TODO 添加pending记录
     def sendData(self, faceid, packet):
         if packet.name == self.trackname\
         and type(faceid) == tuple: #只绘制在图中的边
-            self.data['out_d'].append( faceid )#XXX faceid 形式正好和边的名字相同
+            self.data['out_d'].append(faceid)  #XXX faceid 形式正好和边的名字相同
 
 
     def sendInterest(self, faceid, packet):
         if packet.name == self.trackname\
         and type(faceid) == tuple: #只绘制在图中的边
-            self.data['out_i'].append( faceid )#XXX faceids 形式正好和边的名字相同
+            self.data['out_i'].append(faceid)  #XXX faceids 形式正好和边的名字相同
 
 #--------------------------------------------------------------------------
 class StoreTrackApp:
@@ -157,7 +157,7 @@ class IOAPP:
             self.sendtime= clock.time()
             self.sender(packet)
             self.data['askcount'] += 1
-            self.data['ask'].append( self.api['NodeItem::getName']() )
+            self.data['ask'].append(self.api['NodeItem::getName']())
 
 
     def receive(self, packet):
@@ -173,7 +173,7 @@ class IOAPP:
     def unsatisfy(self, name, entry):
         if 'APP' in entry.in_i  and  name == self.sendname:
             self.sendtime= None
-            self.data['nack'].append( self.api['NodeItem::getName']() )
+            self.data['nack'].append(self.api['NodeItem::getName']())
             self.data['nackcount'] += 1
 
 

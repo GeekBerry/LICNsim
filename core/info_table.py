@@ -3,13 +3,15 @@
 
 from constants import INF
 from core.common import Unit
-from core.data_structure import *
-#-----------------------------------------------------------------------------------------------------------------------
+from core.clock import clock
+from core.data_structure import defaultdict, SizeDictDecorator, TimeDictDecorator
+
+# ----------------------------------------------------------------------------------------------------------------------
 class InfoUnit(Unit):
     """
     table={
         name1: Info{
-            faceid1: Entry{
+            faceid1: NameEntry{
                 send:{TYPE: Time, TYPE2: Time...}
                 recv:{TYPE: Time, TYPE2: Time...}
                 },
@@ -26,13 +28,14 @@ class InfoUnit(Unit):
         def __repr__(self):
             return str( self.__dict__ )
 
-    class Info:
-        def __new__(cls):
-            return defaultdict(InfoUnit.Entry)
+    class Info(defaultdict):  # dict{FaceId:NameEntry, ...}
+        def __init__(self):
+            super().__init__(InfoUnit.Entry)
+
 
     def __init__(self, max_size, life_time):
+        self.STRING= f'max_size:{max_size} life_time:{life_time}'
         super().__init__()
-
         # 进行默认参数装饰
         self.table= defaultdict( InfoUnit.Info )
         # 进行尺寸限制装饰
@@ -42,11 +45,10 @@ class InfoUnit(Unit):
         self.table.before_delete_callback= self.infoEvictCallBack
 
     def install(self, announces, api):
+        super().install(announces, api)
         # 监听的 Announce
         announces['inPacket'].append(self.inPacket)
         announces['outPacket'].append(self.outPacket)
-        # 发布的 Announce
-        self.publish['evictInfo']= announces['evictInfo']
         # 提供的 API
         api['Info::getInfo']= self.getInfo
         # 调用的 API
@@ -61,21 +63,29 @@ class InfoUnit(Unit):
         return self.table[packet.name]
 
     def infoEvictCallBack(self, name, packet):
-        self.publish['evictInfo']( name, packet )
+        self.announces['evictInfo'](name, packet)
+
+    def __str__(self):
+        return self.STRING
 
 
-# if __name__ == '__main__':
-#     i= InfoUnit(2, 1)
-#     i.table['A'][1001].recv['I']= 10
-#     i.table['B'][1001].send['D']= 20
-#     p= i.table['B'][1002].recv['I']
-#     print(p)
-#     print(i.table)
-#     clock.step()
-#     clock.step()
-#     clock.step()
-#     clock.step()
-#     clock.step()
-#     print(i.table)
+# ----------------------------------------------------------------------------------------------------------------------
+from core.packet import Packet
+
+
+def isPending(entry):  # face同时接收到I和D, 该face不算Pending
+    return entry.recv[Packet.DATA] < entry.recv[Packet.INTEREST] \
+           and \
+           entry.send[Packet.DATA] < entry.recv[Packet.INTEREST]
+
+
+def sendIPast(entry):  # 返回兴趣包等待回应时长
+    if (entry.send[Packet.DATA] < entry.send[Packet.INTEREST]  # 没有再发出数据包
+    and entry.recv[Packet.DATA] < entry.send[Packet.INTEREST] ): # 没有接收到数据包
+        return clock.time() - entry.send[Packet.INTEREST]  # 返回经历时长
+    else:
+        return INF  # 没有等待相当于经历无穷久
+
+
 
 

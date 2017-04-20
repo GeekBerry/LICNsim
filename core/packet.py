@@ -4,12 +4,13 @@ import random, re
 
 class Name(str):
     def __new__(cls, string='/'):
-        match= re.match(r'(/[^/]+)+|/', string)
+        match= re.match(r'(/[^/]+)+|/', string)  # / 或 /.../...
         if match and match.end() == len(string):
             return str.__new__(cls, string)
         else:
             raise ValueError("string 格式不正确, 必须符合 r'(/[^/]+)+|/' ")
 
+# TODO 重写
 # class Name(list):
 #     def __init__(self, arg= None):
 #         if isinstance(arg, str):
@@ -77,40 +78,56 @@ class Name(str):
 #     print( n1.isPrefix(n2) ) # True
 
 #=======================================================================================================================
+import copy
+from collections import namedtuple
+PacketHead= namedtuple('PacketHead', ['name', 'type', 'nonce'])
+
 class Packet:
-    class TYPE:
-        DATA, EMPTY, INTEREST= -1, 0, 1 # 数据包, 无效包, 兴趣包
+    EMPTY, INTEREST, DATA= 0, 1, 2 # 空包, 数据包, 兴趣包
+    TYPE_STRING= ['Empty', 'Interest', 'Data']
+    TYPES= [EMPTY, INTEREST, DATA]
 
-    def __init__(self, name, type, size= 1):
-        self.name= name #包名
-        self.type= type # 包类型
-        self.nonce= random.randint(0, 1<<32) # 随机数 范围[0,2^32) 4个字节
-        self.size= size # 包大小
+    @classmethod
+    def types(cls):
+        return [cls.EMPTY, cls.INTEREST, cls.DATA]
 
-    def __hash__(self):
-        return hash( id(self) )# hash( self.name self.type self.nonce )
+    @classmethod
+    def typeStr(cls, type):  # TODO 更安全的事项
+        if 0<= type < len(cls.TYPE_STRING):
+            return cls.TYPE_STRING[type]
+        else:
+            return 'TypeError'
+
+    def __init__(self, name, type, size= None, data=''):
+        self.name= name  # 包名
+        self.type= type  # 包类型
+        self.nonce= random.randint(0, 1<<32)  # 随机数 范围[0,2^32) 4个字节
+        self.size= size  # 包大小
+        self.data= data  # 包数据
 
     def __len__(self):
-        return self.size
+        if self.size is not None:
+            return self.size
+        else:
+            return len(self.data)
 
     def __eq__(self, other):
-        return  isinstance(other, Packet)  \
-                and self.type == other.type \
-                and self.name == other.name  \
-                and self.nonce == other.nonce
+        return self.head() == other.head()
 
-    def fission(self):#分裂成另一个包, 除了nonce域外全都一样
-        return Packet(self.name, self.type, self.size)
+    def __hash__(self):
+        return hash( self.head() )
+
+    def head(self):  # 文件摘要, 能区别两个包
+        return PacketHead(self.name, self.type, self.nonce)
+
+    def fission(self):  # 分裂成另一个包, 除了nonce域外全都一样
+        return Packet(self.name, self.type, self.size, copy.deepcopy(self.data))
+
+    def __str__(self):
+        return f'Packet({self.name}, {Packet.typeStr(self.type)}, {len(self)}, {hex(self.nonce)})'
 
     def __repr__(self):
-        if self.type == self.TYPE.INTEREST:
-            t= 'Interset'
-        elif self.type == self.TYPE.DATA:
-            t= 'Data'
-        else: t= 'Empty'
-
-        return "Packet("+str(self.name)+","+ t + "," + str(self.nonce) + ')'
-
+        return str(self)
 
 
 

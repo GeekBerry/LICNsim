@@ -2,124 +2,104 @@
 #coding=utf-8
 
 from PyQt5.QtCore import QPointF, qrand
-from PyQt5.QtWidgets import QGraphicsScene
 
-from core.common import showCall
-
+import networkx
+from debug import showCall
 from visualizer.node_item import NodeItem
-from visualizer.edge_item import EdgeItem, getEdgePair
+from visualizer.edge_item import EdgeItem, getEdgePair, ForwardEdgeItem
 #=======================================================================================================================
-class UINet(QGraphicsScene):
-    EDGE_LEN= 80  # 默认边长度
-    NODE_SIZE= 40  # 默认Node大小
+class UINetHelper:
+    @staticmethod
+    def setup(graph):
+        if not isinstance(graph, networkx.DiGraph):
+            raise TypeError
 
-    def __init__(self, graph):
-        super().__init__()
-        self.graph= graph
-
-        area_size= self.EDGE_LEN * len(graph)**0.5  # 来自方形网平均宽度
+        AREA_SIZE= 1000  # TODO constants.py
         # 构建Node
-        for nodename in self.graph:
+        for nodename in graph:
             node= NodeItem(nodename)
-            node.setPos( qrand()%area_size, qrand()%area_size )
-            node.setSize( self.NODE_SIZE )
-            node.call_backs['ItemPositionHasChanged']= self._nodeMoved
-            node.call_backs['mouseDoubleClickEvent']= self._nodeMouseDoubleClickEvent
-            self.addItem(node)
-            self.graph.node[nodename]['ui']= node
+            node.setPos( qrand()%AREA_SIZE, qrand()%AREA_SIZE )
+            graph.node[nodename]['ui']= node
         # 构建Edge
-        for src,dst in self.graph.edges():
-            if 'ui' in self.graph[dst][src]:  # 反向已有, 不重复建立
+        for src,dst in graph.edges():
+            if 'ui' in graph[dst][src]:  # 反向已有, 不重复建立
                 continue
             edge= EdgeItem( (src,dst,) )
-            edge.adjust( self.graph.node[src]['ui'].pos(), self.graph.node[dst]['ui'].pos() )
-            edge.call_backs['mouseDoubleClickEvent']= self._edgeMouseDoubleClickEvent
-            self.addItem(edge)
-            self.graph[src][dst]['ui'], self.graph[dst][src]['ui']= getEdgePair(edge)
+            edge.adjust( graph.node[src]['ui'].pos(), graph.node[dst]['ui'].pos() )
+            graph[src][dst]['ui'], graph[dst][src]['ui']= getEdgePair(edge)
 
-        self.debug_init()  # DEBUG
+    @staticmethod
+    def bindToScene(graph, scene):
+        for nodename in graph:
+            node= graph.node[nodename]['ui']
+            node.call_backs['ItemPositionHasChanged']= scene._nodeMoved
+            node.call_backs['mouseDoubleClickEvent']= scene._nodeMouseDoubleClickEvent
+            scene.addItem(node)
 
-    @showCall
-    def debug_init(self):
-        #---------------------------------------------------------------------------------------------------------------
-        # DEBUG NodeItem
-        for nodename, node in self.items():
-            node.setName( str(nodename) )
-            # node.setAbstract('0123456789\n0123456789')
-        # DEBUG EdgeItem
-        # for edge in self.edges():
-        #     edge.setText( str(edge.getArrow()) )
+        for src, dst in graph.edges():
+            edge= graph[src][dst]['ui']
+            if isinstance(edge, ForwardEdgeItem):
+                edge.edge_item.call_backs['mouseDoubleClickEvent']= scene._edgeMouseDoubleClickEvent
+                scene.addItem(edge.edge_item)
 
-    @showCall
-    def install(self, announces, api):
-        self.api= api  # FIXME
+    @staticmethod
+    def nodeItems(graph):
+        for nodename in graph:
+            yield nodename, graph.node[nodename]['ui']
 
+    @staticmethod
+    def node(graph, nodename):
+        return graph.node[nodename]['ui']
+
+    @staticmethod
+    def nodes(graph):
+        for nodename in graph:
+            yield graph.node[nodename]['ui']
+
+    @staticmethod
+    def edgeItems(graph):
+        for src,dst in graph.edges():
+            yield (src,dst), graph[src][dst]['ui']
+
+    @staticmethod
+    def edge(graph, src, dst):
+        return graph[src][dst]['ui']
+
+    @staticmethod
+    def edges(graph):
+        for src, dst in graph.edges():
+            yield graph[src][dst]['ui']
     #-------------------------------------------------------------------------------------------------------------------
-    def items(self):
-        for nodename in self.graph:
-            yield nodename, self.graph.node[nodename]['ui']
-
-    def nodes(self):
-        for nodename in self.graph:
-            yield self.graph.node[nodename]['ui']
-
-    def node(self, nodename):
-        return self.graph.node[nodename]['ui']
-
-    def edges(self):
-        for src,dst in self.graph.edges():
-            yield self.graph[dst][src]['ui']
-
-    def edge(self, src, dst):
-        return self.graph[src][dst]['ui']
-    #-------------------------------------------------------------------------------------------------------------------
-    def graphLayout(self, times):
-        if len(self.graph) > 1000:  # 节点数量太多, 不进行布局
+    @classmethod
+    def layout(cls, graph, times, edge_length):
+        if len(graph) > 1000:  # 节点数量太多, 不进行布局
             return
 
-        ratio= self.EDGE_LEN * self.EDGE_LEN  # XXX ratio为此值时, 点之间距离大致为length
+        ratio= edge_length*edge_length  # XXX ratio为此值时, 点之间距离大致为length
         for i in range(0, times):
-            for node_name in self.graph:
-                self._calculateForces(node_name, ratio)
+            for node_name in graph:
+                cls.calculateForces(graph, node_name, ratio)
 
-        self.adaptive()
+    @classmethod
+    def calculateForces(cls, graph, node_name, ratio):  # 计算一个节点受力
+        force = QPointF(0.0, 0.0)
+        weight = len(graph[node_name])  # 邻居数量
 
-    def _calculateForces(self, node_name, ratio):  # 计算一个节点受力
-        force= QPointF(0.0, 0.0)
-        weight= len(self.graph[node_name])
-
-        node_pos= self.graph.node[node_name]['ui'].pos()
-        for other_name in self.graph.nodes():
-            other_pos= self.graph.node[other_name]['ui'].pos()
+        node_pos = cls.node(graph, node_name).pos()
+        for other_name in graph.nodes():
+            other_pos = cls.node(graph, other_name).pos()
             vec= other_pos - node_pos
             vls= vec.x()*vec.x() + vec.y()*vec.y()
 
-            if 0 < vls < (2*self.EDGE_LEN) * (2*self.EDGE_LEN):  # vec.length() 小于 2*self.EDGE_LEN 才计算斥力; 2来自于经验
+            if 0 < vls < 4*ratio:  # vec.length() 小于 4*ratio才计算斥力; '4'来自于经验
                 force -= (vec/vls) * ratio  # 空间中节点间为排斥力
 
-            if other_name in self.graph[node_name]:
+            if other_name in graph[node_name]:
                 force += vec/weight  # 连接的节点间为吸引力
 
-        self.graph.node[node_name]['ui'].setPos(node_pos + force * 0.4)  # force系数不能为1, 否则无法收敛; 0.4来自于经验,不会变化太快
+        cls.node(graph, node_name).setPos(node_pos + force * 0.4)  # force系数不能为1, 否则无法收敛; 0.4来自于经验,不会变化太快
 
-    def adaptive(self):
-        self.setSceneRect( self.itemsBoundingRect() )
-        self.update()
-    #-------------------------------------------------------------------------------------------------------------------
-    def _nodeMoved(self, src):
-        src_pos= self.graph.node[src]['ui'].pos()
-        for dst in self.graph[src]:
-            dst_pos= self.graph.node[dst]['ui'].pos()
-            self.graph[src][dst]['ui'].adjust(src_pos, dst_pos)
-            self.graph[dst][src]['ui'].adjust(dst_pos, src_pos)
 
-    @showCall
-    def _nodeMouseDoubleClickEvent(self, node_name):
-        self.api['Main::showNodeInfo'](node_name)
 
-    @showCall
-    def _edgeMouseDoubleClickEvent(self, edge_name):
-        # TODO
-        pass
 
 

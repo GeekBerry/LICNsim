@@ -8,8 +8,11 @@
 
 import time
 import itertools
+import os
+from core.common import setSysKwargs
 
-from core.common import python
+def python(filename, **kwargs):
+    os.system(f'python {filename} {setSysKwargs(**kwargs)}')
 #-----------------------------------------------------------------------------------------------------------------------
 date= time.strftime("%y%m%d%H%M%S", time.localtime())
 

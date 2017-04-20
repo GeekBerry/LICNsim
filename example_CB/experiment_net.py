@@ -3,20 +3,17 @@
 
 
 from core.clock import clock
-from core.icn_net import ICNNet, AskGenerator
-from core.common import graphNearestPath
-from core.data_base import MonitorDB
+from core.icn_net import ICNNetHelper, AskGenerator
+from core.algorithm import graphNearestPath
+from core.monitor import Monitor
 #-----------------------------------------------------------------------------------------------------------------------
-class ExperimentMonitorDB(MonitorDB):
-    def __init__(self, graph):
+class ExperimentMonitor(Monitor):
+    def __init__(self, graph):  # 要放在ICNNet构建后执行
+        super().__init__(graph)
         self.graph= graph
-        super().__init__()
         self.packet_t.add_field('dist', default=[])
         self.packet_t.add_field('delay', default=[])
-
-    def install(self, announces, api):
-        super().install(announces, api)
-        api['ICNNet::storeAPI']('Net::getPath', self.getPath)
+        ICNNetHelper.storeAPI(self.graph, 'Net::getPath', self.getPath)  # 要放在ICNNet构建后执行
 
     def _ask(self, nodename, packet, distance):
         super()._ask(nodename, packet)
@@ -24,7 +21,7 @@ class ExperimentMonitorDB(MonitorDB):
 
     def _respond(self, nodename, packet, asktime):
         super()._respond(nodename, packet)
-        self.packet_t.access( packet.name, clock.time() ).delay.append( clock.time() - asktime )
+        self.packet_t.access(packet.name, clock.time()).delay.append(clock.time() - asktime)
 
     def getPath(self, nodename, packet):  # 储存位置服务提供者  FIXME 要不要分离这个功能
         return graphNearestPath(self.graph, nodename, self.contents[packet.name])
@@ -32,7 +29,7 @@ class ExperimentMonitorDB(MonitorDB):
 #-----------------------------------------------------------------------------------------------------------------------
 import math
 import numpy
-from core.common import GridPosLogic, graphHoops, GridPosLogicSmallGrid
+from core.algorithm import graphHoops, graphNearestPath, GridPosLogic, GridPosLogicSmallGrid, GridPosLogic, GridPosLogicSmallGrid
 from core.filer import FilerPlugin
 class UniformityPlugin(FilerPlugin):
     def __init__(self, graph, center, packet_name):
@@ -53,7 +50,7 @@ class UniformityPlugin(FilerPlugin):
         if self.is_grid:
             self.poslogic.reset()
             for node_name in self.graph:
-                if self.packet_name in self.graph.node[node_name]['icn'].cs.table:
+                if self.packet_name in self.graph.node[node_name]['icn'].units['cs'].table:
                     self.poslogic.insert(node_name)
             return [ -101*math.log( numpy.var(self.poslogic.vector), 2) ]
         else:

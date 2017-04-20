@@ -2,7 +2,7 @@ from PyQt5.QtCore import (QRectF, QRect, QPoint, Qt)
 from PyQt5.QtGui import (QPainterPath, QFont, QFontMetrics)
 from PyQt5.QtWidgets import QGraphicsItem
 
-
+from debug import showCall
 from core.data_structure import CallTable
 
 
@@ -19,10 +19,10 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
             'rect': QRectF(),
             'color': Qt.white,
 
-            'show_text':False,
             'name':'',
-            'abstract':'',
-            'abstract_rect':QRectF(),
+            'show_text':False,
+            'text':'',
+            'text_rect':QRectF(),
             }
         self.setFont( QFont('Courier New', 10, QFont.Normal) )
         # 面向UINet 负责增添逻辑操作
@@ -33,7 +33,7 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         return QGraphicsItem.UserType + abs(hash(NodeItem))
 
     def boundingRect(self):
-        return self.style['rect'] | self.style['abstract_rect']
+        return self.style['rect'] | self.style['text_rect']
 
     def shape(self):
         path = QPainterPath()
@@ -43,17 +43,13 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
     def paint(self, painter, option, widget= None)->None:
         #绘制节点
         painter.setBrush(self.style['color'])
-        rect= self.style['rect']
-
-        painter.drawEllipse(rect) # painter.drawRect(rect) TODO 形状可定制 Pixmap
+        painter.drawEllipse(self.style['rect']) # painter.drawRect(rect) TODO 形状可定制 Pixmap
         # 绘制说明
         if self.style['show_text']:
             painter.setPen(Qt.black)
             painter.setFont(self.font)
-            # 绘制name
             painter.drawText( self.style['rect'], Qt.AlignCenter, self.style['name'])
-            # 绘制abstract
-            painter.drawText( self.style['abstract_rect'], Qt.AlignTop|Qt.AlignLeft, self.style['abstract'])
+            painter.drawText( self.style['text_rect'], Qt.AlignTop|Qt.AlignLeft, self.style['text'])
 
     #-------------------------------------------------------------------------------------------------------------------
     def setFont(self, font)->None:
@@ -68,12 +64,12 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         self.style['name']= name
         self.update()
 
-    def setAbstract(self, abstract)->None:
-        self.style['abstract']= abstract
+    def setText(self, text)->None:
+        self.style['text']= text
         # 计算文字矩形
-        rect= self.metrics.boundingRect( QRect(), Qt.AlignTop|Qt.AlignLeft, abstract )
+        rect= self.metrics.boundingRect(QRect(), Qt.AlignTop | Qt.AlignLeft, text)
         rect.moveCenter(   QPoint(  0, -( rect.height()+self.style['rect'].height() )/2  )   )  # 将rect中点放到上方
-        self.style['abstract_rect']= QRectF(rect)
+        self.style['text_rect']= QRectF(rect)
         self.update()
 
     def setSize(self, size)->None:

@@ -9,26 +9,26 @@ class ICNNet:
             node= NodeType()
             # 监听节点所有操作
             for name, announce in node.announces.items():
-                announce.append( Bind(self.publish[name], nodename) )
+                announce.append(Bind(self.publish[name], nodename))
             self.graph.node[nodename]['icn']= node
 
         # 构造信道, 要先建立所有节点再建立Channel
         for src,dst in self.graph.edges():
             if type( self.graph[dst][src] ) != ChannelType:# 反向没有
                 src_dst_channel= self.graph[src][dst]['icn']= ChannelType()
-                src_dst_channel.append( Bind(self.publish['transfer'], src, dst) )
+                src_dst_channel.append(Bind(self.publish['transfer'], src, dst))
 
                 dst_src_channel= self.graph[dst][src]['icn']= ChannelType()
-                dst_src_channel.append( Bind(self.publish['transfer'], dst, src) )
+                dst_src_channel.append(Bind(self.publish['transfer'], dst, src))
                 self.graph.node[src]['icn'].api['Face::create']( dst, src_dst_channel, dst_src_channel )
                 self.graph.node[dst]['icn'].api['Face::create']( src, dst_src_channel, src_dst_channel )
 
     def listen(self, function):
         for src,dst in self.graph.edges():
-            self.graph[src][dst]['icn'].append( Bind(function, src, dst) )
+            self.graph[src][dst]['icn'].append(Bind(function, src, dst))
 
 
-    def loadAnnounce(self, anno_name, function, pushhead= False)->None:
+    def loadNodeAnnounce(self, anno_name, function, pushhead= False)->None:
         """ 将节点 announces 中的 evict_callback 连接到固定函数, 即:
         node[nodename].annouces[anno_name](*_args) => function( nodename, *_args )
         :param anno_name: 节点中的Announce名

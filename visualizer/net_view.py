@@ -1,5 +1,5 @@
-from PyQt5.QtCore import (QRectF, Qt, pyqtSlot, pyqtSignal)
-from PyQt5.QtGui import (QPainter, QColor)
+from PyQt5.QtCore import QRectF, Qt, pyqtSlot, pyqtSignal
+from PyQt5.QtGui import QPainter, QBrush, QColor, QPen
 from PyQt5.QtWidgets import QGraphicsView
 
 
@@ -8,26 +8,16 @@ from PyQt5.QtWidgets import QGraphicsView
 # FIXME 概率性的崩溃
 
 
+from constants import INF
 from core.clock import clock
-from core.common import AnnounceTable, showCall
-from core.data_structure import SheetTable
-
-
-def HotColor(value):
-    color= QColor()
-    color.setHsvF(0.3*(1-value), 1.0, 1.0)  # 0.3为绿色; 0.0为红色
-    return color
-
-def DeepColor(value, h= 0.0):  # h:0.0为红色
-    color= QColor()
-    color.setHsvF(h, value, 1.0)
-    return color
+from debug import showCall
+from core.data_structure import SheetTable, defaultdict
+from visualizer.ui_net import UINetHelper
+from visualizer.common import DeepColor, HotColor, threshold
 
 #=======================================================================================================================
-class NetView(QGraphicsView):
-    MODE_NONE, MODE_CS, MODE_HIT= 0, 1, 2
-    setLabelText= pyqtSignal(str)  # 显示标签信号
-
+class NetView(QGraphicsView):  # TODO 重构, 缓存
+    DELTA= 40000  # FIXME  delta如何确定
     def __init__(self, parent= None):
         super().__init__(parent)
         self.setCacheMode(QGraphicsView.CacheBackground)
@@ -36,88 +26,94 @@ class NetView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorViewCenter)
 
-        self.publish= AnnounceTable()
-        self.mode= self.MODE_NONE
-        self.show_name= None  # 当前显示的PacketName
-        self.label_text= '拓扑图'
+        self.node_mode= 'topology'
+        self.edge_mode= 'empty'
+
+    @showCall
+    def init(self, graph, scene, monitor):
+        self.graph= graph
+        self.setScene(scene)
+        self.monitor= monitor
+
+        self.name_store_painter= NameStorePainter(graph, monitor)
+        self.hit_ratio_painter= HitRatioPainter(graph, monitor)
+        self.transfer_painter= TransferPainter(graph, monitor)
+        self.rate_painter= RatePainter(graph, monitor)
+        self.refresh()
 
     def install(self, announces, api):
         # 监听的 announce
         announces['playSteps'].append(self.refresh)
         # 发布的 announce
         # 提供的 API
-        api['View::viewStores']= self.viewStores
+        api['View::setShowName']= self.setShowName
+        api['View::setShowTransfer']= self.setShowTransfer
         # 调用的 API
-        # self.api= api
+        self.setLabelNodeText= api['Main::setLabelNetNode']
+        self.setLabelNodeText('拓扑图')  # 显示标签
+        self.setLabelEdgeText= api['Main::setLabelNetEdge']
+        self.setLabelEdgeText('拓扑图')
 
-    def setNet(self, icn_net, ui_net, db):
-        self.icn_net= icn_net
-        self.ui_net= ui_net
-        self.db= db
+    def setShowName(self, packet_name):
+        self.name_store_painter.show_name= packet_name
+        self.showName()
 
-        self.setScene(ui_net)
-        self.refresh()
-
+    def setShowTransfer(self, packet_head):
+        self.transfer_painter.show_packet_head= packet_head
+        self.showTransfer()
     #-------------------------------------------------------------------------------------------------------------------
-    @pyqtSlot()
-    def viewStores(self, packet_name= None):
-        if packet_name:  # 显示名字有更新
-            self.show_name= packet_name
-        self.mode= self.MODE_CS
-        self.refresh()
-
-    @pyqtSlot()
-    def viewHits(self):
-        self.mode= self.MODE_HIT
-        self.refresh()
-
-    #-------------------------------------------------------------------------------------------------------------------
+    @showCall
     def refresh(self, *args):
-        if self.mode == self.MODE_CS:
-            self._paintStore()
-        elif self.mode == self.MODE_HIT:
-            self._paintHitRatio()
+        if self.node_mode == 'name_store':
+            self.name_store_painter.paint()
+        elif self.node_mode == 'hit_ratio':
+            self.hit_ratio_painter.paint()
 
-        self.ui_net.update()
-        self.setLabelText.emit(self.label_text)  # 显示标签
+        if self.edge_mode == 'transfer':
+            self.showTransfer()
+        elif self.edge_mode == 'rate':
+            self.showRate()
 
-    def _paintHitRatio(self):
-        DELTA= 4000  # FIXME 4000 delta如何确定
-        # 表名
-        self.label_text= '缓存命中图'
-        # 统计记录
-        time= clock.time()
-        records= self.db.node_t(time= lambda t: time-DELTA < t <= time)
-        hit_miss_dict= SheetTable(hit=int, miss=int)
-        for node_record in records:
-            entry= hit_miss_dict[ node_record['node_name'] ]
-            entry.hit += node_record['hit']
-            entry.miss += node_record['miss']
-        # 计算命中率
-        for node_name, entry in hit_miss_dict.items():
-            if entry.hit:
-                ratio= entry.hit / (entry.miss + entry.hit)
-                self.ui_net.node(node_name).setColor( HotColor(ratio) )
-            else:
-                self.ui_net.node(node_name).setColor( Qt.lightGray )
+    @showCall
+    def showName(self):
+        self.node_mode= 'name_store'
+        self.setLabelNodeText(f'"{self.name_store_painter.show_name}" CS缓存图')  # 显示标签
+        self.refresh()
+        self.setBackGround()
 
-    def _paintStore(self):
-        self.label_text= f'"{self.show_name}" CS缓存图'
-        # clear
-        for ui_node in self.ui_net.nodes():
-            ui_node.setColor(Qt.white)
+    @showCall
+    def showHitRatio(self):
+        self.node_mode= 'hit_ratio'
+        self.setLabelNodeText('缓存命中图')
+        self.refresh()
+        self.setBackGround()
 
-        if self.show_name:
-            for node_name in self.db.contents[self.show_name]:
-                self.ui_net.node(node_name).setColor(Qt.red)
+    @showCall
+    def showTransfer(self):
+        self.edge_mode= 'transfer'
+        self.setLabelEdgeText('传输图')
+        self.transfer_painter.paint()
+
+    def showRate(self):
+        self.edge_mode= 'rate'
+        self.setLabelEdgeText('占用率图')
+        self.rate_painter.paint()
 
     #-------------------------------------------------------------------------------------------------------------------
+    def setBackGround(self):
+        if self.node_mode == 'name_store':
+            self.setBackgroundBrush(QBrush(QColor(255,250,250)))
+        elif self.node_mode == 'hit_ratio':
+            self.setBackgroundBrush(QBrush(QColor(250,255,250)))
+        else:
+            self.setBackgroundBrush( QBrush(QColor(255,255,255)) )
+
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_P:
-            self.ui_net.graphLayout(1)
+            self.scene().graphLayout()
         elif key == Qt.Key_Space:
-            self.playStep()
+            self.transfer_painter.step()
         else: super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
@@ -146,44 +142,199 @@ class NetView(QGraphicsView):
         if 0.01< factor < 10:
             self.scale(scaleFactor, scaleFactor)
 
+# ======================================================================================================================
+class Painter:
+    def __init__(self, graph, monitor):
+        self.show_time= -1 # 比0小即可
+        self.graph= graph
+        self.monitor= monitor
 
-#-----------------------------------------------------------------------------------------------------------------------
-if __name__ == '__main__':
-    import sys, networkx
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtCore import qsrand, QTime
-    from core.data_structure import CallTable
-    from core.common import log
-    from visualizer.ui_net import UINet
-    log.level= log.LEVEL.WARING
+    def paint(self):
+        pass
 
-    # graph= networkx.grid_2d_graph(10, 10)
-    # graph= networkx.balanced_tree(2, 4)
-    # graph= networkx.watts_strogatz_graph(20, 4, 0.3)
-    graph = networkx.random_graphs.barabasi_albert_graph(30, 1)
-    graph= networkx.DiGraph(graph)
+# ----------------------------------------------------------------------------------------------------------------------
+class NameStorePainter(Painter):
+    def __init__(self, graph, monitor):
+        super().__init__(graph, monitor)
+        self.show_name= None
 
-    app = QApplication(sys.argv)
-    qsrand(  QTime(0,0,0).secsTo( QTime.currentTime() )  )
+    def paint(self):
+        paint_dict= self.calculate()
+        for node_name, value in paint_dict.items():
+            ui_node= UINetHelper.node(self.graph, node_name)
+            ui_node.setText(' ')
+            if value is True:
+                ui_node.setColor(Qt.red)
+            else:
+                ui_node.setColor(Qt.white)
+
+    def calculate(self):
+        contents= self.monitor.contents.get(self.show_name, [])  # TODO match 或 前缀查找等
+
+        store_dict= dict.fromkeys(self.graph)
+        for node_name in store_dict:
+            if node_name in contents:
+                store_dict[node_name]= True
+            else:
+                store_dict[node_name]= False
+        return store_dict
+
+# ----------------------------------------------------------------------------------------------------------------------
+class HitRatioPainter(Painter):
+    def __init__(self, graph, monitor):
+        super().__init__(graph, monitor)
+        self.delta= 4000  # FIXME
+
+    def paint(self):
+        paint_dict= self.calculate()
+        for node_name, ratio in paint_dict.items():
+            ui_node= UINetHelper.node(self.graph, node_name)
+            if ratio is None:
+                ui_node.setColor(Qt.lightGray)
+                ui_node.setText('无访问记录')
+            else:
+                UINetHelper.node(self.graph, node_name).setColor(HotColor(ratio))  # DeepColor or HotColor
+                UINetHelper.node(self.graph, node_name).setText(f'命中率 {"%0.2f"%(ratio*100)}%')
+
+    def calculate(self):
+        time= clock.time()
+        records= self.monitor.node_t(time= lambda t: time - self.delta < t <= time)
+        hit_miss_dict= SheetTable(hit=int, miss=int)
+        for node_record in records:
+            entry= hit_miss_dict[ node_record['node_name'] ]
+            entry.hit += node_record['hit']
+            entry.miss += node_record['miss']
+        # 计算命中率
+        ratio_dict= dict.fromkeys(self.graph)
+        for node_name, entry in hit_miss_dict.items():
+            if entry.hit or entry.miss:
+                ratio_dict[node_name]= entry.hit / (entry.miss + entry.hit)
+        return ratio_dict
+
+# ----------------------------------------------------------------------------------------------------------------------
+class TransferPainter(Painter):
+    def __init__(self, graph, monitor):
+        super().__init__(graph, monitor)
+        self.show_packet_head= None
+        self.animation= None
+
+    @showCall
+    def step(self):
+        if self.animation is not None:
+            if not self.animation:
+                self.animation.start()
+            else:
+                self.animation.step()
+
+    @showCall
+    def paint(self):  # TODO 动画与绘图分离
+        self.animation= Animation( self.graph, self.calculate() )
+        self.animation.start()
+        while self.animation:
+            self.animation.step()
+
+    def calculate(self):
+        records= self.monitor.transfer_t(packet_head=self.show_packet_head)
+        script= Animation.Script()
+        for record in records:
+            script[ record['begin'] ].show_edge.append( record )
+            script[ record['end'] ].hide_edge.append( record )
+        return script
+
+# ----------------------------------------------------------------------------------------------------------------------
+class RatePainter(Painter):
+    def __init__(self, graph, monitor):
+        super().__init__(graph, monitor)
+        self.delta= 1000  # FIXME
+
+    def paint(self):
+        paint_dict= self.calculate()
+        for (src, dst), ratio in paint_dict.items():
+            ui_edge= UINetHelper.edge(self.graph, src, dst)
+            ui_edge.setColor( HotColor(ratio) )
+            ui_edge.setText(f'占用率 {"%0.2f"%(ratio*100)}%')
+            ui_edge.show()
+
+    def calculate(self):
+        t0, t1= clock.time()-self.delta, clock.time()
+        records= self.monitor.transfer_t(begin= lambda t: t < t1, end= lambda t: t0 < t )
+        # 统计忙碌时长
+        rate_dict= dict.fromkeys( self.graph.edges(), 0 )
+        for record in records:
+            rate_dict[ (record['src'],record['dst']) ] += min(t1, record['end']) - max(t0, record['begin'])
+        # 计算占比
+        for key in rate_dict:
+            rate_dict[key] /= self.delta
+
+        return rate_dict
 
 
-    announces= AnnounceTable()
-    api= CallTable()
+# ----------------------------------------------------------------------------------------------------------------------
+from constants import TransferState
+from core.packet import Packet
 
-    view = NetView()
-    view.install(announces, api)
+class Animation:
+    @staticmethod
+    def Script():
+        return SheetTable(show_edge=list, hide_edge=list)
 
-    ui_net= UINet(graph)  # 要在UINetView后建立
-    view.setNet(None, ui_net, None)
+    @showCall
+    def __init__(self, graph, script):
+        self.graph= graph
+        self.script= script
+        self.time_list= sorted(  list( script.keys() )  )
+        self.index= None
 
+    def __bool__(self):
+        return (self.index is not None) and (self.index < len(self.time_list))
 
-    view.setGeometry(100, 100, 800, 500)
-    view.show()
-    sys.exit(app.exec_())
+    @showCall
+    def start(self):
+        self.index= 0
+        self.clearScreen()
 
-    # from core.common import timeProfile
-    # timeProfile('app.exec_()')
+    @showCall
+    def step(self):
+        if self:
+            t= self.time_list[self.index]
+            for record in self.script[t].show_edge:
+                self.showRecord(record)
+            for record in self.script[t].hide_edge:
+                self.hideRecord(record)
 
+            self.index+=1
 
+    def showRecord(self, record):
+        ui_edge= UINetHelper.edge(self.graph, record['src'], record['dst'])
+        ui_edge.setColor(Qt.green)
+        ui_edge.setText( toText(record) )
+        ui_edge.show()
 
+    def hideRecord(self, record):
+        ui_edge= UINetHelper.edge(self.graph, record['src'], record['dst'])
+        ui_edge.setText('')
 
+        if record['state'] == TransferState.ARRIVED:
+            ui_edge.setColor(Qt.darkGreen)
+        elif record['state'] == TransferState.LOSS:
+            ui_edge.setColor(Qt.darkRed)
+        elif record['state'] == TransferState.SENDING:
+            ui_edge.setColor(Qt.darkBlue)
+        else:
+            ui_edge.hide()
+
+    @showCall
+    def clearScreen(self):
+        for ui_edge in UINetHelper.edges(self.graph):
+            ui_edge.setColor(Qt.black)
+            ui_edge.setText('')
+            ui_edge.hide()
+
+def toText(record):
+    state_str= TransferState.TYPE_STRING[ record['state'] ]
+    name_str= record['packet_head'].name
+    type_str= Packet.typeStr( record['packet_head'].type )
+    nonce_str= '%8X'%(record['packet_head'].nonce)
+    begin_str= record['begin']
+    end_str= record['end']
+    return f'{state_str}\nName:{name_str}\nType:{type_str}\nNonce:{nonce_str}\nBegin:{begin_str}\nEnd:{end_str}'
