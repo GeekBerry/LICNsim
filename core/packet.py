@@ -78,9 +78,24 @@ class Name(str):
 #     print( n1.isPrefix(n2) ) # True
 
 #=======================================================================================================================
+
 import copy
-from collections import namedtuple
-PacketHead= namedtuple('PacketHead', ['name', 'type', 'nonce'])
+
+class PacketHead():
+    def __init__(self, name, type, nonce):
+        self.name= name
+        self.type= type
+        self.nonce= nonce
+
+    def __hash__(self):
+        return hash( (self.name, self.type, self.nonce,) )
+
+    def __eq__(self, other):
+        return (self.name, self.type, self.nonce) == (other.name, other.type, other.nonce)
+
+    def __str__(self):
+        return f'({self.name}, {Packet.typeStr(self.type)}, {hex(self.nonce)})'
+
 
 class Packet:
     EMPTY, INTEREST, DATA= 0, 1, 2 # 空包, 数据包, 兴趣包

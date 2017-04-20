@@ -1,19 +1,14 @@
-from PyQt5.QtCore import QRectF, Qt, pyqtSlot, pyqtSignal
-from PyQt5.QtGui import QPainter, QBrush, QColor, QPen
+from PyQt5.QtCore import QRectF, Qt
+from PyQt5.QtGui import QPainter, QBrush, QColor
 from PyQt5.QtWidgets import QGraphicsView
 
-
-# TODO 如何解决UINet, ICNNet和DB常作为参数的问题
-# TODO 类似于Filer的图形界面数据更新器, 思考:不显示的是否要后台更新
-# FIXME 概率性的崩溃
-
-
-from constants import INF
+from core.packet import Packet
 from core.clock import clock
+from core.data_structure import SheetTable
 from debug import showCall
-from core.data_structure import SheetTable, defaultdict
+from visualizer.common import HotColor, TransferRecordToText
 from visualizer.ui_net import UINetHelper
-from visualizer.common import DeepColor, HotColor, threshold
+
 
 #=======================================================================================================================
 class NetView(QGraphicsView):  # TODO 重构, 缓存
@@ -35,32 +30,25 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
         self.setScene(scene)
         self.monitor= monitor
 
+        self.nodes_painter= NodesPainter(graph, monitor)
         self.name_store_painter= NameStorePainter(graph, monitor)
         self.hit_ratio_painter= HitRatioPainter(graph, monitor)
+
+        self.edges_painter= EdgesPainter(graph, monitor)
         self.transfer_painter= TransferPainter(graph, monitor)
         self.rate_painter= RatePainter(graph, monitor)
+
         self.refresh()
 
     def install(self, announces, api):
-        # 监听的 announce
+        self.api= api
         announces['playSteps'].append(self.refresh)
-        # 发布的 announce
-        # 提供的 API
         api['View::setShowName']= self.setShowName
         api['View::setShowTransfer']= self.setShowTransfer
+
         # 调用的 API
-        self.setLabelNodeText= api['Main::setLabelNetNode']
-        self.setLabelNodeText('拓扑图')  # 显示标签
-        self.setLabelEdgeText= api['Main::setLabelNetEdge']
-        self.setLabelEdgeText('拓扑图')
-
-    def setShowName(self, packet_name):
-        self.name_store_painter.show_name= packet_name
-        self.showName()
-
-    def setShowTransfer(self, packet_head):
-        self.transfer_painter.show_packet_head= packet_head
-        self.showTransfer()
+        self.showNodes()
+        self.showEdges()
     #-------------------------------------------------------------------------------------------------------------------
     @showCall
     def refresh(self, *args):
@@ -68,36 +56,64 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
             self.name_store_painter.paint()
         elif self.node_mode == 'hit_ratio':
             self.hit_ratio_painter.paint()
+        else:
+            self.nodes_painter.paint()
 
         if self.edge_mode == 'transfer':
-            self.showTransfer()
+            self.transfer_painter.paint()
         elif self.edge_mode == 'rate':
-            self.showRate()
+            self.rate_painter.paint()
+        else:
+            self.edges_painter.paint()
+
+    # -------------------------------------------------------------------------
+    @showCall
+    def showNodes(self):
+        self.node_mode= 'topology'
+        self.api['Main::setLabelNetNode']('拓扑图')
+        self.refresh()
+        self.setBackGround()
 
     @showCall
     def showName(self):
         self.node_mode= 'name_store'
-        self.setLabelNodeText(f'"{self.name_store_painter.show_name}" CS缓存图')  # 显示标签
+        self.api['Main::setLabelNetNode'](f'"{self.name_store_painter.show_name}" CS缓存图')  # 显示标签
         self.refresh()
         self.setBackGround()
 
     @showCall
     def showHitRatio(self):
         self.node_mode= 'hit_ratio'
-        self.setLabelNodeText('缓存命中图')
+        self.api['Main::setLabelNetNode']('缓存命中图')
         self.refresh()
         self.setBackGround()
+
+    # -------------------------------------------------------------------------
+    @showCall
+    def showEdges(self):
+        self.edge_mode= 'topology'
+        self.api['Main::setLabelNetEdge']('拓扑图')
+        self.refresh()
 
     @showCall
     def showTransfer(self):
         self.edge_mode= 'transfer'
-        self.setLabelEdgeText('传输图')
-        self.transfer_painter.paint()
+        self.api['Main::setLabelNetEdge'](f'Packet{self.transfer_painter.show_packet_head} 传输图')
+        self.refresh()
 
     def showRate(self):
         self.edge_mode= 'rate'
-        self.setLabelEdgeText('占用率图')
-        self.rate_painter.paint()
+        self.api['Main::setLabelNetEdge']('占用率图')
+        self.refresh()
+
+    #-------------------------------------------------------------------------------------------------------------------
+    def setShowName(self, packet_name):
+        self.name_store_painter.show_name= packet_name
+        self.showName()
+
+    def setShowTransfer(self, packet_head):
+        self.transfer_painter.show_packet_head= packet_head
+        self.showTransfer()
 
     #-------------------------------------------------------------------------------------------------------------------
     def setBackGround(self):
@@ -112,8 +128,6 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
         key = event.key()
         if key == Qt.Key_P:
             self.scene().graphLayout()
-        elif key == Qt.Key_Space:
-            self.transfer_painter.step()
         else: super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
@@ -151,6 +165,14 @@ class Painter:
 
     def paint(self):
         pass
+
+# ----------------------------------------------------------------------------------------------------------------------
+class NodesPainter(Painter):
+    def paint(self):
+        for ui_node in UINetHelper.nodes(self.graph):
+            ui_node.setColor(Qt.white)
+            ui_node.setText('')
+            ui_node.setIsShowText(False)
 
 # ----------------------------------------------------------------------------------------------------------------------
 class NameStorePainter(Painter):
@@ -212,34 +234,47 @@ class HitRatioPainter(Painter):
         return ratio_dict
 
 # ----------------------------------------------------------------------------------------------------------------------
+class EdgesPainter(Painter):
+    def paint(self):
+        for ui_edge in UINetHelper.edges(self.graph):
+            ui_edge.setColor(Qt.black)
+            ui_edge.setText('')
+            ui_edge.hide()
+
+# ----------------------------------------------------------------------------------------------------------------------
+from constants import TransferState
 class TransferPainter(Painter):
+    COLOR_MAP= {
+            TransferState.ARRIVED:  Qt.green,
+            TransferState.SENDING:  Qt.yellow,
+            TransferState.LOSS:     Qt.red,
+        }
+
     def __init__(self, graph, monitor):
         super().__init__(graph, monitor)
         self.show_packet_head= None
-        self.animation= None
 
     @showCall
-    def step(self):
-        if self.animation is not None:
-            if not self.animation:
-                self.animation.start()
+    def paint(self):
+        paint_dict= self.calculate()
+        for (src, dst), record in paint_dict.items():
+            ui_edge= UINetHelper.edge(self.graph, src, dst)
+
+            if record  and  (record['state'] in self.COLOR_MAP):
+                ui_edge.setColor( self.COLOR_MAP[record['state']] )
+                ui_edge.setText(TransferRecordToText(record))
+                ui_edge.show()
             else:
-                self.animation.step()
-
-    @showCall
-    def paint(self):  # TODO 动画与绘图分离
-        self.animation= Animation( self.graph, self.calculate() )
-        self.animation.start()
-        while self.animation:
-            self.animation.step()
+                ui_edge.setColor(Qt.black)
+                ui_edge.setText('')
+                ui_edge.hide()
 
     def calculate(self):
         records= self.monitor.transfer_t(packet_head=self.show_packet_head)
-        script= Animation.Script()
+        transfer_dict= dict.fromkeys(self.graph.edges(), {})
         for record in records:
-            script[ record['begin'] ].show_edge.append( record )
-            script[ record['end'] ].hide_edge.append( record )
-        return script
+            transfer_dict[ (record['src'], record['dst'],) ]= record
+        return transfer_dict
 
 # ----------------------------------------------------------------------------------------------------------------------
 class RatePainter(Painter):
@@ -270,71 +305,60 @@ class RatePainter(Painter):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-from constants import TransferState
-from core.packet import Packet
+# class Animation:
+#     @staticmethod
+#     def Script():
+#         return SheetTable(show_edge=list, hide_edge=list)
+#
+#     @showCall
+#     def __init__(self, graph, script):
+#         self.graph= graph
+#         self.script= script
+#         self.time_list= sorted(  list( script.keys() )  )
+#         self.index= None
+#
+#     def __bool__(self):
+#         return (self.index is not None) and (self.index < len(self.time_list))
+#
+#     @showCall
+#     def start(self):
+#         self.index= 0
+#         self.clearScreen()
+#
+#     @showCall
+#     def step(self):
+#         if self:
+#             t= self.time_list[self.index]
+#             for record in self.script[t].show_edge:
+#                 self.showRecord(record)
+#             for record in self.script[t].hide_edge:
+#                 self.hideRecord(record)
+#
+#             self.index+=1
+#
+#     def showRecord(self, record):
+#         ui_edge= UINetHelper.edge(self.graph, record['src'], record['dst'])
+#         ui_edge.setColor(Qt.green)
+#         ui_edge.setText(TransferRecordToText(record))
+#         ui_edge.show()
+#
+#     def hideRecord(self, record):
+#         ui_edge= UINetHelper.edge(self.graph, record['src'], record['dst'])
+#         ui_edge.setText('')
+#
+#         if record['state'] == TransferState.ARRIVED:
+#             ui_edge.setColor(Qt.darkGreen)
+#         elif record['state'] == TransferState.LOSS:
+#             ui_edge.setColor(Qt.darkRed)
+#         elif record['state'] == TransferState.SENDING:
+#             ui_edge.setColor(Qt.darkBlue)
+#         else:
+#             ui_edge.hide()
+#
+#     @showCall
+#     def clearScreen(self):
+#         for ui_edge in UINetHelper.edges(self.graph):
+#             ui_edge.setColor(Qt.black)
+#             ui_edge.setText('')
+#             ui_edge.hide()
 
-class Animation:
-    @staticmethod
-    def Script():
-        return SheetTable(show_edge=list, hide_edge=list)
-
-    @showCall
-    def __init__(self, graph, script):
-        self.graph= graph
-        self.script= script
-        self.time_list= sorted(  list( script.keys() )  )
-        self.index= None
-
-    def __bool__(self):
-        return (self.index is not None) and (self.index < len(self.time_list))
-
-    @showCall
-    def start(self):
-        self.index= 0
-        self.clearScreen()
-
-    @showCall
-    def step(self):
-        if self:
-            t= self.time_list[self.index]
-            for record in self.script[t].show_edge:
-                self.showRecord(record)
-            for record in self.script[t].hide_edge:
-                self.hideRecord(record)
-
-            self.index+=1
-
-    def showRecord(self, record):
-        ui_edge= UINetHelper.edge(self.graph, record['src'], record['dst'])
-        ui_edge.setColor(Qt.green)
-        ui_edge.setText( toText(record) )
-        ui_edge.show()
-
-    def hideRecord(self, record):
-        ui_edge= UINetHelper.edge(self.graph, record['src'], record['dst'])
-        ui_edge.setText('')
-
-        if record['state'] == TransferState.ARRIVED:
-            ui_edge.setColor(Qt.darkGreen)
-        elif record['state'] == TransferState.LOSS:
-            ui_edge.setColor(Qt.darkRed)
-        elif record['state'] == TransferState.SENDING:
-            ui_edge.setColor(Qt.darkBlue)
-        else:
-            ui_edge.hide()
-
-    @showCall
-    def clearScreen(self):
-        for ui_edge in UINetHelper.edges(self.graph):
-            ui_edge.setColor(Qt.black)
-            ui_edge.setText('')
-            ui_edge.hide()
-
-def toText(record):
-    state_str= TransferState.TYPE_STRING[ record['state'] ]
-    name_str= record['packet_head'].name
-    type_str= Packet.typeStr( record['packet_head'].type )
-    nonce_str= '%8X'%(record['packet_head'].nonce)
-    begin_str= record['begin']
-    end_str= record['end']
-    return f'{state_str}\nName:{name_str}\nType:{type_str}\nNonce:{nonce_str}\nBegin:{begin_str}\nEnd:{end_str}'

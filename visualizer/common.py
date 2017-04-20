@@ -1,5 +1,8 @@
 import PyQt5.QtGui as QtGui
 
+from constants import TransferState
+from core.packet import Packet
+
 
 def threshold(min, value, max):
     if value<min: return min
@@ -17,14 +20,6 @@ def DeepColor(value, h= 0.0):  # h:0.0为红色
     color= QtGui.QColor()
     color.setHsvF(h, value, 1.0)
     return color
-
-
-#=======================================================================================================================
-class QtUiBase:
-    def setupUi(self, UIForm):
-        self.ui= UIForm()
-        self.ui.setupUi(self)
-
 
 
 #=======================================================================================================================
@@ -78,3 +73,12 @@ class HeadTreeItem(TreeItem):
         self.burl.clear()
 
 
+#=======================================================================================================================
+def TransferRecordToText(record)->str:
+    state_str= TransferState.TYPE_STRING[ record['state'] ]
+    name_str= record['packet_head'].name
+    type_str= Packet.typeStr( record['packet_head'].type )
+    nonce_str= '%8X'%(record['packet_head'].nonce)
+    begin_str= record['begin']
+    end_str= record['end']
+    return f'{state_str}\nName:{name_str}\nType:{type_str}\nNonce:{nonce_str}\nBegin:{begin_str}\nEnd:{end_str}'

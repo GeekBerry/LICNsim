@@ -1,6 +1,0 @@
-def balanceTreeNodeNumber(degree, height):#DEBUG 计算平衡树节点数量
-    """
-    NodeNumber(h)= pow(degree, h) + pow(degree, h-1) + ... + pow(degree, 0)
-    幂级数求和问题
-    """
-    return (pow(degree, height+1)-1 )//(degree-1)

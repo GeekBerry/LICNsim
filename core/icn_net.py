@@ -122,5 +122,3 @@ class AskGenerator:
         self.timer.cancel()
 
 
-class StoreGenerator:
-    pass

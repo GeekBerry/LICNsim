@@ -16,7 +16,6 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QPointF
 from visualizer.ui_net import UINetHelper
 from visualizer.main_window import MainWindow
-from visualizer.ui.ui_main_window import Ui_main_window
 #=======================================================================================================================
 # graph_info = constants.GraphBA50()
 graph_info = debug.GraphGrid11X11()
@@ -45,7 +44,7 @@ if __name__ == '__main__':
     if USE_GUI:
         app = QApplication(sys.argv)  # 必须放在MainWindow前
         UINetHelper.setup(graph_info.graph)  # 把graph变成ui graph
-        main_window= MainWindow(Ui_main_window, graph_info.graph, monitor, logger)
+        main_window= MainWindow(graph_info.graph, monitor, logger)
 
         for (x,y), node in UINetHelper.nodeItems(graph_info.graph):
             node.setPos( QPointF(x*200, y*200) )

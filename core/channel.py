@@ -3,12 +3,7 @@
 
 import random
 import itertools
-from core.common import Hardware
-from core.clock import clock
-from core.data_structure import Announce
-from core.data_structure import SizeLeakyBucket
-
-
+from core import Hardware, clock, Announce, SizeLeakyBucket
 class Channel(Hardware, Announce):
     def __init__(self, src, dst, rate:int, buffer_size:int, delay:int, loss:float):
         Hardware.__init__(self, f'Channel({src}->{dst})')

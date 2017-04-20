@@ -16,20 +16,47 @@
   <widget class="QWidget" name="central_widget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QLabel" name="label_net_node">
+     <widget class="QLabel" name="label">
       <property name="text">
-       <string>label_net</string>
+       <string>节点图类型:</string>
       </property>
      </widget>
     </item>
     <item row="0" column="1">
-     <widget class="QLabel" name="label_net_edge">
+     <widget class="QLabel" name="label_net_node">
       <property name="text">
-       <string>TextLabel</string>
+       <string>label_net_node</string>
       </property>
      </widget>
     </item>
     <item row="0" column="2">
+     <spacer name="horizontalSpacer_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>367</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="0" column="3">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>边图类型:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="4">
+     <widget class="QLabel" name="label_net_edge">
+      <property name="text">
+       <string>label_net_edge</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="5">
      <spacer name="horizontalSpacer">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -42,7 +69,7 @@
       </property>
      </spacer>
     </item>
-    <item row="1" column="0" colspan="3">
+    <item row="1" column="0" colspan="6">
      <widget class="NetView" name="view_net">
       <property name="accessibleName">
        <string/>
@@ -89,8 +116,10 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="action_node"/>
    <addaction name="action_hits"/>
    <addaction name="action_stores"/>
+   <addaction name="action_edge"/>
    <addaction name="action_rate"/>
    <addaction name="action_transfer"/>
   </widget>
@@ -126,11 +155,11 @@
   </action>
   <action name="action_node">
    <property name="icon">
-    <iconset>
-     <normaloff>images/node.png</normaloff>images/node.png</iconset>
+    <iconset resource="../../res.qrc">
+     <normaloff>:/icon/visualizer/images/node.png</normaloff>:/icon/visualizer/images/node.png</iconset>
    </property>
    <property name="text">
-    <string>Node</string>
+    <string>节点图</string>
    </property>
   </action>
   <action name="action_rate">
@@ -173,6 +202,15 @@
    </property>
    <property name="toolTip">
     <string>Transfer</string>
+   </property>
+  </action>
+  <action name="action_edge">
+   <property name="icon">
+    <iconset resource="../../res.qrc">
+     <normaloff>:/icon/visualizer/images/edge.png</normaloff>:/icon/visualizer/images/edge.png</iconset>
+   </property>
+   <property name="text">
+    <string>边图</string>
    </property>
   </action>
  </widget>
@@ -286,6 +324,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>action_edge</sender>
+   <signal>triggered()</signal>
+   <receiver>main_window</receiver>
+   <slot>viewEdges()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>537</x>
+     <y>366</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_node</sender>
+   <signal>triggered()</signal>
+   <receiver>main_window</receiver>
+   <slot>viewNodes()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>537</x>
+     <y>366</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>playSteps()</slot>
@@ -293,5 +363,7 @@
   <slot>viewHits()</slot>
   <slot>viewTransfer()</slot>
   <slot>viewRate()</slot>
+  <slot>viewNodes()</slot>
+  <slot>viewEdges()</slot>
  </slots>
 </ui>

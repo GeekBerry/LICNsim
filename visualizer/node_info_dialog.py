@@ -1,16 +1,19 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog
-from visualizer.common import QtUiBase
+
 from debug import showCall
 
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QDialog
 
-class NodeInfoDialog(QDialog, QtUiBase):
-    def __init__(self, parent, UIForm, icn_node, logger):
-        QDialog.__init__(self, parent)
-        QtUiBase.setupUi(self, UIForm)
+class NodeInfoDialog(QDialog):
+    def __init__(self, parent, icn_node, logger):
+        super().__init__(parent)
+        from visualizer.ui.ui_node_info import Ui_NodeInfo
+        self.ui= Ui_NodeInfo()
+        self.ui.setupUi(self)
+
         self.setWindowTitle(f'Node{icn_node.name}信息')
         self.setAttribute(Qt.WA_DeleteOnClose)  # 关闭时就析构
 
@@ -64,7 +67,6 @@ class UnitTreeWidget(QTreeWidget):
 from core.packet import Packet
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView
 
-
 class NodeCSTableWidget(QTableWidget):
     PACKET_NAME, PACKET_TYPE, PACKET_NONCE, PACKET_SIZE= 0, 1, 2, 3
     def __init__(self, parent):
@@ -93,13 +95,11 @@ class NodeCSTableWidget(QTableWidget):
     def setRow(self, row, *values):
         for col, value in enumerate(values):
             item=  QTableWidgetItem( str(value) )
-            print(item, item.text())
             self.setItem( row, col, item )
 
 # ----------------------------------------------------------------------------------------------------------------------
 from core.info_table import isPending, sendIPast
 from PyQt5.QtWidgets import QTreeWidget
-
 
 class NodeInfoTreeWidget(QTreeWidget):
     def init(self, info_unit):
@@ -148,5 +148,4 @@ class NodeLogTableWidget(QTableWidget):
     def setRow(self, row, *values):
         for col, value in enumerate(values):
             item=  QTableWidgetItem( str(value) )
-            print(item, item.text())
             self.setItem( row, col, item )

@@ -3,23 +3,21 @@
 
 from debug import showCall
 
-from core.clock import clock
+from core import clock, AnnounceTable, CallTable
 from core.icn_net import ICNNetHelper
-from core.data_structure import AnnounceTable, CallTable
 
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QMainWindow
-from visualizer.common import QtUiBase
 from visualizer.net_scene import NetScene
 from visualizer.node_info_dialog import NodeInfoDialog
-from visualizer.ui.ui_node_info import Ui_NodeInfo
 
 #=======================================================================================================================
-class MainWindow(QMainWindow, QtUiBase):
-    def __init__(self, UIForm, graph, monitor, logger=None):
-        QMainWindow.__init__(self)
-        QtUiBase.setupUi(self, UIForm)
-        self.updateStatusBar()
+class MainWindow(QMainWindow):
+    def __init__(self, graph, monitor, logger=None):
+        super().__init__()
+        from visualizer.ui.ui_main_window import Ui_main_window
+        self.ui= Ui_main_window()
+        self.ui.setupUi(self)
 
         self.api= CallTable()
         self.announces= AnnounceTable()
@@ -46,6 +44,8 @@ class MainWindow(QMainWindow, QtUiBase):
         self.ui.tree_packet_head.init(self.monitor) # PacketHeadTreeWidget
         self.ui.tree_packet_head.install(self.announces, self.api)
 
+        self.updateStatusBar()
+
     @pyqtSlot()
     def playSteps(self):
         steps= 100  # TODO 获取steps
@@ -55,12 +55,20 @@ class MainWindow(QMainWindow, QtUiBase):
         self.announces['playSteps'](steps)  # 一定要先step, 再publish
 
     @pyqtSlot()
+    def viewNodes(self):
+        self.ui.view_net.showNodes()
+
+    @pyqtSlot()
     def viewName(self):
         self.ui.view_net.showName()
 
     @pyqtSlot()
     def viewHits(self):
         self.ui.view_net.showHitRatio()
+
+    @pyqtSlot()
+    def viewEdges(self):
+        self.ui.view_net.showEdges()
 
     @pyqtSlot()
     def viewRate(self):
@@ -73,7 +81,7 @@ class MainWindow(QMainWindow, QtUiBase):
     @showCall
     def newNodeInfoDialog(self, node_name):
         icn_node= ICNNetHelper.node(self.graph, node_name)
-        dialog= NodeInfoDialog(self, Ui_NodeInfo, icn_node, self.logger)  # 如果不以self为parent, 窗口会一闪而过
+        dialog= NodeInfoDialog(self, icn_node, self.logger)  # 如果不以self为parent, 窗口会一闪而过
         dialog.show()
 
     def updateStatusBar(self):

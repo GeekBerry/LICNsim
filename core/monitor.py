@@ -6,7 +6,6 @@ from core.clock import clock
 from core.data_structure import defaultdict
 from core.database import DataBaseTable
 from core.icn_net import ICNNetHelper
-# from core.packet import Packet
 from constants import INF, TransferState
 
 class Monitor:  # TODO 持久化
