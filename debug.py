@@ -43,5 +43,6 @@ def showCall(func):
 def timeProfile(cmd):
     prof= cProfile.Profile()
     prof.run(cmd)
-    pstats.Stats(prof).strip_dirs().sort_stats('cumtime').print_stats('', 50)  # sort_stats:  ncalls, tottime, cumtime
+    pstats.Stats(prof).strip_dirs().sort_stats('tottime').print_stats('', 50)  # sort_stats:  ncalls, tottime, cumtime
+
 

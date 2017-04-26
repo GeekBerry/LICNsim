@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-
-import networkx
 import sys
+import debug
 import constants
 
 from core import Packet, Name, Monitor, AnnounceTableLog, Channel, ICNNetHelper, AskGenerator, clock
@@ -58,8 +57,8 @@ if __name__ == '__main__':
 
         main_window.show()
 
-        # debug.timeProfile('app.exec_()'); sys.exit()
-        sys.exit(app.exec_())
+        debug.timeProfile('app.exec_()'); sys.exit()
+        # sys.exit(app.exec_())
     else:
         import constants
         from core.clock import clock

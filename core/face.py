@@ -126,11 +126,13 @@ class FaceUnit(Unit):
         in_channel.append(face.download)
         face.upstream= out_channel
         face.downstream= self.receive
+        self.announces['createFace'](face_id)
 
     def destroy(self, face_id):
         face= self.table.pop(face_id)
         if face is not None:
             face.downstream= EMPTY_FUNC  # 不会再下发数据包
+        self.announces['destroyFace'](face_id)
 
     def getCanSendIds(self):
         send_ids= [ face_id

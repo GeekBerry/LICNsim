@@ -124,7 +124,7 @@ class EdgeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
     # ------------------------------------------------------------------------------------------------------------------
     @staticmethod
     def _toLineWidth(width:float):
-        line_width= (EdgeItem.MAX_LINE_WIDTH - EdgeItem.MIN_LINE_WIDTH)*width + EdgeItem.MIN_LINE_WIDTH
+        line_width= int( (EdgeItem.MAX_LINE_WIDTH - EdgeItem.MIN_LINE_WIDTH)*width + EdgeItem.MIN_LINE_WIDTH )
         return min( max(EdgeItem.MIN_LINE_WIDTH, line_width), EdgeItem.MAX_LINE_WIDTH )
 
     def setForwardText(self, text):
@@ -160,7 +160,7 @@ class EdgeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
 class ForwardEdgeItem:
     def __init__(self, edge_item:EdgeItem):
         self.edge_item= edge_item
-        self.hide_timer= Timer(self.hide)
+        self.hide_timer= Timer(self.hideText)
 
     def getArrow(self)->tuple:
         return self.edge_item.src, self.edge_item.dst
@@ -188,7 +188,7 @@ class ForwardEdgeItem:
         else:
             self.hide_timer.timing(steps)
 
-    def hide(self):
+    def hideText(self):
         self.edge_item.style['show_forward']= False
         self.edge_item.update()
 

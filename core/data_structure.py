@@ -48,7 +48,15 @@ class LazyIter:
             raise StopIteration
 
 #-----------------------------------------------------------------------------------------------------------------------
+import itertools
 class List(list):
+    def __setitem__(self, index, object):
+        if len(self) <= index:
+            self.extend( [None]*(index-len(self)) )
+            self.append(object)
+        else:
+            list.__setitem__(self, index, object)
+
     def size(self):
         return len(self)
 
@@ -84,24 +92,51 @@ class Dict(dict):
 
 #-----------------------------------------------------------------------------------------------------------------------
 class NameEntry:
-    def __init__(self, INDEX, data):
-        super().__setattr__('__INDEXS__', INDEX)
+    def __init__(self, index:dict, data:list):
+        super().__setattr__('__INDEX__', index)
         super().__setattr__('__data__', data)
 
+    def __getitem__(self, key):
+        return self.__data__[ self.__INDEX__[key] ]
+
     def __getattr__(self, key):
-        return self.__data__[ self.__INDEXS__[key] ]
+        return self[key]
+
+    def __setitem__(self, key, value):
+        self.__data__[ self.__INDEX__[key] ]= value
 
     def __setattr__(self, key, value):
-        self.__data__[ self.__INDEXS__[key] ]= value
+        self[key]= value
 
-    def __repr__(self):
-        return f'NameEntry{repr(self.__data__)}'
+    def __len__(self):
+        return len(self.__INDEX__)
+
+    def __iter__(self):
+        for index in self.__INDEX__.values():
+            yield self.__data__[index]
+
+    def keys(self):
+        return self.__INDEX__.keys()
+
+    def items(self):
+        for field, index in self.__INDEX__.items():
+            yield field, self.__data__[index]
+
+    def __str__(self):
+        return f'NameEntry{ dict(self.items() )}'
+
+# if __name__ == '__main__':
+#     entry= NameEntry( {'name':0, 'age':1}, ['jim', 18,] )
+#     print(entry)  # NameEntry{'name': 'jim', 'age': 18}
+#     print(entry['age'])  # 18
 
 
 class NameList:  # 类似于nametuple  TODO 手动修改list的容量
     def __init__(self, **kwargs):
-        self.__INDEX__= dict(   zip(  kwargs.keys(), range( 0,len(kwargs) )  )   )
-        self.kwargs= kwargs
+        self.kwargs= kwargs  # {key1:Type1, key2:Type2, ...}
+        self.__INDEX__= { field:index
+            for index, field in enumerate( kwargs.keys() )
+        }  # {key1:0, key2:1, ...}
 
     def genData(self, kwargs):
         for k,v in self.kwargs.items():
@@ -110,13 +145,13 @@ class NameList:  # 类似于nametuple  TODO 手动修改list的容量
             else:
                 yield v()
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs)->NameEntry:
         if args:
             if kwargs:
                 raise Exception('can use "args" and "kwargs" at same time')
             if len(args) != len(self.kwargs):
                 raise Exception(f'len{args} != len{list(self.kwargs.keys())}')
-            return NameEntry(self.__INDEX__, args)
+            return NameEntry(self.__INDEX__, list(args))
 
         self_fileds= set(self.kwargs.keys())
         differ= set( kwargs.keys() ) - self_fileds
@@ -125,27 +160,64 @@ class NameList:  # 类似于nametuple  TODO 手动修改list的容量
         return NameEntry(self.__INDEX__, list(self.genData(kwargs)))
 
 
+# if __name__ == '__main__':
+#     Person= NameList(name=str, age=int)
+#
+#     tom= Person(name='Tom', age=18)
+#     jerry= Person('Jerry', 15)
+#
+#     print(tom, jerry)  # NameEntry{'name': 'Tom', 'age': 18} NameEntry{'name': 'Jerry', 'age': 15}
+#
+#     tom.age+= 1
+#     print(tom.age)  # 19
+
+
 class SheetTable(dict):
     def __init__(self, **kwargs):  # 例如: SheetTable(name= str, number= int, age= lambda:18, sex= lambda:'male' )
         super().__init__()
         self.Entry= NameList(**kwargs)
 
     def __getitem__(self, key):
-        return self.setdefault(  key, self.Entry()  )
+        return self.setdefault( key, self.Entry() )
+
+    def addField(self, field, FieldType):  # 如: addField('scort', int)
+        if field not in self.Entry.kwargs:
+            # 更新域记录
+            index= len(self.Entry.kwargs)
+            self.Entry.__INDEX__[field]= index
+            self.Entry.kwargs[field]= FieldType
+            # 更新已有元素
+            for entry in self.values():
+                List.__setitem__(entry.__data__, index, FieldType() )
+        else:
+            pass  # TODO
+
+    def dropField(self, field):
+        if (field in self.Entry.__INDEX__) and (field in self.Entry.kwargs):
+            index= self.Entry.__INDEX__[field]
+            # 更新域记录
+            for f,i in self.Entry.__INDEX__.items():
+                if i > index:
+                    self.Entry.__INDEX__[f] -= 1  # 向前移一格
+            del self.Entry.kwargs[field]
+            del self.Entry.__INDEX__[field]
+            # 更新已有元素
+            for entry in self.values():
+                entry.__data__.pop(index)
+        else:
+            pass  # TODO
 
 
 # if __name__ == '__main__':
-#     st = SheetTable(name=str, number=int, age=lambda: 18, sex=lambda: 'male')
+#     st = SheetTable(name=str)
 #     st[10001].name = 'zhao'
-#     print(st)  # {10001: NameEntry['zhao', 0, 18, 'male']}
 #
-#     age= st[20001].age
-#     print(age)  # 18
-#     print(st)  # {10001: NameEntry['zhao', 0, 18, 'male'], 20001: NameEntry['', 0, 18, 'male']}
+#     st.addField('address',int)
+#     print(st[10001])  # NameEntry{'name': 'zhao', 'address': 0}
+#     print(st[10002])  # NameEntry{'name': '', 'address': 0}
 #
-#     age= st[30001].age
-#     print(age)  # 20
-
+#     st.dropField('name')
+#     print(st[10001])  # NameEntry{'address': 0}
 
 #=======================================================================================================================
 class DictDecorator(dict):
@@ -412,58 +484,6 @@ class SizeQueue:
             assert self._cur_size >= 0  # DEBUG
             return size, data
 
-
-# class SizeLeakyBucket:
-#     def __init__(self, rate, max_size, callback):
-#         self.rate= rate
-#         self._queue= SizeQueue(max_size)
-#         self._accum= self.rate
-#         self._block= False
-#         self._exe_time= 0  # 安排执行leaky时间
-#         self.callback= callback
-#
-#     @property
-#     def max_size(self):
-#         return self._queue.max_size
-#
-#     @max_size.setter
-#     def max_size(self, value):
-#         self._queue.max_size= value
-#
-#     def __iter__(self):  # 不返回 size
-#         for size, args in self._queue:
-#             yield args
-#
-#     def __len__(self):
-#         return len(self._queue)
-#
-#     def append(self, size, *args)->bool:
-#         if self._queue.append(size, args):
-#             if not self._block:
-#                 clock.timing(0, self._leaky)  # XXX 延迟漏桶
-#             return True
-#         else:
-#             return False
-#
-#     def _leaky(self):
-#         if self._exe_time != clock.time():
-#             self._accum= self.rate
-#             self._exe_time= clock.time()
-#
-#         while self._queue:
-#             size, args= self._queue.top()
-#             if size <= self._accum:
-#                 self._queue.pop()
-#                 self._accum -= size
-#                 self.callback(*args)
-#                 self._block= False
-#             else:
-#                 self._exe_time+= 1
-#                 self._accum += self.rate
-#                 clock.timing(1, self._leaky)  # 下回合继续
-#                 self._block= True
-#                 return
-
 #=======================================================================================================================
 EMPTY_FUNC= lambda *args: None
 
@@ -518,15 +538,12 @@ class Announce:
     def append(self, func):
         self.callbacks.append(func)
 
-    # def discard(self, func):
-    #     self.callbacks.discard(func)
-
     def __repr__(self):
         from core.common import objName
         return str([objName(callback) for callback in self.callbacks])
 
 
-# class AnnounceTable(defaultdict):
+# class AnnounceTable(defaultdict):  # 不带Log版
 #     def __init__(self):
 #         super().__init__(Announce)
 
@@ -609,32 +626,35 @@ class SizeLeakyBucket:
         self._leaky()
 
 
-
-if __name__ == '__main__':
-    bucket= SizeLeakyBucket(2, 10)
-    bucket.callbacks['full']= Bind( print, 'full' )
-    bucket.callbacks['queue']= Bind( print, 'queue' )
-    bucket.callbacks['begin']= Bind( print, 'begin' )
-    bucket.callbacks['end']= Bind( print, 'end' )
-
-    print(clock.time())  # 0
-    bucket.append(5, 'A')
-    bucket.append(6, 'X')
-    clock.step()
-
-    print(clock.time())  # 1
-    bucket.append(1, 'B')
-    clock.step()
-
-    print(clock.time())  # 2
-    bucket.append(3, 'C')
-    clock.step()
-
-    print(clock.time())  # 3
-    clock.step()
-
-    print(clock.time())  # 4
-    clock.step()
-
-    print(clock.time())  # 5
-    clock.step()
+# if __name__ == '__main__':
+#     bucket= SizeLeakyBucket(2, 10)
+#     bucket.callbacks['full']= Bind( print, 'full' )
+#     bucket.callbacks['queue']= Bind( print, 'queue' )
+#     bucket.callbacks['begin']= Bind( print, 'begin' )
+#     bucket.callbacks['end']= Bind( print, 'end' )
+#
+#     print(clock.time())  # 0
+#     bucket.append(5, 'A')
+#     bucket.append(6, 'X')
+#     clock.step()
+#
+#     print(clock.time())  # 1
+#     bucket.append(1, 'B')
+#     clock.step()
+#
+#     print(clock.time())  # 2
+#     bucket.append(3, 'C')
+#     clock.step()
+#
+#     print(clock.time())  # 3
+#     clock.step()
+#
+#     print(clock.time())  # 4
+#     clock.step()
+#
+#     print(clock.time())  # 5
+#     clock.step()
+#
+#     print(clock.time())  # 6
+#     bucket.append(2, 'D')
+#     clock.step()

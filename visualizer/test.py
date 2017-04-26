@@ -3,6 +3,7 @@
 
 
 import debug
+import constants
 from core.database import AnnounceTableLog
 from core.channel import OneStepChannel
 from core.algorithm import FixedAsk, UniformPosition

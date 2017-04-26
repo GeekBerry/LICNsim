@@ -102,8 +102,8 @@ class NodeCSTableWidget(TableWidget):
             for row, packet in enumerate( cs_table.values() ):
                 self.setRow(row, packet.name, Packet.typeStr(packet.type), hex(packet.nonce), packet.size)
 
+
 # ----------------------------------------------------------------------------------------------------------------------
-from core.info_table import isPending, sendIPast
 class NodeInfoTreeWidget(TreeWidget):
     def init(self, info_unit):
         self.setHead('Key', 'Value')
@@ -116,13 +116,13 @@ class NodeInfoTreeWidget(TreeWidget):
         self.resizeColumnToContents(0)  # XXX 或者 self.setColumnWidth(0, 200)
 
     def _showInfo(self):
-        for packet_name, info in self.info_unit.table.items():
-            for faceid, entry in info.items():
-                self[packet_name][faceid]['isPending'].setTexts( isPending(entry) )
-                self[packet_name][faceid]['sendIPast'].setTexts( sendIPast(entry) )
+        for packet_name, row in self.info_unit.table.items():
+            for faceid, cell in row.items():
+                self[packet_name][faceid]['isPending'].setTexts( cell.isPending() )
+                self[packet_name][faceid]['sendInterestPast'].setTexts( cell.sendInterestPast() )
 
                 for p_type in Packet.TYPES:
-                    self[packet_name][faceid]['recv'][ Packet.typeStr(p_type) ].setTexts( entry.recv[p_type] )
+                    self[packet_name][faceid]['recv'][ Packet.typeStr(p_type) ].setTexts( cell.recv[p_type] )
 
                 for p_type in Packet.TYPES:
-                    self[packet_name][faceid]['send'][ Packet.typeStr(p_type) ].setTexts( entry.send[p_type] )
+                    self[packet_name][faceid]['send'][ Packet.typeStr(p_type) ].setTexts( cell.send[p_type] )

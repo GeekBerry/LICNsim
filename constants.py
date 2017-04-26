@@ -16,12 +16,12 @@ POLICY_LIST= list(core.policy.searchPolicyInModule(core.policy))
 
 
 # ======================================================================================================================
-# debug_ip=  core.packet.Packet( core.packet.Name('/DEBUG_PACKET'),   core.packet.Packet.INTEREST, size=1)
-# debug_ip1= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/1'), core.packet.Packet.INTEREST, size=1 )
-# debug_ip2= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/2'), core.packet.Packet.INTEREST, size=1 )
-# debug_dp=  core.packet.Packet( core.packet.Name('/DEBUG_PACKET'),   core.packet.Packet.DATA, size=1 )
-# debug_dp1= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/1'), core.packet.Packet.DATA, size=1 )
-# debug_dp2= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/2'), core.packet.Packet.DATA, size=1 )
+debug_ip=  core.packet.Packet( core.packet.Name('/DEBUG_PACKET'),   core.packet.Packet.INTEREST, size=1)
+debug_ip1= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/1'), core.packet.Packet.INTEREST, size=1 )
+debug_ip2= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/2'), core.packet.Packet.INTEREST, size=1 )
+debug_dp=  core.packet.Packet( core.packet.Name('/DEBUG_PACKET'),   core.packet.Packet.DATA, size=1 )
+debug_dp1= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/1'), core.packet.Packet.DATA, size=1 )
+debug_dp2= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/2'), core.packet.Packet.DATA, size=1 )
 
 
 class GraphGrid100X100:

@@ -5,7 +5,6 @@ from core.clock import clock
 from core.node import ForwarderUnitBase, AppUnit
 from core.data_structure import Dict
 from core.packet import Packet
-from core.info_table import isPending, sendIPast
 
 #=======================================================================================================================
 class ExperimentForwarderUnit(ForwarderUnitBase):
@@ -23,19 +22,13 @@ class ExperimentForwarderUnit(ForwarderUnitBase):
                     packet.pathI= path
             # 转发
             sendid= packet.pathI.pop(0)  # 将头部摘取出来, 基于net的设定, NodeName= FaceID
-            info= self.api['Info::getInfo'](packet)  # 已有记录: info[face_id].inI == clock.life_time()
-
-            if sendIPast(info[sendid]) > self.outI_cd:
+            if sendid in self.api['Info::getCooledIds'](packet.name, self.outI_cd):
                 self.api['Face::send']( {sendid}, packet )
         else:
             self.api['Face::send']( {face_id}, data )  # 记录: info[send_id].outD == clock.life_time()
 
     def _inData(self, face_id, packet):
-        info= self.api['Info::getInfo'](packet)  # 已有记录: info[face_id].inI == clock.life_time()
-        send_ids= [ each_id for each_id, entry in info.items()
-            if isPending(entry)
-        ]  # Pending. 遍历info而非所有id, 是因为pengding的id一定在info中有记录
-
+        send_ids= self.api['Info::getPendingIds'](packet.name)
         if len(send_ids) > 0:
             self.api['Face::send'](send_ids, packet)  # 记录: info[send_id].outI == clock.life_time()
             self.api['CS::store'](packet)  # FIXME 未经请求包储存??

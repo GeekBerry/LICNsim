@@ -4,39 +4,44 @@
 from constants import INF
 from core.common import Unit
 from core.clock import clock
-from core.data_structure import defaultdict, SizeDictDecorator, TimeDictDecorator
+from core.data_structure import defaultdict, SizeDictDecorator, TimeDictDecorator, SheetTable
+from core.packet import Packet
 
 # ----------------------------------------------------------------------------------------------------------------------
 class InfoUnit(Unit):
     """
-    table={
-        name1: Info{
-            faceid1: NameEntry{
-                send:{TYPE: Time, TYPE2: Time...}
-                recv:{TYPE: Time, TYPE2: Time...}
-                },
-            ...
-        },
-        ...
-    }
+    sheet_table:
+            faceid1     faceid2     ...
+    name1   Cell        Cell        ...
+    name2   Cell        Cell        ...
+    ...     ...         ...         ...
+
     """
-    class Entry:
+    class Cell:
+        """
+                type1   type2   ...
+        recv:   Time    Time    ...
+        send:   Time    Time    ...
+        """
         def __init__(self):
             self.recv= defaultdict(lambda:-INF) # {Packet.TYPE:life_time, ...}
             self.send= defaultdict(lambda:-INF) # {Packet.TYPE:life_time, ...}
 
-        def __repr__(self):
-            return str( self.__dict__ )
+        def isPending(self):  # face同时接收到I和D, 该face不算Pending
+            return (self.recv[Packet.DATA] < self.recv[Packet.INTEREST]
+                and self.send[Packet.DATA] < self.recv[Packet.INTEREST])
 
-    class Info(defaultdict):  # dict{FaceId:NameEntry, ...}
-        def __init__(self):
-            super().__init__(InfoUnit.Entry)
-
+        def sendInterestPast(self):  # 返回兴趣包等待回应时长
+            if (self.send[Packet.DATA] < self.send[Packet.INTEREST]  # 没有再发出数据包
+            and self.recv[Packet.DATA] < self.send[Packet.INTEREST]): # 没有接收到数据包
+                return clock.time() - self.send[Packet.INTEREST]  # 返回经历时长
+            else:
+                return INF  # 没有等待相当于经历无穷久
 
     def __init__(self, max_size, life_time):
         super().__init__()
         # 进行默认参数装饰
-        self.table= defaultdict(InfoUnit.Info)
+        self.table= SheetTable()
         # 进行尺寸限制装饰
         self.table= SizeDictDecorator(self.table, max_size)  # FIXME  defaultdict会导致max_size=0失效
         # 进行时间限制装饰
@@ -64,9 +69,22 @@ class InfoUnit(Unit):
         # 监听的 Announce
         announces['inPacket'].append(self.inPacket)
         announces['outPacket'].append(self.outPacket)
+        announces['createFace'].append(self.insertFaceid)
+        announces['destroyFace'].append(self.dropFaceid)
         # 提供的 API
-        api['Info::getInfo']= self.getInfo
+        # api['Info::getCell']= self.getCell
+        api['Info::getPendingIds']= self.getPendingIds
+        api['Info::getCooledIds']= self.getCooledIds
         # 调用的 API
+
+    def infoEvictCallBack(self, name, packet):
+        self.announces['evictInfo'](name, packet)
+
+    def insertFaceid(self, faceid):
+        self.table.core().core().addField(faceid, InfoUnit.Cell)  # SheetTable
+
+    def dropFaceid(self, faceid):
+        self.table.core().core().dropField(faceid)  # SheetTable
 
     def inPacket(self, face_id, packet):
         self.table[packet.name][face_id].recv[packet.type]= clock.time()
@@ -74,29 +92,23 @@ class InfoUnit(Unit):
     def outPacket(self, face_id, packet):
         self.table[packet.name][face_id].send[packet.type]= clock.time()
 
-    def getInfo(self, packet):
-        return self.table[packet.name]
+    # def getCell(self, packet_name, faceid):
+    #     return self.table[packet_name][faceid]
 
-    def infoEvictCallBack(self, name, packet):
-        self.announces['evictInfo'](name, packet)
+    def getPendingIds(self, name)->set:
+        _ids= [ faceid
+            for faceid, cell in self.table[name].items()
+                if cell.isPending()
+        ]
+        return set(_ids)
 
+    def getCooledIds(self, name, cool_delay)->set:
+        _ids= [ faceid
+            for faceid, cell in self.table[name].items()
+                if cell.sendInterestPast() > cool_delay
+        ]
+        return set(_ids)
 
-# ----------------------------------------------------------------------------------------------------------------------
-from core.packet import Packet
-
-
-def isPending(entry):  # face同时接收到I和D, 该face不算Pending
-    return entry.recv[Packet.DATA] < entry.recv[Packet.INTEREST] \
-           and \
-           entry.send[Packet.DATA] < entry.recv[Packet.INTEREST]
-
-
-def sendIPast(entry):  # 返回兴趣包等待回应时长
-    if (entry.send[Packet.DATA] < entry.send[Packet.INTEREST]  # 没有再发出数据包
-    and entry.recv[Packet.DATA] < entry.send[Packet.INTEREST] ): # 没有接收到数据包
-        return clock.time() - entry.send[Packet.INTEREST]  # 返回经历时长
-    else:
-        return INF  # 没有等待相当于经历无穷久
 
 
 

@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
 from core.common import Hardware, singleton
 
-file= open('AnnounceTableLog.txt', 'w')
+
 
 # @singleton
 class AnnounceTableLog(DataBaseTable):
@@ -211,6 +211,7 @@ class AnnounceTableLog(DataBaseTable):
         self.order_iter= itertools.count()
         self.create(order= -1, time=None, hardware='', action='', args= '')
         self.create_index('time', 'hardware')
+        self.file= open('AnnounceTableLog.txt', 'w')
 
     def addAnnounceTable(self, label, announces):
         announces.logger.append(Bind(self._write, label))
@@ -226,4 +227,4 @@ class AnnounceTableLog(DataBaseTable):
 
         string= f'{order}:\t[{clock.time()}] {hardware}.{action}{args}\n'
         # print(string, end='')  # debug
-        file.write(string) # debug
+        self.file.write(string) # debug

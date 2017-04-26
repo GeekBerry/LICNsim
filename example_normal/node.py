@@ -3,7 +3,6 @@
 
 
 from core.node import ForwarderUnitBase
-from core.info_table import isPending
 import random
 
 class ForwarderUnit(ForwarderUnitBase):
@@ -15,12 +14,7 @@ class ForwarderUnit(ForwarderUnitBase):
             self.randomForward(face_id, packet)
 
     def _inData(self, face_id, packet):
-        info= self.api['Info::getInfo'](packet)
-
-        send_ids= [ each_id for each_id, entry in info.items()
-            if isPending(entry)
-        ]
-
+        send_ids= self.api['Info::getPendingIds'](packet.name)
         if send_ids:
             self.api['Face::send'](send_ids, packet)  # 记录: info[send_id].outI == clock.life_time()
             self.api['CS::store'](packet)

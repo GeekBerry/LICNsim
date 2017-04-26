@@ -1,5 +1,7 @@
 #!/usr/bin/python3
-#coding=utf-8
+# coding=utf-8
+
+import os
 from core.algorithm import FixedAsk, PossionAsk, UniformPosition, ZipfPosition
 from core.channel import OneStepChannel
 from core.clock import clock
@@ -7,7 +9,6 @@ from core.cs import SimulatCSUnit
 from core.filer import Filer, TimePlugin, PacketTracePlugin
 from core.icn_net import ICNNetHelper, AskGenerator
 from core.packet import Name, Packet
-from debug import GraphBA10000, GraphTree3X8
 from constants import GraphGrid100X100, GraphBA10000, GraphTree3X8
 from example_CB.experiment_net import ExperimentMonitor, UniformityPlugin
 from example_CB.experiment_node import ExperimentNode
@@ -49,7 +50,7 @@ def main(date, graph_name, sim_second, cs_mode, cs_time, numfunc, lam, posfunc, 
     sim_num_func= NUM_FUNC_S[numfunc](1)
     sim_pos_func= POS_FUNC_S[posfunc](graph_info.graph, graph_info.center, alpha)
 
-    filename= f'result/{date}_{graph_name}_SIZE{len(graph_info.graph)}_{cs_mode}{cs_time}_{numfunc}{lam}_{posfunc}_test{repeat}.txt'  # TODO 创建文件夹
+    filename= f'{os.path.dirname(os.path.realpath(__file__))}/result/{date}_{graph_name}_SIZE{len(graph_info.graph)}_{cs_mode}{cs_time}_{numfunc}{lam}_{posfunc}_test{repeat}.txt'  # TODO 创建文件夹
     print("实验", filename)
     #--------------------------------------------------------------------------
     # ICNNET

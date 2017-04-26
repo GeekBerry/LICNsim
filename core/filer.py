@@ -113,5 +113,3 @@ class Filer:
         # 定时器
         self.timer.timing(self.delta)  # 要不要自循环
 
-    def __del__(self):
-        self.file.close()
