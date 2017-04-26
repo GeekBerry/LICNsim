@@ -89,6 +89,8 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="action_play"/>
+   <addaction name="separator"/>
    <addaction name="action_step"/>
   </widget>
   <widget class="QDockWidget" name="dock_name_store">
@@ -213,6 +215,22 @@
     <string>边图</string>
    </property>
   </action>
+  <action name="action_play">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../res.qrc">
+     <normaloff>:/icon/visualizer/images/start.png</normaloff>
+     <normalon>:/icon/visualizer/images/pause.png</normalon>:/icon/visualizer/images/start.png</iconset>
+   </property>
+   <property name="text">
+    <string>开始/暂停</string>
+   </property>
+   <property name="toolTip">
+    <string>开始/暂停</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -245,14 +263,14 @@
  </resources>
  <connections>
   <connection>
-   <sender>action_step</sender>
-   <signal>triggered()</signal>
+   <sender>toolbar_view</sender>
+   <signal>actionTriggered(QAction*)</signal>
    <receiver>main_window</receiver>
-   <slot>playSteps()</slot>
+   <slot>viewToolBarTriggered(QAction*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
+     <x>558</x>
+     <y>16</y>
     </hint>
     <hint type="destinationlabel">
      <x>537</x>
@@ -261,94 +279,14 @@
    </hints>
   </connection>
   <connection>
-   <sender>action_stores</sender>
-   <signal>triggered()</signal>
+   <sender>toolbar_play</sender>
+   <signal>actionTriggered(QAction*)</signal>
    <receiver>main_window</receiver>
-   <slot>viewName()</slot>
+   <slot>playToolBarTriggered(QAction*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>537</x>
-     <y>366</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>action_hits</sender>
-   <signal>triggered()</signal>
-   <receiver>main_window</receiver>
-   <slot>viewHits()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>537</x>
-     <y>366</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>action_rate</sender>
-   <signal>triggered()</signal>
-   <receiver>main_window</receiver>
-   <slot>viewRate()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>537</x>
-     <y>366</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>action_transfer</sender>
-   <signal>triggered()</signal>
-   <receiver>main_window</receiver>
-   <slot>viewTransfer()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>537</x>
-     <y>366</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>action_edge</sender>
-   <signal>triggered()</signal>
-   <receiver>main_window</receiver>
-   <slot>viewEdges()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>537</x>
-     <y>366</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>action_node</sender>
-   <signal>triggered()</signal>
-   <receiver>main_window</receiver>
-   <slot>viewNodes()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
+     <x>21</x>
+     <y>16</y>
     </hint>
     <hint type="destinationlabel">
      <x>537</x>
@@ -358,12 +296,7 @@
   </connection>
  </connections>
  <slots>
-  <slot>playSteps()</slot>
-  <slot>viewName()</slot>
-  <slot>viewHits()</slot>
-  <slot>viewTransfer()</slot>
-  <slot>viewRate()</slot>
-  <slot>viewNodes()</slot>
-  <slot>viewEdges()</slot>
+  <slot>viewToolBarTriggered(QAction*)</slot>
+  <slot>playToolBarTriggered(QAction*)</slot>
  </slots>
 </ui>

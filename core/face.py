@@ -21,14 +21,6 @@ class Face:
             self.upstream(packet)
 
 #=======================================================================================================================
-class NoLoopChecker:
-    def __init__(self, *args):
-        pass
-
-    def isLoop(self, packet):
-        return False
-
-
 class LoopChecker:
     def __init__(self, nonce_life_time):
         self.info_set= TimeDictDecorator({}, nonce_life_time)  # 当做set来用
@@ -39,6 +31,10 @@ class LoopChecker:
         else:
             self.info_set[packet.head()]= None  # 当做set来用
             return False
+
+class NoLoopChecker(LoopChecker):
+    def isLoop(self, packet):
+        return False
 
 # if __name__ == '__main__':
 #     log.level= 4

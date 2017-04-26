@@ -28,7 +28,7 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
     def init(self, graph, scene, monitor):
         self.graph= graph
         self.setScene(scene)
-        self.monitor= monitor
+        # self.monitor= monitor
 
         self.nodes_painter= NodesPainter(graph, monitor)
         self.name_store_painter= NameStorePainter(graph, monitor)
@@ -118,9 +118,9 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
     #-------------------------------------------------------------------------------------------------------------------
     def setBackGround(self):
         if self.node_mode == 'name_store':
-            self.setBackgroundBrush(QBrush(QColor(255,250,250)))
+            self.setBackgroundBrush(QBrush(QColor(255,240,240)))
         elif self.node_mode == 'hit_ratio':
-            self.setBackgroundBrush(QBrush(QColor(250,255,250)))
+            self.setBackgroundBrush(QBrush(QColor(240,255,240)))
         else:
             self.setBackgroundBrush( QBrush(QColor(255,255,255)) )
 
@@ -167,12 +167,20 @@ class Painter:
         pass
 
 # ----------------------------------------------------------------------------------------------------------------------
+from core.icn_net import ICNNetHelper
 class NodesPainter(Painter):
     def paint(self):
-        for ui_node in UINetHelper.nodes(self.graph):
+        for nodename, ui_node in UINetHelper.nodeItems(self.graph):
             ui_node.setColor(Qt.white)
             ui_node.setText('')
             ui_node.setIsShowText(False)
+
+            icn_node= ICNNetHelper.node(self.graph, nodename)
+            unit= icn_node.units.get('buffer')
+            if unit:
+                size= unit.rate/100  # FIXME
+                ui_node.setSize(size)
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 class NameStorePainter(Painter):
@@ -205,7 +213,9 @@ class NameStorePainter(Painter):
 class HitRatioPainter(Painter):
     def __init__(self, graph, monitor):
         super().__init__(graph, monitor)
-        self.delta= 4000  # FIXME
+
+        self.last_record_time= -1  # '-1': 比0小即可
+        self.hit_miss_table= SheetTable(hit=int, miss=int)
 
     def paint(self):
         paint_dict= self.calculate()
@@ -219,34 +229,41 @@ class HitRatioPainter(Painter):
                 UINetHelper.node(self.graph, node_name).setText(f'命中率 {"%0.2f"%(ratio*100)}%')
 
     def calculate(self):
-        time= clock.time()
-        records= self.monitor.node_t(time= lambda t: time - self.delta < t <= time)
-        hit_miss_dict= SheetTable(hit=int, miss=int)
+        records= self.monitor.node_t(time= lambda t: self.last_record_time < t <= clock.time())
         for node_record in records:
-            entry= hit_miss_dict[ node_record['node_name'] ]
+            entry= self.hit_miss_table[ node_record['node_name']]
             entry.hit += node_record['hit']
             entry.miss += node_record['miss']
+        self.last_record_time= clock.time()
+
         # 计算命中率
         ratio_dict= dict.fromkeys(self.graph)
-        for node_name, entry in hit_miss_dict.items():
+        for node_name, entry in self.hit_miss_table.items():
             if entry.hit or entry.miss:
                 ratio_dict[node_name]= entry.hit / (entry.miss + entry.hit)
         return ratio_dict
 
 # ----------------------------------------------------------------------------------------------------------------------
+from core.channel import Channel
 class EdgesPainter(Painter):
     def paint(self):
-        for ui_edge in UINetHelper.edges(self.graph):
+        for (src, dst), ui_edge in UINetHelper.edgeItems(self.graph):
             ui_edge.setColor(Qt.black)
             ui_edge.setText('')
-            ui_edge.hide()
+            ui_edge.hideText()
+
+            icn_edge= ICNNetHelper.edge(self.graph, src, dst)
+            if isinstance(icn_edge, Channel):
+                width= icn_edge.rate/10  # FIXME
+                ui_edge.setWidth(width)
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 from constants import TransferState
 class TransferPainter(Painter):
     COLOR_MAP= {
             TransferState.ARRIVED:  Qt.green,
-            TransferState.SENDING:  Qt.yellow,
+            TransferState.SENDING:  QColor(255,160,45),
             TransferState.LOSS:     Qt.red,
         }
 
@@ -267,7 +284,7 @@ class TransferPainter(Painter):
             else:
                 ui_edge.setColor(Qt.black)
                 ui_edge.setText('')
-                ui_edge.hide()
+                ui_edge.hideText()
 
     def calculate(self):
         records= self.monitor.transfer_t(packet_head=self.show_packet_head)

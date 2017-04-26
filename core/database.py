@@ -64,7 +64,9 @@ class DataBaseTable(pydblite.pydblite._BasePy3):
             value= kwargs[field]
             res= self.keyFilter(field, value, res)
         # 必须返回可反复遍历的对象
-        return LazyIter( self.fromIds(res) )  # LazyIter 惰性生成列表
+
+        # return LazyIter( self.fromIds(res) )  # LazyIter 惰性生成列表 FIXME
+        return list( self.fromIds(res) )
 
     def keyIndex(self, field, value)->list:  # list[_id, ...]
          if inspect.isfunction(value):  # 表达式
@@ -182,9 +184,25 @@ class DataBaseTable(pydblite.pydblite._BasePy3):
 #         print(r)
 
 
+if __name__ == '__main__':
+    from constants import INF
+    mydb = DataBaseTable()
+    mydb.create('k1', 'k2', v1=0, v2=0)
+    mydb.create_index('v1')
+
+
+    mydb.access(0, 'hello', v1=100, v2=INF)
+    mydb.access(1, 'hello', v1=99, v2=INF)
+
+    rs= mydb(k2='hello', v1= lambda v1:v1>=100)
+    for r in rs:
+        print(r)
+
 # ======================================================================================================================
 
 from core.common import Hardware, singleton
+
+file= open('AnnounceTableLog.txt', 'w')
 
 # @singleton
 class AnnounceTableLog(DataBaseTable):
@@ -203,6 +221,9 @@ class AnnounceTableLog(DataBaseTable):
                 hardware.announces.logger.append(Bind(self._write, hardware.name))
 
     def _write(self, hardware, action, *args):
-        # print(f'[{clock.time()}] {hardware}.{action}:', *args)  # debug
-        self.access( order= next(self.order_iter), time= clock.time(), hardware=hardware, action= action, args= str(args) )
+        order= next(self.order_iter)
+        self.access( order= order, time= clock.time(), hardware=hardware, action= action, args= str(args) )
 
+        string= f'{order}:\t[{clock.time()}] {hardware}.{action}{args}\n'
+        # print(string, end='')  # debug
+        file.write(string) # debug

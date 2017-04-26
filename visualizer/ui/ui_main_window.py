@@ -108,6 +108,15 @@ class Ui_main_window(object):
         icon6.addPixmap(QtGui.QPixmap(":/icon/visualizer/images/edge.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.action_edge.setIcon(icon6)
         self.action_edge.setObjectName("action_edge")
+        self.action_play = QtWidgets.QAction(main_window)
+        self.action_play.setCheckable(True)
+        icon7 = QtGui.QIcon()
+        icon7.addPixmap(QtGui.QPixmap(":/icon/visualizer/images/start.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon7.addPixmap(QtGui.QPixmap(":/icon/visualizer/images/pause.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        self.action_play.setIcon(icon7)
+        self.action_play.setObjectName("action_play")
+        self.toolbar_play.addAction(self.action_play)
+        self.toolbar_play.addSeparator()
         self.toolbar_play.addAction(self.action_step)
         self.toolbar_view.addAction(self.action_node)
         self.toolbar_view.addAction(self.action_hits)
@@ -117,13 +126,8 @@ class Ui_main_window(object):
         self.toolbar_view.addAction(self.action_transfer)
 
         self.retranslateUi(main_window)
-        self.action_step.triggered.connect(main_window.playSteps)
-        self.action_stores.triggered.connect(main_window.viewName)
-        self.action_hits.triggered.connect(main_window.viewHits)
-        self.action_rate.triggered.connect(main_window.viewRate)
-        self.action_transfer.triggered.connect(main_window.viewTransfer)
-        self.action_edge.triggered.connect(main_window.viewEdges)
-        self.action_node.triggered.connect(main_window.viewNodes)
+        self.toolbar_view.actionTriggered['QAction*'].connect(main_window.viewToolBarTriggered)
+        self.toolbar_play.actionTriggered['QAction*'].connect(main_window.playToolBarTriggered)
         QtCore.QMetaObject.connectSlotsByName(main_window)
 
     def retranslateUi(self, main_window):
@@ -146,6 +150,8 @@ class Ui_main_window(object):
         self.action_transfer.setText(_translate("main_window", "传输图"))
         self.action_transfer.setToolTip(_translate("main_window", "Transfer"))
         self.action_edge.setText(_translate("main_window", "边图"))
+        self.action_play.setText(_translate("main_window", "开始/暂停"))
+        self.action_play.setToolTip(_translate("main_window", "开始/暂停"))
 
 from visualizer import CSTableWidget, NetView, PacketHeadTreeWidget
 import res_rc

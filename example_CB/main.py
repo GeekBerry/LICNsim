@@ -7,7 +7,8 @@ from core.cs import SimulatCSUnit
 from core.filer import Filer, TimePlugin, PacketTracePlugin
 from core.icn_net import ICNNetHelper, AskGenerator
 from core.packet import Name, Packet
-from debug import GraphGrid100X100, GraphBA10000, GraphTree3X8
+from debug import GraphBA10000, GraphTree3X8
+from constants import GraphGrid100X100, GraphBA10000, GraphTree3X8
 from example_CB.experiment_net import ExperimentMonitor, UniformityPlugin
 from example_CB.experiment_node import ExperimentNode
 
@@ -70,7 +71,7 @@ def main(date, graph_name, sim_second, cs_mode, cs_time, numfunc, lam, posfunc, 
     ask_gen= AskGenerator(graph_info.graph, sim_num_func, sim_pos_func, ipacket, delta=ratio//lam)
     ask_gen.start(0)
     #--------------------------------------------------------------------------
-    for i in range(0, sim_second*ratio + 1):# 发送间隔为响应最大延迟
+    for i in range(0, sim_second*ratio + 1):  # 发送间隔为响应最大延迟
         clock.step()
     print("结束",filename)
 

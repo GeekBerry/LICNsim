@@ -1,42 +1,48 @@
 #!/usr/bin/python3
 #coding=utf-8
-from core.common import Hardware, Unit
+from core.common import Hardware, Unit, objName
 from core.data_structure import Announce
-from debug import showCall
 
 class NodeBase(Hardware):
     def __init__(self, name):
         super().__init__(f'Node({name})')
 
+    def __str__(self):
+        return objName(self)
 #=======================================================================================================================
 from core.data_structure import SizeLeakyBucket
 class NodeBufferUnit(Announce, Unit):
     def __init__(self, rate, buffer_size):
         Announce.__init__(self)
         Unit.__init__(self)
-        self._bucket= SizeLeakyBucket( super().__call__, rate=rate, max_size= buffer_size )  # XXX super应该指Announce
+        self._bucket= SizeLeakyBucket(rate, buffer_size)
+
+    @property
+    def buffer_size(self):
+        return self._bucket.max_size
+
+    @buffer_size.setter
+    def buffer_size(self, value):
+        self._bucket.max_size= value
+
+    @property
+    def rate(self):
+        return self._bucket.rate
+
+    @rate.setter
+    def rate(self, value):
+        self._bucket.rate= value
 
     def install(self, announces, api):
         self.callbacks+= announces['inPacket'].callbacks  # 复制原有列表
-        announces['inPacket']= self     # 重新接入announces['inPacket']
-        super().install(announces, api)
+        announces['inPacket']= self  # 覆盖announces['inPacket']
+        Unit.install(self, announces, api)
+
+        self._bucket.callbacks['full']= self.announces['drop']
+        self._bucket.callbacks['end']= super().__call__  # XXX super应该指Announce
 
     def __call__(self, faceid, packet):
-        if not self._bucket(faceid, packet, size= 1):  # size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
-            self.announces['drop'](faceid, packet)
-
-    def __str__(self):
-        return f'rate:{self._bucket.rate} buffer_size:{self._bucket.max_size}'
-
-
-# class NodeBuffer(Announce):
-#     def __init__(self, callback, rate, buffer_size):
-#         super().__init__()
-#         self._bucket= SizeLeakyBucket(rate, buffer_size, callback)
-#
-#     def __call__(self, faceid, packet):
-#         if not self._bucket.append(1, (faceid, packet,)):
-#             self.announces['drop'](faceid, packet)
+        self._bucket.append(1, faceid, packet)  # size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
 
 #-----------------------------------------------------------------------------------------------------------------------
 class AppUnit(Unit):

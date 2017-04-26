@@ -7,6 +7,9 @@ from core.data_structure import CallTable
 
 
 class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
+    MIN_SIZE= 1
+    MAX_SIZE= 80
+
     def __init__(self, node_name):
         super().__init__()
         self.setZValue(2)
@@ -16,7 +19,7 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         self.setCacheMode(QGraphicsItem.DeviceCoordinateCache)
         # 面向图形界面, 负责控制显示效果
         self.style= {
-            'rect': QRectF(),
+            'rect': QRectF(-NodeItem.MIN_SIZE/2, -NodeItem.MIN_SIZE/2, NodeItem.MIN_SIZE, NodeItem.MIN_SIZE),
             'color': Qt.white,
 
             'name':'',
@@ -72,8 +75,14 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         self.style['text_rect']= QRectF(rect)
         self.update()
 
-    def setSize(self, size)->None:
-        self.style['rect']= QRectF(-size/2, -size/2, size, size)
+    @staticmethod
+    def _toNodeSizeRect(size:float):
+        node_size= (NodeItem.MAX_SIZE - NodeItem.MIN_SIZE)*size + NodeItem.MIN_SIZE
+        node_size= min( max(NodeItem.MIN_SIZE, node_size), NodeItem.MAX_SIZE )
+        return QRectF(-node_size/2, -node_size/2, node_size, node_size)
+
+    def setSize(self, size:float)->None:
+        self.style['rect']= NodeItem._toNodeSizeRect(size)
         self.update()
 
     def setColor(self, color)->None:

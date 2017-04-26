@@ -35,21 +35,22 @@ class ForwarderUnit(ForwarderUnitBase):
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-from core.node import NodeBufferUnit, AppUnit
+from random import randint
+from core.node import NodeBase, NodeBufferUnit, AppUnit
 from core.common import Hardware
 from core.cs import ContentStoreUnit
 from core.face import FaceUnit, RepeatChecker, LoopChecker, NoLoopChecker
 from core.info_table import InfoUnit
-from core.policy import FIFOPolicy
+from core.policy import FIFOPolicy, PolicyUnit
 from constants import INF
 
-class Node(Hardware):
+class Node(NodeBase):
     def __init__(self, name):
-        super().__init__(name)
-        self.install('buffer', NodeBufferUnit(rate= INF, buffer_size=INF) )  # 使得节点变成有缓存的, 此处设置为INF仅为测试
+        Hardware.__init__(self, f'Node {name}')
+        self.install('buffer', NodeBufferUnit(rate= randint(1, 100), buffer_size=INF) )
         self.install('faces',  FaceUnit( LoopChecker(10000), RepeatChecker() )  )
         self.install('info',   InfoUnit(max_size= 2, life_time= 100000) )
-        self.install('cs',     ContentStoreUnit(capacity= 2) )
-        self.install('policy', FIFOPolicy() )
+        self.install('cs',     ContentStoreUnit( capacity= randint(1, 100) )  )
+        self.install('policy', PolicyUnit(FIFOPolicy) )
         self.install('app',    AppUnit() )
         self.install('fwd',    ForwarderUnit() )  # 100来自于100*100网格平均响应时间

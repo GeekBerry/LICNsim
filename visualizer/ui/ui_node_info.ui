@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>821</width>
-    <height>364</height>
+    <width>705</width>
+    <height>393</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,6 +26,15 @@
       <layout class="QGridLayout" name="gridLayout_4">
        <item row="0" column="0">
         <widget class="UnitTreeWidget" name="tree_unit">
+         <property name="mouseTracking">
+          <bool>true</bool>
+         </property>
+         <property name="showDropIndicator" stdset="0">
+          <bool>true</bool>
+         </property>
+         <attribute name="headerHighlightSections">
+          <bool>false</bool>
+         </attribute>
          <column>
           <property name="text">
            <string notr="true">1</string>
@@ -67,7 +76,7 @@
       </attribute>
       <layout class="QGridLayout" name="gridLayout_5">
        <item row="0" column="0">
-        <widget class="NodeLogTableWidget" name="table_log">
+        <widget class="LogTableWidget" name="table_log">
          <column>
           <property name="text">
            <string>Order</string>
@@ -98,6 +107,11 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>LogTableWidget</class>
+   <extends>QTableWidget</extends>
+   <header>visualizer</header>
+  </customwidget>
+  <customwidget>
    <class>NodeCSTableWidget</class>
    <extends>QTableWidget</extends>
    <header>visualizer</header>
@@ -110,11 +124,6 @@
   <customwidget>
    <class>UnitTreeWidget</class>
    <extends>QTreeWidget</extends>
-   <header>visualizer</header>
-  </customwidget>
-  <customwidget>
-   <class>NodeLogTableWidget</class>
-   <extends>QTableWidget</extends>
    <header>visualizer</header>
   </customwidget>
  </customwidgets>

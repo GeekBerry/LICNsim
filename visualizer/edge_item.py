@@ -11,9 +11,10 @@ import random
 
 class EdgeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
     P_0, P_1_3, P_2_3, P_1= 0, 1, 2, 3
-    MAX_LINE_WIDTH= 10
+    MIN_LINE_WIDTH= 1
+    MAX_LINE_WIDTH= 8
 
-    def __init__(self, edge_name:tuple):
+    def __init__(self, src, dst):
         super().__init__()
         self.setZValue(1)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
@@ -22,18 +23,19 @@ class EdgeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         # 面向图形界面, 负责控制显示效果
         self.style= {
             'line_color':Qt.black,
-            'line_width': 1,
+            'line_width': EdgeItem.MIN_LINE_WIDTH,
 
             'show_forward': False,
             'forward_color': Qt.black,
-            'forward_width': 1,  # 建议为1~8
+            'forward_width': EdgeItem.MIN_LINE_WIDTH,
 
             'show_reverse': False,
             'reverse_color': Qt.black,
-            'reverse_width': 1,  # 建议为1~8
+            'reverse_width': EdgeItem.MIN_LINE_WIDTH,
             }  # 完全依照此渲染
         # 面向UINet 负责增添逻辑操作
-        self.edge_name= edge_name
+        self.src= src
+        self.dst= dst
         self.call_backs= CallTable()
 
         self.hover= False
@@ -120,17 +122,28 @@ class EdgeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
             painter.drawLine(self.points[self.P_0], self.points[self.P_1])
 
     # ------------------------------------------------------------------------------------------------------------------
+    @staticmethod
+    def _toLineWidth(width:float):
+        line_width= (EdgeItem.MAX_LINE_WIDTH - EdgeItem.MIN_LINE_WIDTH)*width + EdgeItem.MIN_LINE_WIDTH
+        return min( max(EdgeItem.MIN_LINE_WIDTH, line_width), EdgeItem.MAX_LINE_WIDTH )
+
     def setForwardText(self, text):
         self.forward_text.setText(text)
         self.adjustForwardText()
+
+    def setForwardWidth(self, width:float):
+        self.style['forward_width']= EdgeItem._toLineWidth(width)
 
     def setReverseText(self, text):
         self.reverse_text.setText(text)
         self.adjustReverseText()
 
+    def setReverseWidth(self, width:float):
+        self.style['reverse_width']= self._toLineWidth(width)
     # -------------------------------------------------------------------------
+    @showCall
     def mouseDoubleClickEvent(self, event):
-        self.call_backs['mouseDoubleClickEvent'](self.edge_name)
+        self.call_backs['mouseDoubleClickEvent'](self.src, self.dst)
         super().mouseDoubleClickEvent(event)
 
     def hoverEnterEvent(self, event):
@@ -145,12 +158,12 @@ class EdgeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
 
 
 class ForwardEdgeItem:
-    def __init__(self, edge_item):
+    def __init__(self, edge_item:EdgeItem):
         self.edge_item= edge_item
         self.hide_timer= Timer(self.hide)
 
     def getArrow(self)->tuple:
-        return self.edge_item.edge_name
+        return self.edge_item.src, self.edge_item.dst
 
     def setColor(self, color):
         self.edge_item.style['forward_color']= color
@@ -159,6 +172,9 @@ class ForwardEdgeItem:
     def setText(self, text):
         self.edge_item.setForwardText(text)
         self.edge_item.update()
+
+    def setWidth(self, width:float):
+        self.edge_item.setForwardWidth(width)
 
     def adjust(self, src, dst):
         self.edge_item.adjust(src, dst)
@@ -178,12 +194,12 @@ class ForwardEdgeItem:
 
 
 class ReverseEdgeItem:
-    def __init__(self, edge_item):
+    def __init__(self, edge_item:EdgeItem):
         self.edge_item= edge_item
-        self.hide_timer= Timer(self.hide)
+        self.hide_timer= Timer(self.hideText)
 
     def getArrow(self)->tuple:
-        return self.edge_item.edge_name[::-1]
+        return self.edge_item.dst, self.edge_item.src
 
     def setColor(self, color):
         self.edge_item.style['reverse_color']= color
@@ -192,6 +208,9 @@ class ReverseEdgeItem:
     def setText(self, text):
         self.edge_item.setReverseText(text)
         self.edge_item.update()
+
+    def setWidth(self, width:float):
+        self.edge_item.setReverseWidth(width)
 
     def adjust(self, src, dst):
         # 反向边不进行 adjust, 以免重复调用
@@ -205,7 +224,7 @@ class ReverseEdgeItem:
         else:
             self.hide_timer.timing(steps)
 
-    def hide(self):
+    def hideText(self):
         self.edge_item.style['show_reverse']= False
         self.edge_item.update()
 

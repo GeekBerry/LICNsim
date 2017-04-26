@@ -1,9 +1,13 @@
 #!/usr/bin/python3
 #coding=utf-8
 
+# from debug import showCall
 import random
 import itertools
+
+from constants import INF
 from core import Hardware, clock, Announce, SizeLeakyBucket
+
 class Channel(Hardware, Announce):
     def __init__(self, src, dst, rate:int, buffer_size:int, delay:int, loss:float):
         Hardware.__init__(self, f'Channel({src}->{dst})')
@@ -12,7 +16,12 @@ class Channel(Hardware, Announce):
         self.delay= delay
         self.loss= loss
         self._order_iter= itertools.count()  # 标记该Channel处理的包序号
-        self._bucket= SizeLeakyBucket(self._begin, rate, buffer_size)
+        self._bucket= SizeLeakyBucket(rate, buffer_size)
+
+        self._bucket.callbacks['queue']= self.announces['queue']
+        self._bucket.callbacks['full']= self.announces['full']
+        self._bucket.callbacks['begin']= self.announces['begin']
+        self._bucket.callbacks['end']= self._transfer
 
     @property
     def rate(self):
@@ -32,25 +41,22 @@ class Channel(Hardware, Announce):
 
     def __call__(self, packet):
         order= next(self._order_iter)
-        if not self._bucket(order, packet, size= len(packet)):  # size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
-            self.announces['full'](order, packet)
+        self._bucket.append(len(packet), order, packet)
+        # size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
 
-    def _begin(self, order, packet):
-        self.announces['begin'](order, packet)
+    def _transfer(self, order, packet):
+        self.announces['end'](order, packet)
         clock.timing(self.delay, self._finish, order, packet)
 
     def _finish(self, order, packet):
-        if self.loss and random.random() < self.loss:
+        if random.random() < self.loss:
             self.announces['loss'](order, packet)
         else:
-            self.announces['finish'](order, packet)
-            super().__call__(packet)
-
+            self.announces['arrived'](order, packet)
+            Announce.__call__(self, packet)
 
 
 #=======================================================================================================================
-from constants import INF
-
 def PerfectChannel(src, dst):
     return  Channel(src, dst, rate= INF, buffer_size= INF, delay=0, loss= 0.0)
 

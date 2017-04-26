@@ -34,15 +34,30 @@ class InfoUnit(Unit):
 
 
     def __init__(self, max_size, life_time):
-        self.STRING= f'max_size:{max_size} life_time:{life_time}'
         super().__init__()
         # 进行默认参数装饰
-        self.table= defaultdict( InfoUnit.Info )
+        self.table= defaultdict(InfoUnit.Info)
         # 进行尺寸限制装饰
-        self.table= SizeDictDecorator(self.table, max_size)
+        self.table= SizeDictDecorator(self.table, max_size)  # FIXME  defaultdict会导致max_size=0失效
         # 进行时间限制装饰
         self.table= TimeDictDecorator(self.table, life_time)
         self.table.before_delete_callback= self.infoEvictCallBack
+
+    @property
+    def life_time(self):
+        return self.table.life_time
+
+    @life_time.setter
+    def life_time(self, value):
+        self.table.life_time= value
+
+    @property
+    def max_size(self):
+        return self.table.core().max_size
+
+    @max_size.setter
+    def max_size(self, value):
+        self.table.core().max_size= value
 
     def install(self, announces, api):
         super().install(announces, api)
@@ -64,9 +79,6 @@ class InfoUnit(Unit):
 
     def infoEvictCallBack(self, name, packet):
         self.announces['evictInfo'](name, packet)
-
-    def __str__(self):
-        return self.STRING
 
 
 # ----------------------------------------------------------------------------------------------------------------------

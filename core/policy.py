@@ -5,21 +5,21 @@ import random
 from core.common import Unit
 from core.data_structure import deque
 
-
-class ReplacePolicyBase(Unit):
-    def __init__(self):
+class PolicyUnit(Unit):
+    def __init__(self, PolocyFactory):
         super().__init__()
+        self.setPolicyType(PolocyFactory)
 
     def install(self, announces, api):
         super().install(announces, api)
-        #监听的 Announce
+        # 监听的 Announce
         announces['csStore'].append(self.store)
         announces['csEvict'].append(self.evict)
         announces['csHit'].append(self.hit)
         announces['csMiss'].append(self.miss)
-        #提供的 API
+        # 提供的 API
+        api['Policy::setPolicy']= self.setPolicyType
         api['Policy::replace']= self.replace
-        #调用的 API
 
     def uninstall(self, annouces, api):
         annouces['csStore'].remove(self.store)
@@ -29,6 +29,30 @@ class ReplacePolicyBase(Unit):
 
         if api['Policy::replace'] is self.replace:
             del api['Policy::replace']
+
+        if api['Policy::setPolicy'] is self.setPolicyType:
+            del api['Policy::setPolicy']
+
+    def setPolicyType(self, PolocyFactory):
+        self.policy= PolocyFactory()
+        self.store= self.policy.store
+        self.evict= self.policy.evict
+        self.hit= self.policy.hit
+        self.miss= self.policy.miss
+        self.replace= self.policy.replace
+
+    @property
+    def PolicyType(self):
+        return self.policy.__class__
+
+    @PolicyType.setter
+    def PolicyType(self, value):
+        self.setPolicyType(value)
+
+# ======================================================================================================================
+class PolicyBase:
+    def __init__(self):
+        super().__init__()
 
     def store(self, packet): pass
 
@@ -40,8 +64,15 @@ class ReplacePolicyBase(Unit):
 
     def replace(self): return None
 
-#-----------------------------------------------------------------------------------------------------------------------
-class RandomPolicy(ReplacePolicyBase):
+
+def searchPolicyInModule(module):
+    for value in module.__dict__.values():
+        if ( isinstance(value, type)
+        and issubclass(value, PolicyBase)
+        and (value is not PolicyBase) ):
+            yield value
+# ----------------------------------------------------------------------------------------------------------------------
+class RandomPolicy(PolicyBase):
     def __init__(self):
         super().__init__()
         self._list= []
@@ -55,8 +86,9 @@ class RandomPolicy(ReplacePolicyBase):
     def replace(self):
         return random.choice(self._list)
 
-#-----------------------------------------------------------------------------------------------------------------------
-class FIFOPolicy(ReplacePolicyBase):
+
+# ----------------------------------------------------------------------------------------------------------------------
+class FIFOPolicy(PolicyBase):
     def __init__(self):
         super().__init__()
         self._deque= deque()
@@ -69,8 +101,10 @@ class FIFOPolicy(ReplacePolicyBase):
 
     def replace(self):
         return self._deque[0]# top
-#-----------------------------------------------------------------------------------------------------------------------
-class LRUPolicy(ReplacePolicyBase):
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+class LRUPolicy(PolicyBase):
     def __init__(self):
         super().__init__()
         self._deque= deque()
@@ -87,8 +121,10 @@ class LRUPolicy(ReplacePolicyBase):
 
     def replace(self):
         return self._deque[0]  # top
-#-----------------------------------------------------------------------------------------------------------------------
-class LFUPolicy(ReplacePolicyBase):
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+class LFUPolicy(PolicyBase):
     class Entry:
         def __init__(self, name, num):
             self.name= name
@@ -96,7 +132,6 @@ class LFUPolicy(ReplacePolicyBase):
 
         def __eq__(self, other):  # '==' 比较name名字
             return self.name == other.name
-
 
     def __init__(self):
         super().__init__()
@@ -119,3 +154,6 @@ class LFUPolicy(ReplacePolicyBase):
 
     def replace(self):
         return self._deque[0]  # top
+
+
+

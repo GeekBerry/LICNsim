@@ -3,19 +3,17 @@
 
 from core.common import Unit
 from core.data_structure import TimeDictDecorator
-from debug import debug_dp, debug_dp1
-
 
 class ContentStoreUnit(Unit):
     def __init__(self, capacity):  # 安装在系统上
         self.table = {}
-        self.capacity= capacity
+        self._capacity= capacity
 
     def install(self, announces, api):
         super().install(announces,api)
         # 提供的 API
         api['CS::size']= self.__len__
-        api['CS::setCapacity']= self.setCapacity
+        api['CS::setCapacity']= self.setCapacity  # 只能用函数, 因为lambda中不能用赋值操作
         api['CS::store']= self.store
         api['CS::match']= self.match
         # 调用的 API
@@ -24,18 +22,26 @@ class ContentStoreUnit(Unit):
     def __len__(self):
         return len(self.table)
 
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @capacity.setter
+    def capacity(self, value):
+        self.setCapacity(value)
+
     def setCapacity(self, value):
         if value < 0:
             raise RuntimeError('必须 capacity >= 0')
-        self.capacity= value
+        self._capacity= value
         self._limit(value)
 
     def store(self, packet):
-        if self.capacity <= 0:
+        if self._capacity <= 0:
             return
 
         if packet.name not in self.table:  # 检查Data的更新
-            self._limit(self.capacity - 1)
+            self._limit(self._capacity - 1)
             self.announces['csStore'](packet)
         else:pass  # 更新不算插入
 
@@ -59,8 +65,6 @@ class ContentStoreUnit(Unit):
     def _evict(self, name, packet):
         self.announces['csEvict'](packet)
 
-    def __str__(self):
-        return f'length:{len(self)} capacity:{self.capacity}'
 
 # if __name__ == '__main__':
 #     from core.data_structure import CallTable, AnnounceTable

@@ -62,6 +62,8 @@ class Unit:
         pass
 
     def uninstall(self, announces, api):
+        # self.announces= None
+        # self.api= None
         pass
 
     def __str__(self):

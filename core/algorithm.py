@@ -1,8 +1,6 @@
 import random
-
 import networkx
 import numpy
-
 import constants
 
 

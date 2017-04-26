@@ -49,9 +49,6 @@ class LazyIter:
 
 #-----------------------------------------------------------------------------------------------------------------------
 class List(list):
-    def __new__(cls, *args, **kwargs):
-        return list.__new__(cls, *args, **kwargs)
-
     def size(self):
         return len(self)
 
@@ -63,6 +60,12 @@ class List(list):
             super().remove(x)
         except ValueError:
             pass
+
+    def index(self, value, start=None, stop=None):
+        try:
+            return super().index(value, start, stop)
+        except Exception:
+            return None
 
 
 class Dict(dict):
@@ -289,10 +292,17 @@ class SizeDictDecorator(CallBackDictDecorator):
 #     t= SizeDictDecorator(t, 1)
 #     t.evict_callback= print
 #     t[1]= 100
-#     t[2]= 200 # print: 1 100
-#     print(t.deque, deq) # deque([2]) deque([2])
+#     t[2]= 200  # print: 1 100
+#     print(t.deque, deq)  # deque([2]) deque([2])
 #
-#     print(t)
+#     print(t)  # {2: 200}
+
+# if __name__ == '__main__':
+#     t= SizeDictDecorator({}, 0)
+#     t[1]= 100
+#     print(t)  # {}
+#
+#     i= t[1]  # KeyError: 1
 
 #-----------------------------------------------------------------------------------------------------------------------
 class TimeDictDecorator(CallBackDictDecorator):
@@ -375,6 +385,12 @@ class SizeQueue:
     def __bool__(self):
         return bool(self._queue)
 
+    def __iter__(self):
+        return iter(self._queue)
+
+    def __len__(self):
+        return len(self._queue)
+
     def append(self, size, data) ->bool:
         if self._cur_size + size > self.max_size:
             return False
@@ -397,72 +413,56 @@ class SizeQueue:
             return size, data
 
 
-class SizeLeakyBucket:
-    def __init__(self, callback, rate, max_size):
-        self.callback= callback
-        self.rate= rate
-
-        self._queue= SizeQueue(max_size)
-        self._accum= self.rate
-        self._block= False
-        self._exe_time= 0  # 安排执行leaky时间
-
-    @property
-    def max_size(self):
-        return self._queue.max_size
-
-    @max_size.setter
-    def max_size(self, value):
-        self._queue.max_size= value
-
-    def __call__(self, *args, size=1)->bool:
-        if self._queue.append(size, args):
-            if not self._block:
-                self._leaky()
-            return True
-        else:
-            return False
-
-    def _leaky(self):
-        if self._exe_time != clock.time():
-            self._accum= self.rate
-            self._exe_time= clock.time()
-
-        while self._queue:
-            size, args= self._queue.top()
-            if size <= self._accum:
-                self._queue.pop()
-                self._accum -= size
-                self.callback(*args)
-                self._block= False
-            else:
-                self._exe_time+= 1
-                self._accum += self.rate
-                clock.timing(1, self._leaky)  # 下回合继续
-                self._block= True
-                return
-
-
-# if __name__ == '__main__':
-#     bucket= SizeLeakyBucket(2, 10, print)
+# class SizeLeakyBucket:
+#     def __init__(self, rate, max_size, callback):
+#         self.rate= rate
+#         self._queue= SizeQueue(max_size)
+#         self._accum= self.rate
+#         self._block= False
+#         self._exe_time= 0  # 安排执行leaky时间
+#         self.callback= callback
 #
-#     print(clock.time())  # 0
-#     bucket.append('ABCEDFG')
-#     clock.step()
+#     @property
+#     def max_size(self):
+#         return self._queue.max_size
 #
-#     print(clock.time())  # 1
-#     bucket.append('D')
-#     clock.step()
+#     @max_size.setter
+#     def max_size(self, value):
+#         self._queue.max_size= value
 #
-#     print(clock.time())  # 2
-#     # bucket.append('DEF')
-#     clock.step()
+#     def __iter__(self):  # 不返回 size
+#         for size, args in self._queue:
+#             yield args
 #
-#     print(clock.time())  # 3
-#     clock.step()
+#     def __len__(self):
+#         return len(self._queue)
 #
-#     print(clock.time())  # 4
-#     clock.step()
+#     def append(self, size, *args)->bool:
+#         if self._queue.append(size, args):
+#             if not self._block:
+#                 clock.timing(0, self._leaky)  # XXX 延迟漏桶
+#             return True
+#         else:
+#             return False
+#
+#     def _leaky(self):
+#         if self._exe_time != clock.time():
+#             self._accum= self.rate
+#             self._exe_time= clock.time()
+#
+#         while self._queue:
+#             size, args= self._queue.top()
+#             if size <= self._accum:
+#                 self._queue.pop()
+#                 self._accum -= size
+#                 self.callback(*args)
+#                 self._block= False
+#             else:
+#                 self._exe_time+= 1
+#                 self._accum += self.rate
+#                 clock.timing(1, self._leaky)  # 下回合继续
+#                 self._block= True
+#                 return
 
 #=======================================================================================================================
 EMPTY_FUNC= lambda *args: None
@@ -518,6 +518,9 @@ class Announce:
     def append(self, func):
         self.callbacks.append(func)
 
+    # def discard(self, func):
+    #     self.callbacks.discard(func)
+
     def __repr__(self):
         from core.common import objName
         return str([objName(callback) for callback in self.callbacks])
@@ -550,3 +553,88 @@ class AnnounceTable:  # 带log版本
 
 #-----------------------------------------------------------------------------------------------------------------------
 
+import math
+
+class SizeLeakyBucket:
+    def __init__(self, rate, max_size):
+        self.rate= rate
+        self._queue= SizeQueue(max_size)
+        self._accum= self.rate
+        self._last_activated_time= clock.time()
+        self._blocked= False
+        self.callbacks= CallTable()
+
+    @property
+    def max_size(self):
+        return self._queue.max_size
+
+    @max_size.setter
+    def max_size(self, value):
+        self._queue.max_size= value
+
+    def __iter__(self):  # 不返回 size
+        for size, args in self._queue:
+            yield args
+
+    def __len__(self):
+        return len(self._queue)
+
+    def append(self, size, *args):
+        if self._queue.append(size, args):
+            self.callbacks['queue'](*args)
+            if not self._blocked:
+                self._leaky()
+        else:
+            self.callbacks['full'](*args)
+
+    def _leaky(self):
+        if self._last_activated_time < clock.time():
+            self._accum= self.rate
+            self._last_activated_time= clock.time()
+
+        if self._queue and (not self._blocked):
+            size, args= self._queue.top()
+            delay= math.ceil( (size - self._accum)/self.rate )
+            self._accum += delay*self.rate - size
+
+            self.callbacks['begin'](*args)
+            clock.timing(delay, self._pop)
+            self._blocked= True
+
+    def _pop(self):
+        size, args= self._queue.pop()
+        self.callbacks['end'](*args)
+        self._blocked= False
+        self._last_activated_time= clock.time()
+        self._leaky()
+
+
+
+if __name__ == '__main__':
+    bucket= SizeLeakyBucket(2, 10)
+    bucket.callbacks['full']= Bind( print, 'full' )
+    bucket.callbacks['queue']= Bind( print, 'queue' )
+    bucket.callbacks['begin']= Bind( print, 'begin' )
+    bucket.callbacks['end']= Bind( print, 'end' )
+
+    print(clock.time())  # 0
+    bucket.append(5, 'A')
+    bucket.append(6, 'X')
+    clock.step()
+
+    print(clock.time())  # 1
+    bucket.append(1, 'B')
+    clock.step()
+
+    print(clock.time())  # 2
+    bucket.append(3, 'C')
+    clock.step()
+
+    print(clock.time())  # 3
+    clock.step()
+
+    print(clock.time())  # 4
+    clock.step()
+
+    print(clock.time())  # 5
+    clock.step()

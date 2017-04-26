@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-
+from core.packet import PacketHead
 from core.clock import clock
 from core.data_structure import defaultdict
 from core.database import DataBaseTable
@@ -10,6 +10,7 @@ from constants import INF, TransferState
 
 class Monitor:  # TODO 持久化
     def __init__(self, graph):
+
         ICNNetHelper.loadNodeAnnounce(graph, 'csStore', self._store)
         ICNNetHelper.loadNodeAnnounce(graph, 'csEvict', self._evict)
         ICNNetHelper.loadNodeAnnounce(graph, 'csHit', self._hit)
@@ -20,10 +21,12 @@ class Monitor:  # TODO 持久化
         ICNNetHelper.loadNodeAnnounce(graph, 'ask', self._ask)
         ICNNetHelper.loadNodeAnnounce(graph, 'respond', self._respond)
 
-        ICNNetHelper.loadChannelAnnounce(graph, 'begin', self._begin)
-        ICNNetHelper.loadChannelAnnounce(graph, 'finish', self._finish)
-        ICNNetHelper.loadChannelAnnounce(graph, 'loss', self._loss)
+        ICNNetHelper.loadChannelAnnounce(graph, 'queue', self._queue)
         ICNNetHelper.loadChannelAnnounce(graph, 'full', self._full)
+        ICNNetHelper.loadChannelAnnounce(graph, 'begin', self._begin)
+        ICNNetHelper.loadChannelAnnounce(graph, 'end', self._end)
+        ICNNetHelper.loadChannelAnnounce(graph, 'arrived', self._arrived)
+        ICNNetHelper.loadChannelAnnounce(graph, 'loss', self._loss)
         #---------------------------------------------------------------------------------------------------------------
         self.contents= defaultdict(set)  # {Name:set(NodeName), ...}
         self.packets= defaultdict(lambda:defaultdict(set))  # {Name:{type:{nonce, ...}, ...}, ...}
@@ -35,9 +38,10 @@ class Monitor:  # TODO 持久化
         self.node_t= DataBaseTable().create('node_name', 'time', store=0, evict=0, hit=0, miss=0, recv=0, send=0)
 
         # src:NodeName(源节点名), dst:NodeName(宿节点名), order:int信道处理序号 -> packet_head:PacketHead, begin:int开始时间, end:int结束时间, state:int
-        self.transfer_t= DataBaseTable().create('src', 'dst', 'order', packet_head=None, begin=INF, end=INF, state= TransferState.UNSEND)
+        self.transfer_t= DataBaseTable().create('src', 'dst', 'order', packet_head=PacketHead(), begin=INF, end=INF, arrived= INF, state= TransferState.UNSEND)
         self.transfer_t.create_index('packet_head', 'begin', 'end')
 
+    # Node
     def _store(self, nodename, packet):
         cur_time= clock.time()
         self.contents[packet.name].add(nodename)
@@ -68,16 +72,24 @@ class Monitor:  # TODO 持久化
     def _respond(self, nodename, packet):
         self.packet_t.access( packet.name, clock.time() ).arriving.add(nodename)
 
+    # Channel
+    def _queue(self, src, dst, order, packet):
+        self.transfer_t.access(src, dst, order, packet_head= packet.head(), state=TransferState.UNSEND)
+
     def _full(self, src, dst, order, packet):
-        self.transfer_t.access(src, dst, order, packet_head= packet.head(), state=TransferState.DROP)
+        self.transfer_t.access(src, dst, order, state=TransferState.DROP)
 
     def _begin(self, src, dst, order, packet):
         self.packets[packet.name][packet.type].add(packet.nonce)
-        self.transfer_t.access(src, dst, order, packet_head= packet.head(), begin=clock.time(), state=TransferState.SENDING)
+        self.transfer_t.access(src, dst, order, begin=clock.time(), state=TransferState.SENDING)
 
-    def _finish(self, src, dst, order, packet):
-        self.transfer_t.access(src, dst, order, packet_head= packet.head(), end=clock.time(), state=TransferState.ARRIVED)
+    def _end(self, src, dst, order, packet):
+        self.transfer_t.access(src, dst, order, end=clock.time() )
+
+    def _arrived(self, src, dst, order, packet):
+        self.transfer_t.access(src, dst, order, arrived= clock.time(), state=TransferState.ARRIVED)
 
     def _loss(self, src, dst, order, packet):
-        self.transfer_t.access(src, dst, order, packet_head= packet.head(), end=clock.time(), state=TransferState.LOSS)
+        self.transfer_t.access(src, dst, order, state=TransferState.LOSS)
+
 

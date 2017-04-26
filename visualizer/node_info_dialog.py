@@ -1,11 +1,14 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-
+import sys
 from debug import showCall
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog, QAbstractItemView
+
+from visualizer.common import TreeWidget, TableWidget
+
 
 class NodeInfoDialog(QDialog):
     def __init__(self, parent, icn_node, logger):
@@ -14,76 +17,83 @@ class NodeInfoDialog(QDialog):
         self.ui= Ui_NodeInfo()
         self.ui.setupUi(self)
 
-        self.setWindowTitle(f'Node{icn_node.name}信息')
-        self.setAttribute(Qt.WA_DeleteOnClose)  # 关闭时就析构
+        self.setWindowTitle(f'{icn_node.name}信息')
+        # self.setAttribute(Qt.WA_DeleteOnClose)  # FIXME 关闭时析构
 
         self.ui.tree_unit.init(icn_node)
         self.ui.table_cs.init( icn_node.units.get('cs') )
         self.ui.tree_info.init( icn_node.units.get('info') )
-        self.ui.table_log.init( icn_node.name, logger )
+        self.ui.table_log.init(icn_node.name, logger)
 
-    # TODO 可编辑Node信息, (编辑时实时修改界面显示, 还是靠刷新来完成)?
+    def install(self, announces, api):  # TODO 可编辑Node信息, (编辑时实时修改界面显示, 还是靠刷新来完成)?
+        announces['playSteps'].append(self.refresh)
+
+    def uninstall(self, announces, api):
+        announces['playSteps'].discard(self.refresh)
+
+    @showCall
+    def refresh(self, steps= 0):
+        if self.isVisible():
+            self.ui.tree_unit.refresh()
+            self.ui.table_cs.refresh()
+            self.ui.tree_info.refresh()
+            self.ui.table_log.refresh()
 
 #=======================================================================================================================
-from visualizer.common import HeadTreeItem
-from PyQt5.QtWidgets import QTreeWidget, QAbstractItemView
+from visualizer.controller import bindModuleController
 
-class UnitTreeWidget(QTreeWidget):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
-
+class UnitTreeWidget(TreeWidget):
     def init(self, icn_node):
-        self.setHeaderItem( HeadTreeItem(self, 'Key', 'Value') )
+        self.setHead('Key', 'Value')
         self.icn_node= icn_node
+
+    @showCall
+    def refresh(self):
+        self['Node'].setTexts(self.icn_node)
         self._showUnits()
         self._showAPI()
         self._showAnnounces()
+        self.expandToDepth(2)
+        self.resizeColumnToContents(0)
 
-        self.setColumnWidth(0, 200)
-        self.expandToDepth(0)
-
-    @showCall
     def _showUnits(self):
         if self.icn_node:
             for unit_name, unit in self.icn_node.units.items():
-                self.headerItem()[unit_name].setTexts(unit)
+                if bindModuleController(self[unit_name], unit):
+                    pass
+                else:
+                    self[unit_name].setTexts(unit)
 
     def _showAPI(self):
         if self.icn_node:
-            self.headerItem()['API'].setTexts('对应函数')
+            self['API'].setTexts('对应函数')
             for api_name, func in self.icn_node.api.items():
-                self.headerItem()['API'][api_name].setTexts(func)
+                self['API'][api_name].setTexts(func)
 
     def _showAnnounces(self):
         if self.icn_node:
-            self.headerItem()['Announce'].setTexts('接收者')
+            self['Announce'].setTexts('接收者')
             for anno_name, announce in self.icn_node.announces.items():
-                self.headerItem()['Announce'][anno_name].setTexts(f'{len(announce)}个')
+                self['Announce'][anno_name].setTexts(f'{len(announce)}个')
                 for index, receiver in enumerate(announce):
-                    self.headerItem()['Announce'][anno_name][index].setTexts(receiver)
+                    self['Announce'][anno_name][index].setTexts(receiver)
 
 # ----------------------------------------------------------------------------------------------------------------------
 from core.packet import Packet
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView
-
-class NodeCSTableWidget(QTableWidget):
-    PACKET_NAME, PACKET_TYPE, PACKET_NONCE, PACKET_SIZE= 0, 1, 2, 3
+class NodeCSTableWidget(TableWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.setSortingEnabled(True)  # 设置可以排序
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
 
     def init(self, cs_unit):
-        self.setColumnCount(4)
-        self.setHorizontalHeaderItem(self.PACKET_NAME, QTableWidgetItem('Name') )
-        self.setHorizontalHeaderItem(self.PACKET_TYPE, QTableWidgetItem('Type') )
-        self.setHorizontalHeaderItem(self.PACKET_NONCE, QTableWidgetItem('Nonce') )
-        self.setHorizontalHeaderItem(self.PACKET_SIZE, QTableWidgetItem('Size') )
+        self.setHead('Name', 'Type', 'Nonce', 'Size')
         self.cs_unit= cs_unit
-        self._showCSTable()
 
-        self.setColumnWidth(self.PACKET_NAME, 200)
+    @showCall
+    def refresh(self):
+        self._showCSTable()
+        self.resizeColumnsToContents()
 
     def _showCSTable(self):
         if self.cs_unit:
@@ -92,60 +102,27 @@ class NodeCSTableWidget(QTableWidget):
             for row, packet in enumerate( cs_table.values() ):
                 self.setRow(row, packet.name, Packet.typeStr(packet.type), hex(packet.nonce), packet.size)
 
-    def setRow(self, row, *values):
-        for col, value in enumerate(values):
-            item=  QTableWidgetItem( str(value) )
-            self.setItem( row, col, item )
-
 # ----------------------------------------------------------------------------------------------------------------------
 from core.info_table import isPending, sendIPast
-from PyQt5.QtWidgets import QTreeWidget
-
-class NodeInfoTreeWidget(QTreeWidget):
+class NodeInfoTreeWidget(TreeWidget):
     def init(self, info_unit):
-        self.setHeaderItem( HeadTreeItem(self, 'Key', 'Value') )
+        self.setHead('Key', 'Value')
         self.info_unit= info_unit
 
-        self._show()
-        self.setColumnWidth(0, 200)
+    @showCall
+    def refresh(self):
+        self._showInfo()
         self.expandToDepth(1)
+        self.resizeColumnToContents(0)  # XXX 或者 self.setColumnWidth(0, 200)
 
-    def _show(self):
+    def _showInfo(self):
         for packet_name, info in self.info_unit.table.items():
             for faceid, entry in info.items():
-                self.headerItem()[packet_name][faceid]['isPending'].setTexts(isPending(entry))
-                self.headerItem()[packet_name][faceid]['sendIPast'].setTexts(sendIPast(entry))
+                self[packet_name][faceid]['isPending'].setTexts( isPending(entry) )
+                self[packet_name][faceid]['sendIPast'].setTexts( sendIPast(entry) )
 
                 for p_type in Packet.TYPES:
-                    self.headerItem()[packet_name][faceid]['recv'][ Packet.typeStr(p_type) ].setTexts( entry.recv[p_type] )
+                    self[packet_name][faceid]['recv'][ Packet.typeStr(p_type) ].setTexts( entry.recv[p_type] )
 
                 for p_type in Packet.TYPES:
-                    self.headerItem()[packet_name][faceid]['send'][ Packet.typeStr(p_type) ].setTexts( entry.send[p_type] )
-
-# ----------------------------------------------------------------------------------------------------------------------
-class NodeLogTableWidget(QTableWidget):
-    ORDER, TIME, ACTION, ARGS= 0, 1, 2, 3
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setSortingEnabled(True)  # 设置可以排序
-        self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
-
-    @showCall
-    def init(self, hardware, logger):
-        self.hardware= hardware
-        self.logger= logger
-
-        self._show()
-        self.setColumnWidth(self.ARGS, 300)
-
-    def _show(self):
-        if self.logger:
-            records= self.logger(hardware=self.hardware)
-            for row, record in enumerate(records):
-                self.insertRow(row)
-                self.setRow( row, '%08X'%(record['order']), '%010d'%(record['time']), record['action'], record['args'] )
-
-    def setRow(self, row, *values):
-        for col, value in enumerate(values):
-            item=  QTableWidgetItem( str(value) )
-            self.setItem( row, col, item )
+                    self[packet_name][faceid]['send'][ Packet.typeStr(p_type) ].setTexts( entry.send[p_type] )

@@ -84,17 +84,17 @@ from core.node import NodeBase
 from core.cs import SimulatCSUnit
 from core.face import FaceUnit, RepeatChecker, NoLoopChecker
 from core.info_table import InfoUnit
-from core.policy import FIFOPolicy
+from core.policy import FIFOPolicy, PolicyUnit
 
 from constants import INF
 class ExperimentNode(NodeBase):
     def __init__(self, name):
         super().__init__(name)
         # self.install('buffer', NodeBufferUnit(rate= INF, buffer_size=INF) )  # 使得节点变成有缓存的, 此处设置为INF仅为测试
-        self.install('faces',  FaceUnit( NoLoopChecker(), RepeatChecker() )  )  # 因为路由策略的保障, 不检查兴趣包的循环
+        self.install('faces',  FaceUnit( NoLoopChecker(None), RepeatChecker() )  )  # 因为路由策略的保障, 不检查兴趣包的循环
         self.install('info',   InfoUnit(max_size= 2, life_time= 100000) )
         self.install('cs',     SimulatCSUnit(capacity= 1, life_time= None) )  # capacity=1: 实验为一个包测试, life_time=None:使得必须在之后被设置
-        self.install('policy', FIFOPolicy() )
+        self.install('policy', PolicyUnit(FIFOPolicy) )
         self.install('app',    ExperimentAppUnit() )
         self.install('fwd',    ExperimentForwarderUnit(outI_cd= 100) )  # 100来自于100*100网格平均响应时间
 

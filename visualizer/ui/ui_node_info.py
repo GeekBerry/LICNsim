@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_NodeInfo(object):
     def setupUi(self, NodeInfo):
         NodeInfo.setObjectName("NodeInfo")
-        NodeInfo.resize(821, 364)
+        NodeInfo.resize(705, 393)
         self.gridLayout = QtWidgets.QGridLayout(NodeInfo)
         self.gridLayout.setObjectName("gridLayout")
         self.tabWidget = QtWidgets.QTabWidget(NodeInfo)
@@ -22,8 +22,11 @@ class Ui_NodeInfo(object):
         self.gridLayout_4.setContentsMargins(0, 0, 0, 0)
         self.gridLayout_4.setObjectName("gridLayout_4")
         self.tree_unit = UnitTreeWidget(self.tab_unit)
+        self.tree_unit.setMouseTracking(True)
+        self.tree_unit.setProperty("showDropIndicator", True)
         self.tree_unit.setObjectName("tree_unit")
         self.tree_unit.headerItem().setText(0, "1")
+        self.tree_unit.header().setHighlightSections(False)
         self.gridLayout_4.addWidget(self.tree_unit, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab_unit, "")
         self.tab_cs = QtWidgets.QWidget()
@@ -52,7 +55,7 @@ class Ui_NodeInfo(object):
         self.gridLayout_5 = QtWidgets.QGridLayout(self.tab_log)
         self.gridLayout_5.setContentsMargins(0, 0, 0, 0)
         self.gridLayout_5.setObjectName("gridLayout_5")
-        self.table_log = NodeLogTableWidget(self.tab_log)
+        self.table_log = LogTableWidget(self.tab_log)
         self.table_log.setObjectName("table_log")
         self.table_log.setColumnCount(4)
         self.table_log.setRowCount(0)
@@ -88,4 +91,4 @@ class Ui_NodeInfo(object):
         item.setText(_translate("NodeInfo", "Args"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_log), _translate("NodeInfo", "Log"))
 
-from visualizer import NodeCSTableWidget, NodeInfoTreeWidget, NodeLogTableWidget, UnitTreeWidget
+from visualizer import LogTableWidget, NodeCSTableWidget, NodeInfoTreeWidget, UnitTreeWidget

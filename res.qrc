@@ -1,0 +1,15 @@
+<RCC>
+  <qresource prefix="icon">
+    <file>visualizer/images/bytes.png</file>
+    <file>visualizer/images/edge.png</file>
+    <file>visualizer/images/hit.png</file>
+    <file>visualizer/images/node.png</file>
+    <file>visualizer/images/pause.png</file>
+    <file>visualizer/images/restart.png</file>
+    <file>visualizer/images/start.png</file>
+    <file>visualizer/images/step.png</file>
+    <file>visualizer/images/stop.png</file>
+    <file>visualizer/images/store.png</file>
+    <file>visualizer/images/transfer.png</file>
+  </qresource>
+</RCC>
