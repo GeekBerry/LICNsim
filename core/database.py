@@ -19,6 +19,7 @@ class DataBaseTable(pydblite.pydblite._BasePy3):
         def __getattr__(self, item):
             return self[item]
 
+
     def __init__(self, path= ':memory:', *args, **kwargs):
         super().__init__(path, *args, **kwargs)
         self.mode= 'override'

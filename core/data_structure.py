@@ -90,6 +90,7 @@ class Dict(dict):
         except KeyError:
             return None
 
+
 #-----------------------------------------------------------------------------------------------------------------------
 class NameEntry:
     def __init__(self, index:dict, data:list):
@@ -172,7 +173,7 @@ class NameList:  # 类似于nametuple  TODO 手动修改list的容量
 #     print(tom.age)  # 19
 
 
-class SheetTable(dict):
+class SheetTable(dict):  # XXX dropField 是非常低效的
     def __init__(self, **kwargs):  # 例如: SheetTable(name= str, number= int, age= lambda:18, sex= lambda:'male' )
         super().__init__()
         self.Entry= NameList(**kwargs)
@@ -218,61 +219,33 @@ class SheetTable(dict):
 #
 #     st.dropField('name')
 #     print(st[10001])  # NameEntry{'address': 0}
+pass
 
-#=======================================================================================================================
-class DictDecorator(dict):
-    REWRITE_METHODS= {'__iter__', 'fromkeys', 'keys', 'update', '__contains__', 'get', '__setitem__', 'setdefault',
-                      '__len__', 'pop', 'clear', '__getitem__', 'items', 'copy', '__delitem__', 'values', 'popitem',
-                      '__str__'}  # 要被装饰的方法名
-    map_id_to_core= {}  # {id(DictDecorator):dict, ...}  装饰器id 和被装饰对象映射
 
-    @classmethod
-    def setup(cls):  # 必须在使用前被调用
-        def wraper(method_name):  # 将原有方法包装成对core的调用
-            def method(self, *args, **kwargs):
-                return getattr(self.core(), method_name)(*args, **kwargs)
-            return method
+# ======================================================================================================================
+def decoratorOfType(Type):
+    class Decorator(Type):
+        def __new__(cls, inside, *args, **kwargs):
+            return Type.__new__(cls, *args, **kwargs)
 
-        for method_name in cls.REWRITE_METHODS:
-            setattr(  cls, method_name, wraper(method_name)  )
+        def __init__(self, inside, *args, **kwargs):
+            super().__setattr__('_inside_', inside)
+            super().__init__(self, *args, **kwargs)  # 要在__setattr__之后, 以免调用自身函数
 
-    def __new__(cls, table, *args):
-        if not isinstance(table, dict):
-            raise TypeError("table 必须是 dict 实例")
+        for method_name in set( dir(Type) ) - set( dir(type) ):
+            exec(
+        f'def {method_name}(self, *args, **kwargs):\n'
+        f'\t\treturn self._inside_.{method_name}(*args, **kwargs)'
+        )  # 批量重载函数
 
-        decorator= dict.__new__(cls) # 不传入任何参数
-        cls.map_id_to_core[ id(decorator)]= table
-        return decorator
+        def __str__(self):
+            return f'{self.__class__.__name__}({self._inside_.__str__()})'
 
-    def core(self):
-        return self.__class__.map_id_to_core[ id(self) ]
+    return Decorator
 
-    def __init__(self, table):
-        super().__init__()  # 不传入任何参数
+# ----------------------------------------------------------------------------------------------------------------------
+DictDecorator= decoratorOfType(dict)
 
-    def __repr__(self):
-        return 'DictDecorator'+str(self)
-
-    def __del__(self):
-        del self.__class__.map_id_to_core[ id(self) ]  # 析构前删除在映射表中的信息
-
-DictDecorator.setup()  # !!! 必须在类定义结束后调用
-
-# def disableClassMethod(cls, methods):
-#     """
-#     例子:
-#         disableClassMethod(dict, ['update', 'items']) 禁用dict的update和items方法
-#     :param cls:type 要被禁用的类型名
-#     :param methods:seq 被禁用的方法列表
-#     :return:None
-#     """
-#     def error(method_name):
-#         raise RuntimeError(cls, '的', method_name, '方法已被禁用')
-#
-#     for method_name in methods:
-#         setattr(  cls, method_name, error(method_name)  )
-
-#-----------------------------------------------------------------------------------------------------------------------
 class CallBackDictDecorator(DictDecorator):
     """
     例子:
@@ -307,11 +280,12 @@ class CallBackDictDecorator(DictDecorator):
         self.evict_callback(key, value)
 
     def __delitem__(self, key):
-        if not isinstance(self.core(), CallBackDictDecorator):  # self.table 不是回调装饰器, 删除时进行回调
+        if not isinstance(self._inside_, CallBackDictDecorator):  # self.table 不是回调装饰器, 删除时进行回调
             self.coreEvictEvent(key, self.get(key) )  # 使用get是因为get不会引起状态变化, 而self[key]可能会引起装饰器状态变化
-        self.core().__delitem__(key)
+        self._inside_.__delitem__(key)
 
-#-----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 class SizeDictDecorator(CallBackDictDecorator):
     def __init__(self, table, max_size, set_refresh= True, get_refresh= True):
         super().__init__(table)
@@ -367,16 +341,21 @@ class SizeDictDecorator(CallBackDictDecorator):
 #     t[2]= 200  # print: 1 100
 #     print(t.deque, deq)  # deque([2]) deque([2])
 #
-#     print(t)  # {2: 200}
-
+#     print(t)  # SizeDictDecorator(SizeDictDecorator({2: 200}))
+#
 # if __name__ == '__main__':
 #     t= SizeDictDecorator({}, 0)
 #     t[1]= 100
-#     print(t)  # {}
+#     print(t)  # SizeDictDecorator({})
 #
-#     i= t[1]  # KeyError: 1
+#     try:
+#         i= t[1]  # KeyError: 1
+#     except KeyError:
+#         pass
+pass
 
-#-----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 class TimeDictDecorator(CallBackDictDecorator):
     def __init__(self, table, life_time, set_refresh= True, get_refresh= True):
         super().__init__(table)
@@ -422,18 +401,18 @@ class TimeDictDecorator(CallBackDictDecorator):
 # if __name__ == '__main__':
 #     t= TimeDictDecorator({}, 2)
 #     t['A']= 100
-#     print(t, t.info)  # {'A':100} OrderedDict([('A', 2)])
+#     print(t, t.info)  # TimeDictDecorator{'A':100} OrderedDict([('A', 2)])
 #
 #     clock.step()
 #     t['B']= 200
-#     print(t, t.info)  # {'A': 100, 'B': 200} OrderedDict([('A', 2), ('B', 3)])
+#     print(t, t.info)  # TimeDictDecorator{'A': 100, 'B': 200} OrderedDict([('A', 2), ('B', 3)])
 #
 #     clock.step()
 #     clock.step()
-#     print(t, t.info)  # {'B': 200} OrderedDict([('B', 3)])
+#     print(t, t.info)  # TimeDictDecorator{'B': 200} OrderedDict([('B', 3)])
 #
 #     clock.step()
-#     print(t, t.info)  # {} OrderedDict()
+#     print(t, t.info)  # TimeDictDecorator({}) OrderedDict()
 
 # if __name__ == '__main__':
 #     t= TimeDictDecorator({}, 1)
@@ -441,13 +420,17 @@ class TimeDictDecorator(CallBackDictDecorator):
 #     t= TimeDictDecorator( t, 5 )
 #
 #     t['A'] = 100
-#     print(t, t.info, info)  # {'A': 100} OrderedDict([('A', 9)]) OrderedDict([('A', 5)])
+#     print(t, t.info, info)  # TimeDictDecorator(TimeDictDecorator({'A': 100})) OrderedDict([('A', 5)]) OrderedDict([('A', 1)])
 #
 #     clock.step()
-#     print(t, t.info, info)  # {} OrderedDict() OrderedDict()
+#     print(t, t.info, info)  # TimeDictDecorator(TimeDictDecorator({'A': 100})) OrderedDict([('A', 5)]) OrderedDict([('A', 1)])  FIXME
+#
+#     clock.step()
+#     print(t, t.info, info)  # TimeDictDecorator(TimeDictDecorator({})) OrderedDict() OrderedDict()
+pass
 
 
-#=======================================================================================================================
+# ======================================================================================================================
 class SizeQueue:
     def __init__(self, max_size):
         self.max_size= max_size
@@ -484,7 +467,8 @@ class SizeQueue:
             assert self._cur_size >= 0  # DEBUG
             return size, data
 
-#=======================================================================================================================
+
+# ======================================================================================================================
 EMPTY_FUNC= lambda *args: None
 
 class Bind:

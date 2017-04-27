@@ -9,11 +9,12 @@ from core.cs import SimulatCSUnit
 from core.filer import Filer, TimePlugin, PacketTracePlugin
 from core.icn_net import ICNNetHelper, AskGenerator
 from core.packet import Name, Packet
-from constants import GraphGrid100X100, GraphBA10000, GraphTree3X8
+from constants import GraphGrid100X100, GraphBA10000, GraphTree3X8, GraphGrid11X11
 from example_CB.experiment_net import ExperimentMonitor, UniformityPlugin
 from example_CB.experiment_node import ExperimentNode
 
 GRAPH_S={
+    # 'Small':GraphGrid11X11(), # debug
     'Grid':GraphGrid100X100(),
     'BA':GraphBA10000(),
     'Tree':GraphTree3X8()
