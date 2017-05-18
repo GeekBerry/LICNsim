@@ -3,6 +3,7 @@
 
 from core.clock import clock
 
+
 class FilerPlugin:
     def title(self)->list:
         pass
@@ -10,7 +11,8 @@ class FilerPlugin:
     def entry(self)->list:
         pass
 
-#-----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 class TimePlugin(FilerPlugin):
     def title(self)->list:
         return ['Time']
@@ -19,17 +21,22 @@ class TimePlugin(FilerPlugin):
         cur_time= clock.time()
         return [cur_time]
 
-#-----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 import numpy
+
+
 def listMean(l)->str:
     if len(l) > 0:
         return "%6f"%( numpy.mean(l) )
     else: return 'NaN'
 
+
 def division(dividend, divisor)->str:
     if divisor != 0:
         return "%6f"%( dividend/divisor )
     else: return 'NaN'
+
 
 class PacketTracePlugin(FilerPlugin):
     def __init__(self, packet_name, db):
@@ -75,8 +82,11 @@ class PacketTracePlugin(FilerPlugin):
         self.last_time= cur_time
         return [cs_num, store_num, evict_num, ask_num, cur_dist, avg_dist, resp_num, cur_delay, avg_delay]
 
-#-----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 from core.data_structure import Timer
+
+
 class Filer:
     def __init__(self, filename, delta, plugins:list, print_screen=False):
         self.file= open(filename, 'w')

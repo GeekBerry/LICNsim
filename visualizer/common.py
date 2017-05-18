@@ -98,6 +98,7 @@ class TreeWidget(QTreeWidget):
 # ----------------------------------------------------------------------------------------------------------------------
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 
+
 class TableWidget(QTableWidget):
     def setHead(self, *values):
         self.setColumnCount(len(values))
@@ -110,6 +111,7 @@ class TableWidget(QTableWidget):
 
 # ======================================================================================================================
 from PyQt5.QtWidgets import QSpinBox, QCheckBox, QComboBox, QDoubleSpinBox
+
 
 class DoubleSpinBox(QDoubleSpinBox):
     def __init__(self, obj, attr):
@@ -158,7 +160,7 @@ class CheckBox(QCheckBox):
     def bindAttr(self, obj, attr):
         # self.disconnect()
         self.stateChanged.connect( Bind(self._setAttr, obj, attr) )
-        # getAttr
+        # 绑定显示状态
         if obj.__getattribute__(attr):
             self.setCheckState(Qt.Checked)
         else:

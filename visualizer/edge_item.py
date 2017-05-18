@@ -1,46 +1,59 @@
 from PyQt5.QtCore import QLineF, QPointF, QRectF, Qt
-from PyQt5.QtGui import QPainterPath, QPen, QPolygonF, QFont, QFontMetrics
+from PyQt5.QtGui import QPainterPath, QPen, QPolygonF, QFont, QFontMetrics, QTransform
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem, QGraphicsTextItem
 
 import numpy
 from core.data_structure import CallTable, Timer
 from debug import showCall
-from core.packet import Packet
+from visualizer.common import threshold
 
-import random
+def getAngle(p1, p2):
+    return numpy.arctan2( p2.y() - p1.y(), p2.x() - p1.x() ) * 180 / numpy.pi
 
-class EdgeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
-    P_0, P_1_3, P_2_3, P_1= 0, 1, 2, 3
-    MIN_LINE_WIDTH= 1
-    MAX_LINE_WIDTH= 8
 
+def getRightOffsetVector(angle):
+    if -180 <= angle < -90:
+        return QPointF(1, -1)
+    elif -90 <= angle < 0:
+        return QPointF(1, 1)
+    elif 0 <= angle < 90:
+        return QPointF(-1, 1)
+    elif 90 <= angle <= 180:
+        return QPointF(-1, -1)
+    else:
+        raise ValueError(f'angle {angle} not in [0, 360)')
+
+
+class EdgeItem(QGraphicsItem):
     def __init__(self, src, dst):
         super().__init__()
         self.setZValue(1)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
         # self.setAcceptedMouseButtons(Qt.NoButton)
         self.setAcceptHoverEvents(True)
-        # 面向图形界面, 负责控制显示效果
-        self.style= {
-            'line_color':Qt.black,
-            'line_width': EdgeItem.MIN_LINE_WIDTH,
 
-            'show_forward': False,
-            'forward_color': Qt.black,
-            'forward_width': EdgeItem.MIN_LINE_WIDTH,
-
-            'show_reverse': False,
-            'reverse_color': Qt.black,
-            'reverse_width': EdgeItem.MIN_LINE_WIDTH,
-            }  # 完全依照此渲染
-        # 面向UINet 负责增添逻辑操作
         self.src= src
         self.dst= dst
         self.call_backs= CallTable()
+        self.text_item= QGraphicsSimpleTextItem('', self)
+        self.hide_timer= Timer(self.hideText)
 
-        self.hover= False
-        self.forward_text= QGraphicsSimpleTextItem('', self)
-        self.reverse_text= QGraphicsSimpleTextItem('', self)
+        self.style= {
+            'line_color': Qt.black,
+            'line_width': 1,
+            'line_offset': 8, # 箭头偏离中心线的距离
+
+            'show_arrow': False,
+            'arrow_color': Qt.black,
+            'min_arrow_width': 1,
+            'max_arrow_width': 8, # 等于箭头偏离中心线的距离
+            'arrow_width': 1,
+
+            'show_text': False,
+            'name_content': f'Edge {src} -> {dst}\n',
+            'text_content': '',
+            'text_color':Qt.black,
+        }
 
     def type(self):
         return QGraphicsItem.UserType + abs(hash(EdgeItem))
@@ -50,96 +63,87 @@ class EdgeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
 
     def shape(self):
         path= QPainterPath()
-        path.addPolygon(self.polygon)
+        path.addPolygon(self.shape_polygon)
         path.closeSubpath()
         return path
 
     # -------------------------------------------------------------------------
-    def adjust(self, src, dst):
-        self.points=[src, (2 * src + dst) / 3, (src + 2 * dst) / 3, dst]  # [0, 1/3, 2/3, 1]
-        # 角度
-        if src.x() == dst.x():
-            self.angle = 90 if dst.y() > src.y() else -90
-        else:
-            self.angle = 360 * numpy.arctan(  ( dst.y()-src.y() )/( dst.x()-src.x() )  ) /(2.0*numpy.pi)
-        # 绘制折线
-        W= self.MAX_LINE_WIDTH
-        V= QPointF(1,-1) if self.angle > 0 else QPointF(-1,-1)
-        self.polygon= QPolygonF([ src-W*V, src+W*V, dst+W*V, dst-W*V ])  # 轮廓
-        self.forward_polygon= QPolygonF([src - 4*V, dst - 4*V, self.points[self.P_2_3] - 16*V, self.points[self.P_2_3] - 4*V])  # 去向
-        self.reverse_polygon= QPolygonF([dst + 4*V, src + 4*V, self.points[self.P_1_3] + 16*V, self.points[self.P_1_3] + 4*V])  # 回向
-        # 边界
-        self.bounding_rect= QRectF( src, dst ).normalized()  # normalized 正方向
-        self.bounding_rect.adjust(-2*W, -2*W, 2*W, 2*W)
-        # 字符
-        self.adjustForwardText()
-        self.adjustReverseText()
-        # 通知几何变换
+    def adjust(self, src_p:QPointF, dst_p:QPointF):
+        self.angle= getAngle(src_p, dst_p)
+
+        self.src_p= src_p
+        self.half_p= (src_p + dst_p)/2
+        self.arrow_p= (src_p + 2 * dst_p) / 3  # 箭头开始位置, 前端2/3处
+        self.dst_p= dst_p
+
+        W1= self.style['line_offset']
+        W2= 2 * self.style['line_offset']
+        W3= 3 * self.style['line_offset']
+
+        vec= getRightOffsetVector(self.angle)
+        self.arrow_polygon= QPolygonF([src_p + vec*W1, dst_p + vec*W1, self.arrow_p + vec*W2, self.arrow_p + vec*W1])
+        self.shape_polygon= QPolygonF([src_p, src_p + vec*W2, dst_p + vec*W2, dst_p])
+
+        self.bounding_rect= QRectF(src_p, dst_p).normalized()  # normalized 正方向
+        self.bounding_rect.adjust(-W3, -W3, W3, W3)
+
+        self.text_item.setPos( self.half_p )
         self.prepareGeometryChange()
 
-    def adjustForwardText(self):
-        rect= self.forward_text.boundingRect()
-        if self.angle > 0:
-            self.forward_text.setPos(self.points[self.P_1_3] - 4*QPointF(1,-1))
-            self.forward_text.moveBy(-rect.width(), 0)
-        else:
-            self.forward_text.setPos(self.points[self.P_1_3] - 4*QPointF(-1,-1))
+    def setText(self, text):
+        self.style['text_content']= text
 
-    def adjustReverseText(self):
-        rect= self.reverse_text.boundingRect()
-        if self.angle > 0:
-            self.reverse_text.setPos(self.points[self.P_2_3] + 4*QPointF(1,-1))
-            self.reverse_text.moveBy(0.0, -rect.height())
+    def showText(self, steps= None):
+        self.style['show_text']= True
+        if steps is None:  # 不定时
+            self.hide_timer.cancel()
         else:
-            self.reverse_text.setPos(self.points[self.P_2_3] + 4*QPointF(-1,-1))
-            self.reverse_text.moveBy(-rect.width(), -rect.height())
+            self.hide_timer.timing(steps)
+        self.update()
+
+    def hideText(self):
+        self.style['show_text']= False
+        self.update()
+
+    def setColor(self, color):
+        self.style['arrow_color']= color
+        self.update()
+
+    def setWidth(self, width:float):
+        MAX, MIN= self.style['max_arrow_width'], self.style['min_arrow_width']
+        self.style['arrow_width']= threshold(0.0, width, 1.0)*(MAX-MIN) + MIN
+        self.update()
+
     # -------------------------------------------------------------------------
     def paint(self, painter, option, widget= None):
-        if self.style['show_forward'] or self.style['show_reverse'] or self.hover:
-            if self.style['show_forward'] or self.hover:
-                painter.setPen( QPen(self.style['forward_color'], self.style['forward_width']) )
-                painter.setBrush(self.style['forward_color'])
-                painter.drawPolygon(self.forward_polygon)
-
-            if self.style['show_forward'] and self.hover:
-                self.forward_text.setPen(self.style['forward_color'])
-                self.forward_text.show()
-            else:
-                self.forward_text.hide()
-
-            if self.style['show_reverse'] or self.hover:
-                painter.setPen( QPen(self.style['reverse_color'], self.style['reverse_width']) )
-                painter.setBrush(self.style['reverse_color'])
-                painter.drawPolygon(self.reverse_polygon)
-
-            if self.style['show_reverse'] and self.hover:
-                self.reverse_text.setPen(self.style['reverse_color'])
-                self.reverse_text.show()
-            else:
-                self.reverse_text.hide()
+        if self.style['show_arrow'] or self.style['show_text']:
+            painter.setPen( QPen(self.style['arrow_color'], self.style['arrow_width']) )
+            painter.setBrush(self.style['arrow_color'])
+            painter.drawPolygon(self.arrow_polygon)
         else:
             painter.setPen( QPen(self.style['line_color'], self.style['line_width']) )
-            painter.drawLine(self.points[self.P_0], self.points[self.P_1])
+            painter.drawLine(self.src_p, self.dst_p)
 
-    # ------------------------------------------------------------------------------------------------------------------
-    @staticmethod
-    def _toLineWidth(width:float):
-        line_width= int( (EdgeItem.MAX_LINE_WIDTH - EdgeItem.MIN_LINE_WIDTH)*width + EdgeItem.MIN_LINE_WIDTH )
-        return min( max(EdgeItem.MIN_LINE_WIDTH, line_width), EdgeItem.MAX_LINE_WIDTH )
+        if self.style['show_text'] and self.style['show_arrow']:
+            self.text_item.setPen(self.style['text_color'])
+            self.text_item.setText( self.style['name_content'] + self.style['text_content'] )
+            self.text_item.show()
+        else:
+            self.text_item.hide()
 
-    def setForwardText(self, text):
-        self.forward_text.setText(text)
-        self.adjustForwardText()
+        # DEBUG
+        # painter.setPen( QPen(Qt.red, 1) )
+        # painter.drawPolygon(self.arrow_polygon)
+        #
+        # painter.setPen( QPen(Qt.green, 1) )
+        # painter.drawPolygon(self.shape_polygon)
+        #
+        # painter.setPen( QPen(Qt.black, 1) )
+        # painter.drawRect( self.bounding_rect )
+        #
+        # painter.setPen( QPen(Qt.black, 1) )
+        # painter.drawRect( self.text_item.boundingRect() )
 
-    def setForwardWidth(self, width:float):
-        self.style['forward_width']= EdgeItem._toLineWidth(width)
-
-    def setReverseText(self, text):
-        self.reverse_text.setText(text)
-        self.adjustReverseText()
-
-    def setReverseWidth(self, width:float):
-        self.style['reverse_width']= self._toLineWidth(width)
     # -------------------------------------------------------------------------
     @showCall
     def mouseDoubleClickEvent(self, event):
@@ -147,87 +151,12 @@ class EdgeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         super().mouseDoubleClickEvent(event)
 
     def hoverEnterEvent(self, event):
-        self.hover= True
+        self.style['show_arrow']= True
         self.update()
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
-        self.hover= False
+        self.style['show_arrow']= False
         self.update()
         super().hoverLeaveEvent(event)
 
-
-class ForwardEdgeItem:
-    def __init__(self, edge_item:EdgeItem):
-        self.edge_item= edge_item
-        self.hide_timer= Timer(self.hideText)
-
-    def getArrow(self)->tuple:
-        return self.edge_item.src, self.edge_item.dst
-
-    def setColor(self, color):
-        self.edge_item.style['forward_color']= color
-        self.edge_item.update()
-
-    def setText(self, text):
-        self.edge_item.setForwardText(text)
-        self.edge_item.update()
-
-    def setWidth(self, width:float):
-        self.edge_item.setForwardWidth(width)
-
-    def adjust(self, src, dst):
-        self.edge_item.adjust(src, dst)
-
-    def show(self, steps= None):
-        self.edge_item.style['show_forward']= True
-        self.edge_item.update()
-
-        if steps is None:  # 不定时
-            self.hide_timer.cancel()
-        else:
-            self.hide_timer.timing(steps)
-
-    def hideText(self):
-        self.edge_item.style['show_forward']= False
-        self.edge_item.update()
-
-
-class ReverseEdgeItem:
-    def __init__(self, edge_item:EdgeItem):
-        self.edge_item= edge_item
-        self.hide_timer= Timer(self.hideText)
-
-    def getArrow(self)->tuple:
-        return self.edge_item.dst, self.edge_item.src
-
-    def setColor(self, color):
-        self.edge_item.style['reverse_color']= color
-        self.edge_item.update()
-
-    def setText(self, text):
-        self.edge_item.setReverseText(text)
-        self.edge_item.update()
-
-    def setWidth(self, width:float):
-        self.edge_item.setReverseWidth(width)
-
-    def adjust(self, src, dst):
-        # 反向边不进行 adjust, 以免重复调用
-        pass
-
-    def show(self, steps= None):
-        self.edge_item.style['show_reverse']= True
-        self.edge_item.update()
-        if steps is None:
-            self.hide_timer.cancel()
-        else:
-            self.hide_timer.timing(steps)
-
-    def hideText(self):
-        self.edge_item.style['show_reverse']= False
-        self.edge_item.update()
-
-
-def getEdgePair(edge_item)->tuple:
-    return ForwardEdgeItem(edge_item), ReverseEdgeItem(edge_item)

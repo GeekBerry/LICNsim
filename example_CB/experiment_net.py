@@ -31,7 +31,12 @@ import math
 import numpy
 from core.algorithm import graphHoops, graphNearestPath, GridPosLogic, GridPosLogicSmallGrid, GridPosLogic, GridPosLogicSmallGrid
 from core.filer import FilerPlugin
+
+
 class UniformityPlugin(FilerPlugin):
+    """
+    计算和显示图中节点分布均匀性    
+    """
     def __init__(self, graph, center, packet_name):
         self.graph= graph
         self.center= center

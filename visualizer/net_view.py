@@ -10,9 +10,8 @@ from visualizer.common import HotColor, TransferRecordToText
 from visualizer.ui_net import UINetHelper
 
 
-#=======================================================================================================================
+# ======================================================================================================================
 class NetView(QGraphicsView):  # TODO 重构, 缓存
-    DELTA= 40000  # FIXME  delta如何确定
     def __init__(self, parent= None):
         super().__init__(parent)
         self.setCacheMode(QGraphicsView.CacheBackground)
@@ -49,7 +48,8 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
         # 调用的 API
         self.showNodes()
         self.showEdges()
-    #-------------------------------------------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------------------------------------------
     @showCall
     def refresh(self, *args):
         if self.node_mode == 'name_store':
@@ -106,7 +106,7 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
         self.api['Main::setLabelNetEdge']('占用率图')
         self.refresh()
 
-    #-------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     def setShowName(self, packet_name):
         self.name_store_painter.show_name= packet_name
         self.showName()
@@ -115,7 +115,7 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
         self.transfer_painter.show_packet_head= packet_head
         self.showTransfer()
 
-    #-------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     def setBackGround(self):
         if self.node_mode == 'name_store':
             self.setBackgroundBrush(QBrush(QColor(255,240,240)))
@@ -156,6 +156,7 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
         if 0.01< factor < 10:
             self.scale(scaleFactor, scaleFactor)
 
+
 # ======================================================================================================================
 class Painter:
     def __init__(self, graph, monitor):
@@ -168,12 +169,14 @@ class Painter:
 
 # ----------------------------------------------------------------------------------------------------------------------
 from core.icn_net import ICNNetHelper
+
+
 class NodesPainter(Painter):
     def paint(self):
         for nodename, ui_node in UINetHelper.nodeItems(self.graph):
             ui_node.setColor(Qt.white)
             ui_node.setText('')
-            ui_node.setIsShowText(False)
+            ui_node.hideText()
 
             icn_node= ICNNetHelper.node(self.graph, nodename)
             unit= icn_node.units.get('buffer')
@@ -208,6 +211,7 @@ class NameStorePainter(Painter):
             else:
                 store_dict[node_name]= False
         return store_dict
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 class HitRatioPainter(Painter):
@@ -245,6 +249,8 @@ class HitRatioPainter(Painter):
 
 # ----------------------------------------------------------------------------------------------------------------------
 from core.channel import Channel
+
+
 class EdgesPainter(Painter):
     def paint(self):
         for (src, dst), ui_edge in UINetHelper.edgeItems(self.graph):
@@ -260,6 +266,8 @@ class EdgesPainter(Painter):
 
 # ----------------------------------------------------------------------------------------------------------------------
 from constants import TransferState
+
+
 class TransferPainter(Painter):
     COLOR_MAP= {
             TransferState.ARRIVED:  Qt.green,
@@ -280,7 +288,7 @@ class TransferPainter(Painter):
             if record  and  (record['state'] in self.COLOR_MAP):
                 ui_edge.setColor( self.COLOR_MAP[record['state']] )
                 ui_edge.setText(TransferRecordToText(record))
-                ui_edge.show()
+                ui_edge.showText()
             else:
                 ui_edge.setColor(Qt.black)
                 ui_edge.setText('')
@@ -292,6 +300,7 @@ class TransferPainter(Painter):
         for record in records:
             transfer_dict[ (record['src'], record['dst'],) ]= record
         return transfer_dict
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 class RatePainter(Painter):
@@ -305,7 +314,7 @@ class RatePainter(Painter):
             ui_edge= UINetHelper.edge(self.graph, src, dst)
             ui_edge.setColor( HotColor(ratio) )
             ui_edge.setText(f'占用率 {"%0.2f"%(ratio*100)}%')
-            ui_edge.show()
+            ui_edge.showText()
 
     def calculate(self):
         t0, t1= clock.time()-self.delta, clock.time()
@@ -357,7 +366,7 @@ class RatePainter(Painter):
 #         ui_edge= UINetHelper.edge(self.graph, record['src'], record['dst'])
 #         ui_edge.setColor(Qt.green)
 #         ui_edge.setText(TransferRecordToText(record))
-#         ui_edge.show()
+#         ui_edge.showText()
 #
 #     def hideRecord(self, record):
 #         ui_edge= UINetHelper.edge(self.graph, record['src'], record['dst'])

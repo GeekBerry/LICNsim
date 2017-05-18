@@ -3,14 +3,19 @@
 from core.common import Hardware, Unit, objName
 from core.data_structure import Announce
 
+
 class NodeBase(Hardware):
     def __init__(self, name):
         super().__init__(f'Node({name})')
 
     def __str__(self):
         return objName(self)
-#=======================================================================================================================
+
+
+# =======================================================================================================================
 from core.data_structure import SizeLeakyBucket
+
+
 class NodeBufferUnit(Announce, Unit):
     def __init__(self, rate, buffer_size):
         Announce.__init__(self)
@@ -44,7 +49,8 @@ class NodeBufferUnit(Announce, Unit):
     def __call__(self, faceid, packet):
         self._bucket.append(1, faceid, packet)  # size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
 
-#-----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 class AppUnit(Unit):
     def __init__(self):
         super().__init__()
@@ -55,7 +61,10 @@ class AppUnit(Unit):
         # 提供的 API
         api['APP::ask']= self._ask
         # 调用的 API
-        api['Face::create']('APP', self.app_channel, self._respond)  # 调用Face的api建立连接
+        api['Face::setInChannel']('APP', self.app_channel)
+        api['Face::setOutChannel']('APP', self._respond)
+
+        # api['Face::create']('APP', self.app_channel, self._respond)  # 调用Face的api建立连接
 
     def _ask(self, packet):
         self.announces['ask'](packet)
@@ -64,8 +73,9 @@ class AppUnit(Unit):
     def _respond(self, packet):
         self.announces['respond'](packet)
 
-#-----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 from core.packet import Packet
+
 class ForwarderUnitBase(Unit):
     def install(self, announces, api):
         super().install(announces, api)

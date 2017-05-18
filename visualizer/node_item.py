@@ -1,15 +1,13 @@
-from PyQt5.QtCore import (QRectF, QRect, QPoint, Qt)
-from PyQt5.QtGui import (QPainterPath, QFont, QFontMetrics)
-from PyQt5.QtWidgets import QGraphicsItem
+from PyQt5.QtCore import (QRectF, Qt)
+from PyQt5.QtGui import (QPainterPath)
+from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem
 
 from debug import showCall
 from core.data_structure import CallTable
-
+from visualizer.common import threshold
 
 class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
-    MIN_SIZE= 1
-    MAX_SIZE= 80
-
+    @showCall
     def __init__(self, node_name):
         super().__init__()
         self.setZValue(2)
@@ -17,72 +15,70 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
         self.setCacheMode(QGraphicsItem.DeviceCoordinateCache)
-        # 面向图形界面, 负责控制显示效果
-        self.style= {
-            'rect': QRectF(-NodeItem.MIN_SIZE/2, -NodeItem.MIN_SIZE/2, NodeItem.MIN_SIZE, NodeItem.MIN_SIZE),
-            'color': Qt.white,
 
-            'name':'',
-            'show_text':False,
-            'text':'',
-            'text_rect':QRectF(),
-            }
-        self.setFont( QFont('Courier New', 10, QFont.Normal) )
         # 面向UINet 负责增添逻辑操作
         self.node_name= node_name
         self.call_backs= CallTable()
+        self.text_item= QGraphicsSimpleTextItem('', self)
+
+        # 面向图形界面, 负责控制显示效果
+        self.style= {
+            'min_size': 20,
+            'max_size': 80,
+
+            'color': Qt.white,
+
+            'show_text': False,
+            'text_color': Qt.black,
+            'name_content': f'Node {node_name}\n',
+            'text_content': '',
+            }
+
+        self.bounding_rect= QRectF()
 
     def type(self)->int:
         return QGraphicsItem.UserType + abs(hash(NodeItem))
 
+    @showCall
     def boundingRect(self):
-        return self.style['rect'] | self.style['text_rect']
+        return self.bounding_rect
 
+    @showCall
     def shape(self):
         path = QPainterPath()
-        path.addRect( self.style['rect'] )
+        path.addRect( self.bounding_rect )
         return path
 
+    @showCall
     def paint(self, painter, option, widget= None)->None:
         #绘制节点
         painter.setBrush(self.style['color'])
-        painter.drawEllipse(self.style['rect']) # painter.drawRect(rect) TODO 形状可定制 Pixmap
+        painter.drawEllipse(self.bounding_rect) # painter.drawRect(self.bounding_rect) TODO 形状可定制 Pixmap
         # 绘制说明
         if self.style['show_text']:
-            painter.setPen(Qt.black)
-            painter.setFont(self.font)
-            painter.drawText( self.style['rect'], Qt.AlignCenter, self.style['name'])
-            painter.drawText( self.style['text_rect'], Qt.AlignTop|Qt.AlignLeft, self.style['text'])
+            self.text_item.setPen( self.style['text_color'])
+            self.text_item.setText( self.style['name_content'] + self.style['text_content'] )
+            self.text_item.show()
+        else:
+            self.text_item.hide()
 
-    #-------------------------------------------------------------------------------------------------------------------
-    def setFont(self, font)->None:
-        self.font= font
-        self.metrics= QFontMetrics(font)
-
-    def setIsShowText(self, is_show_text:bool)->None:
-        self.style['show_text']= is_show_text
-        self.update()
-
-    def setName(self, name)->None:
-        self.style['name']= name
-        self.update()
-
+    # ------------------------------------------------------------------------------------------------------------------
     def setText(self, text)->None:
-        self.style['text']= text
-        # 计算文字矩形
-        rect= self.metrics.boundingRect(QRect(), Qt.AlignTop | Qt.AlignLeft, text)
-        rect.moveCenter(   QPoint(  0, -( rect.height()+self.style['rect'].height() )/2  )   )  # 将rect中点放到上方
-        self.style['text_rect']= QRectF(rect)
+        self.style['text_content']= text
+
+    def showText(self, steps= None):  # TODO steps
+        self.style['show_text']= True
         self.update()
 
-    @staticmethod
-    def _toNodeSizeRect(size:float):
-        node_size= (NodeItem.MAX_SIZE - NodeItem.MIN_SIZE)*size + NodeItem.MIN_SIZE
-        node_size= min( max(NodeItem.MIN_SIZE, node_size), NodeItem.MAX_SIZE )
-        return QRectF(-node_size/2, -node_size/2, node_size, node_size)
+    def hideText(self):
+        self.style['show_text']= False
+        self.update()
 
-    def setSize(self, size:float)->None:
-        self.style['rect']= NodeItem._toNodeSizeRect(size)
+    @showCall
+    def setSize(self, size:float):
+        MAX, MIN= self.style['max_size'], self.style['min_size']
+        size= threshold(0.0, size, 1.0)*(MAX-MIN) + MIN
+        self.bounding_rect= QRectF(-size/2, -size/2, size, size)
         self.update()
 
     def setColor(self, color)->None:
@@ -99,9 +95,9 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         super().mouseDoubleClickEvent(event)
 
     def hoverEnterEvent(self, event):
-        self.setIsShowText(True)
+        self.showText()
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
-        self.setIsShowText(False)
+        self.hideText()
         super().hoverLeaveEvent(event)

@@ -15,7 +15,6 @@ class CSTableWidget(TableWidget):
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
 
-
     def init(self, monitor):
         self.monitor= monitor
         self.setHead('PacketName', 'CSNumber')

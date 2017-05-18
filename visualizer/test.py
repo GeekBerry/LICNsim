@@ -24,7 +24,7 @@ from visualizer.edge_item import EdgeItem
 graph_info = constants.GraphGrid11X11()
 
 ICNNetHelper.setup(graph_info.graph, ExperimentNode, OneStepChannel)  # 把graph变成icn graph
-monitor= ExperimentMonitor(graph_info.graph)  # 数据库监听graph
+monitor= ExperimentMonitor(graph_info.graph)  # 数据库监听graph中的ICN信息
 
 logger= AnnounceTableLog()
 logger.addHardwares( ICNNetHelper.nodes(graph_info.graph) )

@@ -17,13 +17,16 @@ from visualizer.edge_item import EdgeItem
 
 #=======================================================================================================================
 from random import randint
+
+
 def TestChannel(src, dst):
     return Channel(src, dst, rate= randint(1, 10), buffer_size= 1000, delay= SECOND//1000, loss= 0.5)
 
 SECOND= 1000
 ip_A= Packet(Name('/A'), Packet.INTEREST, 1)
 dp_A= Packet(Name('/A'), Packet.DATA, 500)
-#=======================================================================================================================
+
+# ======================================================================================================================
 graph = constants.GraphGrid11X11().graph
 # graph= constants.GraphBA50().graph
 # graph= networkx.DiGraph( networkx.path_graph(2) )

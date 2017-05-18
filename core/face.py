@@ -5,20 +5,34 @@ from core.common import Unit
 from core.data_structure import *
 
 class Face:
-    def __init__(self, face_id):
+    def __init__(self, face_id, callback):
         self.face_id= face_id
-        self.downstream= None
-        self.upstream= None
-        self.can_recv= True
-        self.can_send= True
+        self.in_channel= None
+        self.out_channel= None
+        self.callback= callback  # 接收时的回调操作
 
-    def download(self, packet):  # 接收一个包
-        if self.can_recv:
-            self.downstream(self.face_id, packet)
+    def __bool__(self):
+        return (self.in_channel is not None) or (self.out_channel is not None)
 
-    def upload(self, packet):  # 发送一个包
-        if self.can_send:
-            self.upstream(packet)
+    def setInChannel(self, in_channel):
+        self.unsetInChannel()
+        self.in_channel= in_channel
+        self.in_channel.append(self.download)
+
+    def unsetInChannel(self):
+        if isinstance(self.in_channel, Announce):
+            self.in_channel.discard(self.download)
+            self.in_channel= None
+
+    def setOutChannel(self, out_channel):
+        self.out_channel= out_channel
+
+    def upload(self, packet):
+        self.out_channel(packet)
+
+    def download(self, packet):  # 接收一个包, 被动调用
+        self.callback(self.face_id, packet)
+
 
 #=======================================================================================================================
 class LoopChecker:
@@ -66,78 +80,56 @@ class RepeatChecker:  # 在 1个step内保证不会往一个faceid发送,相同�
                 self.clear_timer.timing(1, __to_head__=True)  # 下一个周期伊始即被删除
             return False
 
-# if __name__ == '__main__':
-#     from constants import *
-#     rc= RepeatChecker()
-#
-#     def preCheck():
-#         p= rc.isRepeat(0, debug_ip)
-#         print('preCheck', p)
-#     clock.timing(1, preCheck)
-#
-#     p= rc.isRepeat(0, debug_ip)
-#     print(p)
-#
-#     p= rc.isRepeat(0, debug_ip)
-#     print(p)
-#
-#     clock.step()
-#
-#     p= rc.isRepeat(0, debug_ip)
-#     print(p)
-
 
 #-----------------------------------------------------------------------------------------------------------------------
 from core.packet import Packet
 from core.packet import Name
 
 class FaceUnit(Unit):
+    """
+        Channel                       Face                           FaceUnit
+    +-------------+               +----------+                  +----------------+
+    | dst_channel | <--upstream---| can_send |<----upload-----  | |repeat check| |<-- send ---
+    +-------------+               |          |                  | ============== |>> outPacket
+    | in_channel  | ---download-->| can_recv |---downstream-->  | | loop check | |>> inPacket
+    +-------------+               +----------+                  +----------------+
+    """
     def __init__(self, loop_checker, repeat_checker):
         Unit.__init__(self)
-        self.table= Dict()  # {faceId:Face, ...}
+        self.table= {}  # {faceId:Face, ...}
         self.loop_checker= loop_checker
         self.repeat_checker= repeat_checker
 
     def install(self, announces, api):
         super().install(announces, api)
         # 提供的 API
-        api['Face::create']= self.create
+        api['Face::setInChannel']= self.setInChannel
+        api['Face::setOutChannel']= self.setOutChannel
         api['Face::destroy']= self.destroy
         api['Face::getCanSendIds']= self.getCanSendIds
         api['Face::send']= self.send
 
-    #--------------------------------------------------------------------------
-    def create(self, face_id, in_channel, out_channel):  # API
-        """
-            Channel                       Face                           FaceUnit
-        +-------------+               +----------+                  +----------------+
-        | dst_channel | <--upstream---| can_send |<----upload-----  | |repeat check| |<-- send ---
-        +-------------+               |          |                  | ============== |>> outPacket
-        | in_channel  | ---download-->| can_recv |---downstream-->  | | loop check | |>> inPacket
-        +-------------+               +----------+                  +----------------+
-        :param face_id:Any
-        :param in_channel:isinstance(Channel)
-        :param out_channel:isinstance(Channel)
-        :return:None
-        """
-        self.destroy(face_id) #不破不立
-
-        face= self.table.setdefault( face_id, Face(face_id) )
-        in_channel.append(face.download)
-        face.upstream= out_channel
-        face.downstream= self.receive
+    def accessFace(self, face_id):
+        face= self.table.setdefault( face_id, Face(face_id, self.receive) )
         self.announces['createFace'](face_id)
+        return face
+
+    def setInChannel(self, face_id, in_channel):
+        self.accessFace(face_id).setInChannel(in_channel)
+
+    def setOutChannel(self, face_id, out_channel):
+        self.accessFace(face_id).setOutChannel(out_channel)
 
     def destroy(self, face_id):
-        face= self.table.pop(face_id)
-        if face is not None:
-            face.downstream= EMPTY_FUNC  # 不会再下发数据包
+        if face_id in self.table:
+            face= self.table.pop(face_id)
+            face.unsetInChannel()  # 通知给face装传送数据的Channel删除对face的引用
         self.announces['destroyFace'](face_id)
 
     def getCanSendIds(self):
         send_ids= [ face_id
             for face_id, face in self.table.items()
-                if face.can_send
+                if face.out_channel
             ]
         return set(send_ids)
 
@@ -163,31 +155,23 @@ class FaceUnit(Unit):
     def __str__(self):
         return f'faces:{list(self.table.keys())}'
 
-# if __name__ == '__main__':
-#     print('test Face', __file__)
-#     log.level= 4
-#     api= CallTable()
-#     announces= AnnounceTable()
-#
-#     face= FaceUnit(LoopChecker(10000), RepeatChecker())
-#     face.install(announces, api)
-#
-#     app= Announce()
-#
-#     api['Face::create']('F1',app, print )
-#
-#     #announces['sendData']( {'F1'}, 'Data')
-#
-#     dp= Packet(Name(['A',1]), Packet.TYPE.DATA)
-#     app(dp)
-#
-#     face.destroy('F1')
-#     app(dp)
-#
-#     appnew= Announce()
-#     api['Face::create']('F1',appnew, print )
-#     app(dp)
-#     appnew(dp)
 
+if __name__ == '__main__':
+    print('test Face', __file__)
 
+    dp= Packet(Name('/A/1'), Packet.DATA)
+
+    c12= Announce()
+    c21= Announce()
+
+    face1= Face(1, print)
+    face2= Face(2, print)
+
+    face1.setOutChannel(c12)
+    face2.setInChannel(c12)
+
+    face2.setOutChannel(c21)
+    face1.setInChannel(c21)
+
+    face1.download(dp)
 

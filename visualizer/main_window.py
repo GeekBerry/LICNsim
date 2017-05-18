@@ -111,16 +111,10 @@ class MainWindow(QMainWindow):
         dialog= NodeInfoDialog(self, icn_node, self.logger)
         dialog.install(self.announces, self.api)
         dialog.show()
-        dialog.refresh()
+        dialog.refresh()  # ???
 
     def newEdgeInfoDialog(self, src, dst):  # TODO 已经打开的,不再新建, 改为闪烁
         icn_edge= ICNNetHelper.edge(self.graph, src, dst)  # 正向边
-        dialog= EdgeInfoDialog(self, icn_edge, self.logger)
-        dialog.install(self.announces, self.api)
-        dialog.show()
-        dialog.refresh()
-
-        icn_edge= ICNNetHelper.edge(self.graph, dst, src)  # 反向边
         dialog= EdgeInfoDialog(self, icn_edge, self.logger)
         dialog.install(self.announces, self.api)
         dialog.show()

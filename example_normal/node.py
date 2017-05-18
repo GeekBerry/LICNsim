@@ -1,9 +1,9 @@
-#!/usr/bin/python3
-#coding=utf-8
+# coding=utf-8
 
 
 from core.node import ForwarderUnitBase
 import random
+
 
 class ForwarderUnit(ForwarderUnitBase):
     def _inInterest(self, face_id, packet):
@@ -28,7 +28,7 @@ class ForwarderUnit(ForwarderUnitBase):
             self.api['Face::send']( send_ids, packet )
 
 
-#-----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 from random import randint
 from core.node import NodeBase, NodeBufferUnit, AppUnit
 from core.common import Hardware
@@ -37,6 +37,7 @@ from core.face import FaceUnit, RepeatChecker, LoopChecker, NoLoopChecker
 from core.info_table import InfoUnit
 from core.policy import FIFOPolicy, PolicyUnit
 from constants import INF
+
 
 class Node(NodeBase):
     def __init__(self, name):

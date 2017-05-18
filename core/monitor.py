@@ -8,9 +8,9 @@ from core.database import DataBaseTable
 from core.icn_net import ICNNetHelper
 from constants import INF, TransferState
 
+
 class Monitor:  # TODO 持久化
     def __init__(self, graph):
-
         ICNNetHelper.loadNodeAnnounce(graph, 'csStore', self._store)
         ICNNetHelper.loadNodeAnnounce(graph, 'csEvict', self._evict)
         ICNNetHelper.loadNodeAnnounce(graph, 'csHit', self._hit)

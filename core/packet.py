@@ -8,7 +8,10 @@ class Name(str):
         if match and match.end() == len(string):
             return str.__new__(cls, string)
         else:
-            raise ValueError("string 格式不正确, 必须符合 r'(/[^/]+)+|/' ")
+            raise ValueError(f"string {string}格式不正确, 必须符合 r'(/[^/]+)+|/' ")
+
+    # def __init__(self, string):
+    #     super().__init__(string)
 
 # TODO 重写
 # class Name(list):

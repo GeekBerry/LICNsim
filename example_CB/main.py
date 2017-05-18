@@ -83,4 +83,5 @@ def main(date, graph_name, sim_second, cs_mode, cs_time, numfunc, lam, posfunc, 
 # main( **getSysKwargs() )
 
 # 单例测试
-main(date='', graph_name='Grid', sim_second=100, cs_mode='FIFO', cs_time=60, numfunc='Fixed', lam=20, posfunc='Uniform')
+if __name__ == '__main__':
+    main(date='', graph_name='Grid', sim_second=100, cs_mode='FIFO', cs_time=60, numfunc='Fixed', lam=20, posfunc='Uniform')

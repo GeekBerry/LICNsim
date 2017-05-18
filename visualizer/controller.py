@@ -2,7 +2,6 @@
 #coding=utf-8
 
 from debug import showCall
-
 from visualizer.common import SpinBox, CheckBox, ComboBox, DoubleSpinBox
 
 
@@ -11,7 +10,7 @@ def ctrlContentStoreUnit(tree_item, cs_unit):
     tree_item['size'].setTexts( len(cs_unit) )
     tree_item['capacity'].setWidgets(SpinBox(cs_unit, 'capacity'))
 
-@showCall
+
 def ctrlNodeBufferUnit(tree_item, buffer_unit):
     tree_item['size'].setWidgets(SpinBox(buffer_unit, 'buffer_size'))
     tree_item['rate'].setWidgets(SpinBox(buffer_unit, 'rate'))
@@ -26,11 +25,10 @@ def ctrlInfoUnit(tree_item, buffer_unit):
     tree_item['max_size'].setWidgets( SpinBox(buffer_unit, 'max_size') )
     tree_item['life_time'].setWidgets( SpinBox(buffer_unit, 'life_time') )
 
-
-def ctrlFaceUnit(tree_item, face_unit):
-    for faceid, face in face_unit.table.items():
-        tree_item[faceid]['can_recv'].setWidgets(CheckBox(face, 'can_recv'))
-        tree_item[faceid]['can_send'].setWidgets(CheckBox(face, 'can_send'))
+# def ctrlFaceUnit(tree_item, face_unit):
+#     for faceid, face in face_unit.table.items():
+#         tree_item[faceid]['can_recv'].setWidgets(CheckBox(face, 'can_recv'))
+#         tree_item[faceid]['can_send'].setWidgets(CheckBox(face, 'can_send'))
 
 
 import constants
@@ -62,14 +60,51 @@ MODULE_CONTROLLER_MAP= {
     ContentStoreUnit:   ctrlContentStoreUnit,
     NodeBufferUnit:     ctrlNodeBufferUnit,
     InfoUnit:           ctrlInfoUnit,
-    FaceUnit:           ctrlFaceUnit,
+    # FaceUnit:           ctrlFaceUnit,
     PolicyUnit:         ctrlPolicyUnit,
     Channel:            ctrlChannel,
 }
 
-def bindModuleController(tree_item, unit):
-    for module, controller in MODULE_CONTROLLER_MAP.items():
-        if isinstance(unit, module):
-            controller(tree_item, unit)
+@showCall
+def bindModuleController(tree_item, module):
+    # 寻找对应的控制器, 由于module有继承的问题,所以不能直接用 MODULE_CONTROLLER_MAP[type(module)]
+    for ModuleType, controller in MODULE_CONTROLLER_MAP.items():
+        if isinstance(module, ModuleType):
+            controller(tree_item, module)
             return True
     return False
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

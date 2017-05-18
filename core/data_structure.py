@@ -47,8 +47,8 @@ class LazyIter:
             self.iter= iter(self.seq)
             raise StopIteration
 
-#-----------------------------------------------------------------------------------------------------------------------
-import itertools
+
+# ----------------------------------------------------------------------------------------------------------------------
 class List(list):
     def __setitem__(self, index, object):
         if len(self) <= index:
@@ -91,7 +91,7 @@ class Dict(dict):
             return None
 
 
-#-----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 class NameEntry:
     def __init__(self, index:dict, data:list):
         super().__setattr__('__INDEX__', index)
@@ -219,7 +219,6 @@ class SheetTable(dict):  # XXX dropField 是非常低效的
 #
 #     st.dropField('name')
 #     print(st[10001])  # NameEntry{'address': 0}
-pass
 
 
 # ======================================================================================================================
@@ -245,6 +244,7 @@ def decoratorOfType(Type):
 
 # ----------------------------------------------------------------------------------------------------------------------
 DictDecorator= decoratorOfType(dict)
+
 
 class CallBackDictDecorator(DictDecorator):
     """
@@ -352,7 +352,7 @@ class SizeDictDecorator(CallBackDictDecorator):
 #         i= t[1]  # KeyError: 1
 #     except KeyError:
 #         pass
-pass
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -427,7 +427,6 @@ class TimeDictDecorator(CallBackDictDecorator):
 #
 #     clock.step()
 #     print(t, t.info, info)  # TimeDictDecorator(TimeDictDecorator({})) OrderedDict() OrderedDict()
-pass
 
 
 # ======================================================================================================================
@@ -490,6 +489,7 @@ class Bind:
         from core.common import objName
         return f'Bind( {objName(self.func)}, {", ".join([str(each) for each in self.args])})'
 
+
 #-----------------------------------------------------------------------------------------------------------------------
 class CallTable(dict):  # FIXME 能否利用defaultdict实现
     def __getitem__(self, name):
@@ -503,7 +503,8 @@ class CallTable(dict):  # FIXME 能否利用defaultdict实现
 #     t= CallTable()
 #     p= t['1']
 #     t['1']= print
-#     p(1,2,3)
+#     p(1,2,3)  # 打印:1 2 3
+
 
 class Announce:
     def __init__(self):
@@ -522,6 +523,12 @@ class Announce:
     def append(self, func):
         self.callbacks.append(func)
 
+    def discard(self, func):
+        try:
+            self.callbacks.remove(func)
+        except ValueError:
+            pass
+
     def __repr__(self):
         from core.common import objName
         return str([objName(callback) for callback in self.callbacks])
@@ -535,16 +542,23 @@ class Announce:
 class AnnounceTable:  # 带log版本
     def __init__(self):
         self.logger= Announce()
-        self._table= {}
+        self._table= {}  # {name:Announce(), ...}
 
     def items(self):
         return self._table.items()
 
-    def __getitem__(self, action):
-        announce= self._table.get(action)
+    def __getitem__(self, name):
+        """
+        在新建一个Announce时, 自动为Announce添加一个绑定到self.Announce的项
+        :param name: Announce名称
+        :return: Announce
+        
+        AnnounceTable[name](*args) => [self.logger(name, *args), 其他... ]
+        """
+        announce= self._table.get(name)
         if announce is None:
-            self._table[action]= announce= Announce()
-            announce.append( Bind(self.logger, action) )
+            self._table[name]= announce= Announce()
+            announce.append(Bind(self.logger, name))
         return announce
 
     def __setitem__(self, action, announce):

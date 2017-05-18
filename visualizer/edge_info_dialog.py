@@ -5,6 +5,8 @@ from debug import showCall
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog
+
+
 class EdgeInfoDialog(QDialog):
     @showCall
     def __init__(self, parent, icn_edge, logger):
@@ -28,6 +30,7 @@ class EdgeInfoDialog(QDialog):
 from visualizer.common import TreeWidget
 from visualizer.controller import bindModuleController
 
+
 class EdgeTreeWidget(TreeWidget):
     @showCall
     def init(self, icn_edge):
@@ -43,7 +46,7 @@ class EdgeTreeWidget(TreeWidget):
     @showCall
     def _showAttrs(self):
         if self.icn_edge:
-            if bindModuleController(self, self.icn_edge):
-                pass
-            else:
+            if not bindModuleController(self, self.icn_edge):
                 self['channel'].setTexts(self.icn_edge)
+
+

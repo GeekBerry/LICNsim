@@ -5,8 +5,6 @@ from PyQt5.QtCore import QPointF, qrand
 
 import networkx
 from debug import showCall
-from visualizer.node_item import NodeItem
-from visualizer.edge_item import EdgeItem, getEdgePair, ForwardEdgeItem
 #=======================================================================================================================
 class UINetHelper:
     @staticmethod
@@ -17,15 +15,10 @@ class UINetHelper:
         # 构建Node
         for nodename in graph:
             node= NodeFactory(nodename)
-            # node.setPos( qrand()%AREA_SIZE, qrand()%AREA_SIZE )
             graph.node[nodename]['ui']= node
         # 构建Edge
         for src,dst in graph.edges():
-            if 'ui' in graph[dst][src]:  # 反向已有, 不重复建立
-                continue
-            edge= ChannelFactory(src,dst)
-            # edge.adjust( graph.node[src]['ui'].pos(), graph.node[dst]['ui'].pos() )
-            graph[src][dst]['ui'], graph[dst][src]['ui']= getEdgePair(edge)
+            graph[src][dst]['ui']= ChannelFactory(src,dst)
 
     @staticmethod
     def nodeItems(graph):

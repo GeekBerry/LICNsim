@@ -1,14 +1,18 @@
 #!/usr/bin/python3
-#coding=utf-8
+# coding=utf-8
 
 import types
+
+
 def singleton(cls, *args, **kw):
     instance={}
+
     def _singleton():
         if cls not in instance:
             instance[cls]=cls(*args, **kw)
         return instance[cls]
     return _singleton
+
 
 def objName(obj):  # TODO 整理重写
     if type(obj) == types.MethodType:
@@ -24,10 +28,14 @@ def objName(obj):  # TODO 整理重写
         addr= hex(id(obj))
         return f'{obj.__class__.__qualname__}<{addr}>'
 
-#=======================================================================================================================
+
+# ======================================================================================================================
 import sys
+
+
 def getSysKwargs()->dict:
     return dict([ part.split('=') for part in sys.argv[1:] ])
+
 
 def setSysKwargs(**kwargs)->str:
     string= ''
@@ -35,8 +43,9 @@ def setSysKwargs(**kwargs)->str:
         string += f'{k}={v} '
     return string
 
-#=======================================================================================================================
+# ======================================================================================================================
 from core.data_structure import CallTable, AnnounceTable
+
 
 class Hardware:
     def __init__(self, name):

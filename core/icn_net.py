@@ -19,19 +19,10 @@ class ICNNetHelper:
 
         # 构造信道, 要先建立所有节点再建立Channel
         for src,dst in graph.edges():
-            if 'icn' in graph[dst][src]:  # 反向已有, 不重复建立
-                continue
-            src_dst_channel= graph[src][dst]['icn']= ChannelFactory(src, dst)
-            dst_src_channel= graph[dst][src]['icn']= ChannelFactory(dst, src)
-            graph.node[src]['icn'].api['Face::create']( dst, dst_src_channel, src_dst_channel )
-            graph.node[dst]['icn'].api['Face::create']( src, src_dst_channel, dst_src_channel )
-
-    # TODO edge
-
-    @staticmethod
-    def loadChannel(graph, function):  # TODO 废弃
-        for src,dst in graph.edges():
-            graph[src][dst]['icn'].append( Bind(function, src, dst) )
+            channel= ChannelFactory(src, dst)
+            graph.node[src]['icn'].api['Face::setOutChannel'](dst, channel)
+            graph.node[dst]['icn'].api['Face::setInChannel'](src, channel)
+            graph[src][dst]['icn']= channel
 
     @staticmethod
     def loadChannelAnnounce(graph, anno_name, function):
@@ -63,10 +54,10 @@ class ICNNetHelper:
         for nodename in graph:
             graph.node[nodename]['icn'].api[api_name]= Bind(function, nodename)
 
-    # @staticmethod
-    # def nodeItems(graph):
-    #     for nodename in graph:
-    #         yield nodename, graph.node[nodename]['icn']
+    @staticmethod
+    def nodeItems(graph):
+        for nodename in graph:
+            yield nodename, graph.node[nodename]['icn']
 
     @staticmethod
     def node(graph, nodename):
@@ -77,10 +68,10 @@ class ICNNetHelper:
         for nodename in graph:
             yield graph.node[nodename]['icn']
 
-    # @staticmethod
-    # def edgeItems(graph):
-    #     for src,dst in graph.edges():
-    #         yield (src,dst), graph[src][dst]['icn']
+    @staticmethod
+    def edgeItems(graph):
+        for src,dst in graph.edges():
+            yield (src,dst), graph[src][dst]['icn']
 
     @staticmethod
     def edges(graph):
@@ -122,5 +113,5 @@ class AskGenerator:
         self.timer.cancel()
 
 
-class StoreGenerator:
+class StoreGenerator:  # TODO
     pass

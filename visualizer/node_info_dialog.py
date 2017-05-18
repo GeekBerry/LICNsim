@@ -11,8 +11,11 @@ from visualizer.common import TreeWidget, TableWidget
 
 
 class NodeInfoDialog(QDialog):
+    @showCall
     def __init__(self, parent, icn_node, logger):
         super().__init__(parent)
+
+        # 为本组件配置ui属性
         from visualizer.ui.ui_node_info import Ui_NodeInfo
         self.ui= Ui_NodeInfo()
         self.ui.setupUi(self)
@@ -39,8 +42,9 @@ class NodeInfoDialog(QDialog):
             self.ui.tree_info.refresh()
             self.ui.table_log.refresh()
 
-#=======================================================================================================================
+# ======================================================================================================================
 from visualizer.controller import bindModuleController
+
 
 class UnitTreeWidget(TreeWidget):
     def init(self, icn_node):
@@ -56,20 +60,21 @@ class UnitTreeWidget(TreeWidget):
         self.expandToDepth(2)
         self.resizeColumnToContents(0)
 
+    @showCall
     def _showUnits(self):
         if self.icn_node:
             for unit_name, unit in self.icn_node.units.items():
-                if bindModuleController(self[unit_name], unit):
-                    pass
-                else:
+                if not bindModuleController(self[unit_name], unit):
                     self[unit_name].setTexts(unit)
 
+    @showCall
     def _showAPI(self):
         if self.icn_node:
             self['API'].setTexts('对应函数')
             for api_name, func in self.icn_node.api.items():
                 self['API'][api_name].setTexts(func)
 
+    @showCall
     def _showAnnounces(self):
         if self.icn_node:
             self['Announce'].setTexts('接收者')
@@ -80,6 +85,8 @@ class UnitTreeWidget(TreeWidget):
 
 # ----------------------------------------------------------------------------------------------------------------------
 from core.packet import Packet
+
+
 class NodeCSTableWidget(TableWidget):
     def __init__(self, parent):
         super().__init__(parent)
