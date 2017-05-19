@@ -14,10 +14,10 @@ def timeIt(func):
 
 import core.common
 import itertools
-show_call_print= False
+show_call_print= True
 show_line_iter= itertools.count()
 show_call_deep= 0
-show_call_file= open('show_call.txt', 'w')
+# show_call_file= open('show_call.txt', 'w')
 def showCall(func):
     def lam(*args, **kwargs):
         global show_call_deep
@@ -26,7 +26,7 @@ def showCall(func):
         string= str(next(show_line_iter))+':\t' + '\t'*show_call_deep + 'START: ' + core.common.objName(func)
         if show_call_print:
             print(string)
-        show_call_file.write(string+'\n')
+        # show_call_file.write(string+'\n')
 
         show_call_deep += 1
         ret= func(*args, **kwargs)
@@ -35,7 +35,7 @@ def showCall(func):
         string= str(next(show_line_iter))+':\t' + '\t'*show_call_deep + 'END: ' + core.common.objName(func)
         if show_call_print:
             print(string)
-        show_call_file.write(string+'\n')
+        # show_call_file.write(string+'\n')
 
         return ret
     return lam

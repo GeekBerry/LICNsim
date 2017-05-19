@@ -72,7 +72,6 @@ class EdgeItem(QGraphicsItem):
         self.angle= getAngle(src_p, dst_p)
 
         self.src_p= src_p
-        self.half_p= (src_p + dst_p)/2
         self.arrow_p= (src_p + 2 * dst_p) / 3  # 箭头开始位置, 前端2/3处
         self.dst_p= dst_p
 
@@ -87,7 +86,8 @@ class EdgeItem(QGraphicsItem):
         self.bounding_rect= QRectF(src_p, dst_p).normalized()  # normalized 正方向
         self.bounding_rect.adjust(-W3, -W3, W3, W3)
 
-        self.text_item.setPos( self.half_p )
+        self.text_p= ( (src_p + dst_p) / 2 ) + vec*W1
+        self.text_item.setPos(self.text_p)
         self.prepareGeometryChange()
 
     def setText(self, text):

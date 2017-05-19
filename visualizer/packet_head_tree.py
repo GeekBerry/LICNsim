@@ -15,16 +15,14 @@ class PacketHeadTreeWidget(TreeWidget):
         super().__init__(parent)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
 
-    @showCall
-    def init(self, monitor):
-        self.monitor= monitor
         self.setHead('Key')
-        self._show()
+        self.monitor= None
 
     def install(self, announces, api):
         announces['playSteps'].append(self.refresh)
         self.api= api
 
+    @showCall
     def refresh(self, steps):
         self._show()
         # self.expandToDepth(0)

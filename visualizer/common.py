@@ -22,10 +22,10 @@ def HotColor(value):
     return color
 
 
-def DeepColor(value, h= 0.0):  # h:0.0为红色
-    color= QtGui.QColor()
-    color.setHsvF(h, value, 1.0)
-    return color
+def DeepColor( value, color= QtGui.QColor(Qt.red) ):  # h:0.0为红色
+    h, s, v, a= color.getHsvF()
+    return QtGui.QColor.fromHsvF(h, value, v, a)
+
 
 # ======================================================================================================================
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem

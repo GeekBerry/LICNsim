@@ -15,17 +15,10 @@
   </property>
   <widget class="QWidget" name="central_widget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <widget class="QLabel" name="label">
-      <property name="text">
-       <string>节点图类型:</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="1">
-     <widget class="QLabel" name="label_net_node">
-      <property name="text">
-       <string>label_net_node</string>
+    <item row="1" column="0" colspan="6">
+     <widget class="NetView" name="view_net">
+      <property name="accessibleName">
+       <string/>
       </property>
      </widget>
     </item>
@@ -41,6 +34,20 @@
        </size>
       </property>
      </spacer>
+    </item>
+    <item row="0" column="1">
+     <widget class="QLabel" name="label_net_node">
+      <property name="text">
+       <string>label_net_node</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>节点图类型:</string>
+      </property>
+     </widget>
     </item>
     <item row="0" column="3">
      <widget class="QLabel" name="label_2">
@@ -69,178 +76,21 @@
       </property>
      </spacer>
     </item>
-    <item row="1" column="0" colspan="6">
-     <widget class="NetView" name="view_net">
-      <property name="accessibleName">
-       <string/>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QToolBar" name="toolbar_play">
-   <property name="windowTitle">
-    <string>播放工具栏</string>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1075</width>
+     <height>23</height>
+    </rect>
    </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="action_play"/>
-   <addaction name="separator"/>
-   <addaction name="action_step"/>
   </widget>
-  <widget class="QDockWidget" name="dock_name_store">
-   <property name="windowTitle">
-    <string>NameStore表</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>8</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents_2">
-    <layout class="QGridLayout" name="gridLayout_3">
-     <item row="0" column="0">
-      <widget class="CSTableWidget" name="table_contents"/>
-     </item>
-    </layout>
-   </widget>
-  </widget>
-  <widget class="QToolBar" name="toolbar_view">
-   <property name="windowTitle">
-    <string>显示工具栏</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-   <addaction name="action_node"/>
-   <addaction name="action_hits"/>
-   <addaction name="action_stores"/>
-   <addaction name="action_edge"/>
-   <addaction name="action_rate"/>
-   <addaction name="action_transfer"/>
-  </widget>
-  <widget class="QDockWidget" name="dock_packet_head">
-   <property name="windowTitle">
-    <string>Packet传输表</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>8</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents">
-    <layout class="QGridLayout" name="gridLayout_2">
-     <item row="0" column="0">
-      <widget class="PacketHeadTreeWidget" name="tree_packet_head">
-       <column>
-        <property name="text">
-         <string notr="true">1</string>
-        </property>
-       </column>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-  </widget>
-  <action name="action_step">
-   <property name="icon">
-    <iconset resource="../../res.qrc">
-     <normaloff>:/icon/visualizer/images/step.png</normaloff>:/icon/visualizer/images/step.png</iconset>
-   </property>
-   <property name="text">
-    <string>下一步</string>
-   </property>
-  </action>
-  <action name="action_node">
-   <property name="icon">
-    <iconset resource="../../res.qrc">
-     <normaloff>:/icon/visualizer/images/node.png</normaloff>:/icon/visualizer/images/node.png</iconset>
-   </property>
-   <property name="text">
-    <string>节点图</string>
-   </property>
-  </action>
-  <action name="action_rate">
-   <property name="icon">
-    <iconset resource="../../res.qrc">
-     <normaloff>:/icon/visualizer/images/bytes.png</normaloff>:/icon/visualizer/images/bytes.png</iconset>
-   </property>
-   <property name="text">
-    <string>信道速率</string>
-   </property>
-   <property name="toolTip">
-    <string>信道速率</string>
-   </property>
-  </action>
-  <action name="action_stores">
-   <property name="icon">
-    <iconset resource="../../res.qrc">
-     <normaloff>:/icon/visualizer/images/store.png</normaloff>:/icon/visualizer/images/store.png</iconset>
-   </property>
-   <property name="text">
-    <string>CS信息</string>
-   </property>
-  </action>
-  <action name="action_hits">
-   <property name="icon">
-    <iconset resource="../../res.qrc">
-     <normaloff>:/icon/visualizer/images/hit.png</normaloff>:/icon/visualizer/images/hit.png</iconset>
-   </property>
-   <property name="text">
-    <string>命中率</string>
-   </property>
-  </action>
-  <action name="action_transfer">
-   <property name="icon">
-    <iconset resource="../../res.qrc">
-     <normaloff>:/icon/visualizer/images/transfer.png</normaloff>:/icon/visualizer/images/transfer.png</iconset>
-   </property>
-   <property name="text">
-    <string>传输图</string>
-   </property>
-   <property name="toolTip">
-    <string>Transfer</string>
-   </property>
-  </action>
-  <action name="action_edge">
-   <property name="icon">
-    <iconset resource="../../res.qrc">
-     <normaloff>:/icon/visualizer/images/edge.png</normaloff>:/icon/visualizer/images/edge.png</iconset>
-   </property>
-   <property name="text">
-    <string>边图</string>
-   </property>
-  </action>
-  <action name="action_play">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset resource="../../res.qrc">
-     <normaloff>:/icon/visualizer/images/start.png</normaloff>
-     <normalon>:/icon/visualizer/images/pause.png</normalon>:/icon/visualizer/images/start.png</iconset>
-   </property>
-   <property name="text">
-    <string>开始/暂停</string>
-   </property>
-   <property name="toolTip">
-    <string>开始/暂停</string>
-   </property>
-  </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>CSTableWidget</class>
-   <extends>QTableWidget</extends>
-   <header>visualizer</header>
-   <slots>
-    <slot>playStep()</slot>
-   </slots>
-  </customwidget>
   <customwidget>
    <class>NetView</class>
    <extends>QGraphicsView</extends>
@@ -252,51 +102,12 @@
     <slot>viewEdgeBytes(bool)</slot>
    </slots>
   </customwidget>
-  <customwidget>
-   <class>PacketHeadTreeWidget</class>
-   <extends>QTreeWidget</extends>
-   <header>visualizer</header>
-  </customwidget>
  </customwidgets>
  <resources>
   <include location="../../res.qrc"/>
  </resources>
- <connections>
-  <connection>
-   <sender>toolbar_view</sender>
-   <signal>actionTriggered(QAction*)</signal>
-   <receiver>main_window</receiver>
-   <slot>viewToolBarTriggered(QAction*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>558</x>
-     <y>16</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>537</x>
-     <y>366</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>toolbar_play</sender>
-   <signal>actionTriggered(QAction*)</signal>
-   <receiver>main_window</receiver>
-   <slot>playToolBarTriggered(QAction*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>21</x>
-     <y>16</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>537</x>
-     <y>366</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
  <slots>
-  <slot>viewToolBarTriggered(QAction*)</slot>
   <slot>playToolBarTriggered(QAction*)</slot>
  </slots>
 </ui>

@@ -12,7 +12,7 @@ from visualizer.ui_net import UINetHelper
 class NetScene(QGraphicsScene):
     AREA_SIZE= 1000
     EDGE_LEN= 80  # 默认边长度
-    NODE_SIZE= 40  # 默认Node大小
+    NODE_SIZE= 0.5  # 默认Node大小
     SPACE_WIDTH= 200
 
     @showCall

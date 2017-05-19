@@ -11,6 +11,7 @@ from core.icn_net import ICNNetHelper
 from PyQt5.QtCore import pyqtSlot, QTimer
 from PyQt5.QtWidgets import QMainWindow, QAction
 
+from visualizer.plugin import *
 from visualizer.common import SpinBox
 from visualizer.net_scene import NetScene
 from visualizer.node_info_dialog import NodeInfoDialog
@@ -19,16 +20,17 @@ from visualizer.edge_info_dialog import EdgeInfoDialog
 
 #=======================================================================================================================
 class MainWindow(QMainWindow):
-    FRAME_DELAY= 1000  # 单位(ms)
-    DEFAULT_STEP_SIZE= 1000
+    @showCall
     def __init__(self, graph, monitor, logger=None):
+        self.docks= {Qt.LeftDockWidgetArea:[], Qt.RightDockWidgetArea:[], Qt.TopDockWidgetArea:[], Qt.BottomDockWidgetArea:[]}
         super().__init__()
+
         from visualizer.ui.ui_main_window import Ui_main_window
         self.ui= Ui_main_window()
         self.ui.setupUi(self)
 
-        self.api= CallTable()
-        self.announces= AnnounceTable()
+        self.install( AnnounceTable(), CallTable() )
+
         if logger is not None:
             logger.addAnnounceTable('MainWindow', self.announces)
 
@@ -36,74 +38,32 @@ class MainWindow(QMainWindow):
         self.monitor= monitor
         self.logger= logger
 
-        self.api['Main::showNodeInfo']= self.newNodeInfoDialog
-        self.api['Main::showEdgeInfo']= self.newEdgeInfoDialog
-        self.api['Main::setLabelNetNode']= self.ui.label_net_node.setText  # 代理label_net实现install
-        self.api['Main::setLabelNetEdge']= self.ui.label_net_edge.setText  # 代理label_net实现install
-
         self.scene= NetScene(self.graph)  # NetScene
         self.scene.install(self.announces, self.api)
 
-        self.ui.view_net.init(self.graph, self.scene, self.monitor)  # NetView
+        self.ui.view_net.setScene(self.scene)  # FIXME 由按钮进行scene管理和设置
         self.ui.view_net.install(self.announces, self.api)
 
-        self.ui.table_contents.init(self.monitor)  # CSTableWidget
-        self.ui.table_contents.install(self.announces, self.api)
-
-        self.ui.tree_packet_head.init(self.monitor)  # PacketHeadTreeWidget
-        self.ui.tree_packet_head.install(self.announces, self.api)
-
         # ---------------------------------------------------------------------
-        self.step_timer= QTimer(self)
-        self.step_timer.timeout.connect(self.loopSteps)
-        self.step_timer.setInterval(self.FRAME_DELAY)
-
-        self.step_size= self.DEFAULT_STEP_SIZE
-        steps_spin_box= SpinBox(self, 'step_size')
-        steps_spin_box.setRange(0, 10*self.DEFAULT_STEP_SIZE)
-        self.ui.toolbar_play.addWidget( steps_spin_box )
-
+        self.addPlugin(PlayerPlugin)
+        self.addPlugin(PainterPlugin)
+        self.addPlugin(ButtomWidgetPlugin)
         self.updateStatusBar()
 
+    def install(self, announces, api):
+        api['Main::showNodeInfo']= self.newNodeInfoDialog
+        api['Main::showEdgeInfo']= self.newEdgeInfoDialog
+        api['MainWindow::setLabelNetNode']= self.ui.label_net_node.setText  # 代理label_net实现install
+        api['MainWindow::setLabelNetEdge']= self.ui.label_net_edge.setText  # 代理label_net实现install
 
-    @pyqtSlot(QAction)
-    def playToolBarTriggered(self, action):
-        if action == self.ui.action_step:
-            self.playSteps()
-        elif action == self.ui.action_play:
-            if action.isChecked():
-                self.loopSteps()
-            else:
-                self.step_timer.stop()
+        announces['playSteps'].append( self.updateStatusBar )
 
-    def loopSteps(self):
-        self.playSteps()
-        self.step_timer.start()
+        self.announces= announces
+        self.api= api
 
-    def playSteps(self):
-        # TODO 锁住仪表盘
-        steps= self.step_size
-        for i in range(0, steps):
-            clock.step()
-        self.announces['playSteps'](steps)
-        self.updateStatusBar()
-
-
-    @pyqtSlot(QAction)
-    def viewToolBarTriggered(self, action):
-        if action is self.ui.action_node:
-            self.ui.view_net.showNodes()
-        elif action is self.ui.action_stores:
-            self.ui.view_net.showName()
-        elif action is self.ui.action_hits:
-            self.ui.view_net.showHitRatio()
-
-        elif action is self.ui.action_edge:
-            self.ui.view_net.showEdges()
-        elif action is self.ui.action_transfer:
-            self.ui.view_net.showTransfer()
-        elif action is self.ui.action_rate:
-            self.ui.view_net.showRate()
+    @showCall
+    def addPlugin(self, PluginFactory):
+        PluginFactory(self).setup(self)
 
     @showCall
     def newNodeInfoDialog(self, node_name):  # TODO 已经打开的,不再新建, 改为闪烁
@@ -120,5 +80,20 @@ class MainWindow(QMainWindow):
         dialog.show()
         dialog.refresh()
 
-    def updateStatusBar(self):
+    def updateStatusBar(self, *unuse_args):
         self.statusBar().showMessage( f'steps:{clock.time()}' )
+
+    def addDockWidget(self, dock_widget_area, dock_widget, orientation=None):  # 使得同一个方向的Dock合并在一起
+        if orientation is None:
+            super().addDockWidget(dock_widget_area, dock_widget)
+        else:
+            super().addDockWidget(dock_widget_area, dock_widget, orientation)
+
+        for area, links in self.docks.items():
+            if area == dock_widget_area:
+                if links:
+                    self.tabifyDockWidget(links[-1], dock_widget)
+                links.append(dock_widget)
+                break
+
+

@@ -15,19 +15,20 @@ class CSTableWidget(TableWidget):
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
 
-    def init(self, monitor):
-        self.monitor= monitor
         self.setHead('PacketName', 'CSNumber')
-        self._show()
+        self.monitor= None
 
     def install(self, announces, api):
-        announces['playSteps'].append(self.refresh)
+        self.announces= announces
         self.api= api
+        announces['playSteps'].append(self.refresh)
 
+    @showCall
     def refresh(self, steps):
         self._show()
         self.resizeColumnsToContents()
 
+    @showCall
     def _show(self):
         self.setRowCount( len(self.monitor.contents) )
         for row, (packet_name, store_nodes) in enumerate( self.monitor.contents.items() ):
@@ -36,4 +37,4 @@ class CSTableWidget(TableWidget):
     @showCall
     def selectionChanged(self, selected, deselected):
         item= self.item(self.currentRow(), self.PACKET_NAME)
-        self.api['View::setShowName'](  Name( item.text() )  )
+        self.announces['selectedName'](  Name( item.text() )  )

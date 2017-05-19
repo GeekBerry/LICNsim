@@ -4,10 +4,11 @@
 from core.common import Unit
 from core.data_structure import TimeDictDecorator
 
+
 class ContentStoreUnit(Unit):
     def __init__(self, capacity):  # 安装在系统上
         self.table = {}
-        self._capacity= capacity
+        self._capacity= capacity  # 单位: 包
 
     def install(self, announces, api):
         super().install(announces,api)

@@ -7,7 +7,6 @@ from core.data_structure import CallTable
 from visualizer.common import threshold
 
 class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
-    @showCall
     def __init__(self, node_name):
         super().__init__()
         self.setZValue(2)
@@ -39,17 +38,14 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
     def type(self)->int:
         return QGraphicsItem.UserType + abs(hash(NodeItem))
 
-    @showCall
     def boundingRect(self):
         return self.bounding_rect
 
-    @showCall
     def shape(self):
         path = QPainterPath()
         path.addRect( self.bounding_rect )
         return path
 
-    @showCall
     def paint(self, painter, option, widget= None)->None:
         #绘制节点
         painter.setBrush(self.style['color'])
@@ -74,8 +70,13 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         self.style['show_text']= False
         self.update()
 
-    @showCall
     def setSize(self, size:float):
+        # 缓存size
+        if hasattr(self, 'size_cache') and self.size_cache == size:
+            return
+        else:
+            self.cache_size= size
+
         MAX, MIN= self.style['max_size'], self.style['min_size']
         size= threshold(0.0, size, 1.0)*(MAX-MIN) + MIN
         self.bounding_rect= QRectF(-size/2, -size/2, size, size)

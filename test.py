@@ -7,10 +7,15 @@ import numpy
 # p= numpy.arctan2(1, 0) * 180 / numpy.pi
 # print(p)
 
-def getAngle(p1, p2):
-    return numpy.arctan2( p2[1] - p1[1], p2[0] - p1[0] ) * 180 / numpy.pi
+
+from collections import defaultdict
+
+dct= defaultdict( lambda :{'color':[1,2,3], 'size':0.5, 'text':''} )
 
 
+p= dct[1]
+p2= dct[2]
 
-a= getAngle( (0,0), (-1,-1) )
-print(a)
+p2['color'][2]= 100
+
+print(dct)
