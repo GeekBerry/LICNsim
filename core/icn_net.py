@@ -3,7 +3,9 @@
 
 import networkx
 from core.data_structure import Bind
-#=======================================================================================================================
+
+
+# ======================================================================================================================
 class ICNNetHelper:
     def __init__(self):
         raise RuntimeError('不要实例化ICNNet')
@@ -86,27 +88,36 @@ class ICNNetHelper:
 #=======================================================================================================================
 from core.clock import clock
 from core.data_structure import Timer
+
+
 class AskGenerator:
-    def __init__(self, graph, num_func, pos_func, packet, delta):
+    def __init__(self, graph, num_func, pos_func, packet):
         """
-        :param num_func: def(int)->int 请求量生成函数,
-        :param pos_func: def(int)->[nodename,...] 位置生成函数
+        :param num_func: def(int) -> int 请求量生成函数,
+        :param pos_func: def(int) -> [nodename,...] 位置生成函数
         """
         self.graph= graph
         self.num_func= num_func
         self.pos_func= pos_func
         self.packet= packet
-        self.delta= delta
         self.timer= Timer(self._pulse)  # FIXME
 
-    def start(self, delay):
+    def start(self, delta, delay= 0):
+        """
+        启动请求器
+        :param delta:int 每次发起请求间隔
+        :param delay:int 延迟多少步启动 
+        :return: None
+        """
+        self.start_time= clock.time()
+        self.delta= delta
         self.timer.timing(delay)
 
     def _pulse(self):
-        nodenum= self.num_func( clock.time() )
-        nodenames= self.pos_func(nodenum)
-        for nodename in nodenames:
-            ICNNetHelper.node(self.graph, nodename).api['APP::ask'](self.packet.fission())
+        node_num= self.num_func( clock.time() - self.start_time )
+        node_names= self.pos_func(node_num)
+        for node_name in node_names:
+            ICNNetHelper.node(self.graph, node_name).api['APP::ask'](self.packet.fission())
         self.timer.timing(self.delta)
 
     def end(self):

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # coding=utf-8
 
-import types
+
 
 
 def singleton(cls, *args, **kw):
@@ -14,24 +14,23 @@ def singleton(cls, *args, **kw):
     return _singleton
 
 
-def objName(obj):  # TODO 整理重写
-    if type(obj) == types.MethodType:
-        addr= hex(id(obj.__self__))
-        return f'{obj.__qualname__}<{addr}>'
-    elif type(obj) == types.FunctionType:
-        return obj.__qualname__
-    elif isinstance(obj, type):
-        return obj.__qualname__
-    elif type(obj) == types.BuiltinFunctionType:
-        return obj.__qualname__
-    else:
-        addr= hex(id(obj))
-        return f'{obj.__class__.__qualname__}<{addr}>'
-
-
+def strPercent(value):
+    return '%0.2f%%'%( value*100 )
 # ======================================================================================================================
 import sys
+import os
 
+
+def getFileClass(path):
+    folder, file_name= os.path.dirname(path), os.path.basename(path)
+    module_name, suffix= os.path.splitext(file_name)
+
+    if suffix == '.py':
+        sys.path.insert(0, folder)
+        module= __import__(module_name)
+        return [ value for value in module.__dict__.values() if isinstance(value, type) ]
+    else:
+        return []
 
 def getSysKwargs()->dict:
     return dict([ part.split('=') for part in sys.argv[1:] ])
@@ -75,5 +74,4 @@ class Unit:
         # self.api= None
         pass
 
-    def __str__(self):
-        return objName(self)
+

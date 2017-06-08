@@ -107,100 +107,70 @@ class TableWidget(QTableWidget):
 
     def setRow(self, row, *values):
         for col, value in enumerate(values):
-            self.setItem(  row, col, QTableWidgetItem( str(value) )  )
+            self.setItem( row, col, QTableWidgetItem( str(value) )  )
 
 # ======================================================================================================================
 from PyQt5.QtWidgets import QSpinBox, QCheckBox, QComboBox, QDoubleSpinBox
 
 
+class SpinBox(QSpinBox):
+    def __init__(self, obj, attr):
+        self.get= lambda: obj.__getattribute__(attr)
+        self.set= lambda: obj.__setattr__( attr, self.value() )
+        super().__init__(None)
+        self.setRange(1, INF)
+
+        self.setValue( self.get() )
+        self.editingFinished.connect( self.set )
+
+    def wheelEvent(self, event):
+        pass
+
+
 class DoubleSpinBox(QDoubleSpinBox):
     def __init__(self, obj, attr):
+        self.get= lambda: obj.__getattribute__(attr)
+        self.set= lambda: obj.__setattr__( attr, self.value() )
         super().__init__(None)
         self.setRange(0.0, 1.0)
         self.setSingleStep(0.05)
-        self.bindAttr(obj, attr)
+
+        self.setValue( self.get() )
+        self.editingFinished.connect( self.set )
 
     def wheelEvent(self, event):
         pass
-
-    def bindAttr(self, obj, attr):
-        # self.disconnect()
-        self.editingFinished.connect( Bind(self._setAttr, obj, attr) )
-        # getAttr
-        self.setValue( obj.__getattribute__(attr) )
-
-    def _setAttr(self, obj, attr):
-        obj.__setattr__( attr, self.value() )
-
-
-class SpinBox(QSpinBox):
-    def __init__(self, obj, attr):
-        super().__init__(None)
-        self.setRange(1, INF)
-        self.bindAttr(obj, attr)
-
-    def wheelEvent(self, event):
-        pass
-
-    def bindAttr(self, obj, attr):
-        # self.disconnect()
-        self.editingFinished.connect( Bind(self._setAttr, obj, attr) )
-        # getAttr
-        self.setValue( obj.__getattribute__(attr) )
-
-    def _setAttr(self, obj, attr):
-        obj.__setattr__( attr, self.value() )
 
 
 class CheckBox(QCheckBox):
     def __init__(self, obj, attr):
+        self.get= lambda: obj.__getattribute__(attr)
+        self.set= lambda state: obj.__setattr__( attr, state == Qt.Unchecked )
         super().__init__(None)
-        self.bindAttr(obj, attr)
-
-    def bindAttr(self, obj, attr):
-        # self.disconnect()
-        self.stateChanged.connect( Bind(self._setAttr, obj, attr) )
-        # 绑定显示状态
-        if obj.__getattribute__(attr):
-            self.setCheckState(Qt.Checked)
-        else:
-            self.setCheckState(Qt.Unchecked)
-
-    @showCall
-    def _setAttr(self, obj, attr, state):
-        if state == Qt.Unchecked:
-            value= False
-        else:
-            value= True
-        obj.__setattr__(attr, value)
+        self.setCheckState(Qt.Checked if self.get else Qt.Unchecked)
+        self.stateChanged.connect( self.set )
 
 
 class ComboBox(QComboBox):
     def __init__(self, obj, attr, elements):
-        super().__init__()
+        super().__init__(None)
         for row, elem in enumerate(elements):
             self.insertItem(row, str(elem), elem)
-        self.bindAttr(obj, attr)
+
+        self.get= lambda: obj.__getattribute__(attr)
+        self.set= lambda *args: obj.__setattr__(  attr, self.itemData( self.currentIndex() )  )
+
+        data= self.get()
+        index= self.findData(data)
+        if not (0 < index):  # 没有找到
+            index= self.count()
+            self.insertItem( index, str(data), data)
+        self.setCurrentIndex(index)
+
+        self.currentIndexChanged.connect( self.set )
 
     def wheelEvent(self, event):
         pass
-
-    def bindAttr(self, obj, attr):
-        # self.disconnect()
-        self.currentIndexChanged.connect( Bind(self._setAttr, obj, attr) )
-        # getAttr
-        data= obj.__getattribute__(attr)
-        index= self.findData(data)
-
-        if index == -1:  # 没有找到
-            index= self.count()
-            self.insertItem( index, str(data), data)
-            logging.warning(f'{self} 中没有 {data} 项')
-        self.setCurrentIndex(index)
-
-    def _setAttr(self, obj, attr, string):
-        data= self.itemData( self.currentIndex() )
-        obj.__setattr__( attr, data )
 
 
 # ======================================================================================================================

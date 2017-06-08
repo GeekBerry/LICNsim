@@ -2,8 +2,10 @@
 #coding=utf-8
 import networkx
 
+import name
 
 INF= 0x7FFFFFFF  # 无穷大 此处用4byte整形最大正数
+
 
 # transfer_t 包发送状态
 class TransferState:
@@ -11,17 +13,21 @@ class TransferState:
     TYPE_STRING= ['unsend', 'sending', 'arrived', 'loss', 'drop']
 
 
+# class NodeNameState:
+#     PENDING, STORED= 1, 2
+
 import core.policy
 POLICY_LIST= list(core.policy.searchPolicyInModule(core.policy))
 
 
 # ======================================================================================================================
-debug_ip=  core.packet.Packet( core.packet.Name('/DEBUG_PACKET'),   core.packet.Packet.INTEREST, size=1)
-debug_ip1= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/1'), core.packet.Packet.INTEREST, size=1 )
-debug_ip2= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/2'), core.packet.Packet.INTEREST, size=1 )
-debug_dp=  core.packet.Packet( core.packet.Name('/DEBUG_PACKET'),   core.packet.Packet.DATA, size=1 )
-debug_dp1= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/1'), core.packet.Packet.DATA, size=1 )
-debug_dp2= core.packet.Packet( core.packet.Name('/DEBUG_PACKET/2'), core.packet.Packet.DATA, size=1 )
+import core.packet
+debug_ip=  core.packet.Packet(name.Name('/DEBUG_PACKET'), core.packet.Packet.INTEREST, size=1)
+debug_ip1= core.packet.Packet(name.Name('/DEBUG_PACKET/1'), core.packet.Packet.INTEREST, size=1)
+debug_ip2= core.packet.Packet(name.Name('/DEBUG_PACKET/2'), core.packet.Packet.INTEREST, size=1)
+debug_dp=  core.packet.Packet(name.Name('/DEBUG_PACKET'), core.packet.Packet.DATA, size=1)
+debug_dp1= core.packet.Packet(name.Name('/DEBUG_PACKET/1'), core.packet.Packet.DATA, size=1)
+debug_dp2= core.packet.Packet(name.Name('/DEBUG_PACKET/2'), core.packet.Packet.DATA, size=1)
 
 
 class GraphGrid100X100:

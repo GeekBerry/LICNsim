@@ -8,6 +8,7 @@ import itertools
 from constants import INF
 from core import Hardware, clock, Announce, SizeLeakyBucket
 
+
 class Channel(Hardware, Announce):
     def __init__(self, src, dst, rate:int, buffer_size:int, delay:int, loss:float):
         Hardware.__init__(self, f'Channel({src}->{dst})')

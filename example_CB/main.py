@@ -8,7 +8,8 @@ from core.clock import clock
 from core.cs import SimulatCSUnit
 from core.filer import Filer, TimePlugin, PacketTracePlugin
 from core.icn_net import ICNNetHelper, AskGenerator
-from core.packet import Name, Packet
+from core.packet import Packet
+from core import Name
 from constants import GraphGrid100X100, GraphBA10000, GraphTree3X8, GraphGrid11X11
 from example_CB.experiment_net import ExperimentMonitor, UniformityPlugin
 from example_CB.experiment_node import ExperimentNode
@@ -57,10 +58,10 @@ def main(date, graph_name, sim_second, cs_mode, cs_time, numfunc, lam, posfunc, 
     # ICNNET
     ICNNetHelper.setup(graph_info.graph, ExperimentNode, OneStepChannel)
     # 数据库
-    db= ExperimentMonitor(graph_info.graph)
+    monitor= ExperimentMonitor(graph_info.graph)
     # 文件系统配置
     uniformity_plugin= UniformityPlugin(graph_info.graph, graph_info.center, packet_name)
-    packet_track_plugin= PacketTracePlugin(packet_name, db)
+    packet_track_plugin= PacketTracePlugin(packet_name, monitor)
     Filer(filename, ratio, [TimePlugin(), packet_track_plugin, uniformity_plugin], print_screen= True)
     # 初始化缓存
     for node in ICNNetHelper.nodes(graph_info.graph):
@@ -70,8 +71,8 @@ def main(date, graph_name, sim_second, cs_mode, cs_time, numfunc, lam, posfunc, 
     ICNNetHelper.node(graph_info.graph, graph_info.center).api['CS::setMode'](SimulatCSUnit.MODE.MANUAL)  # 要在设置全局mode之后
     ICNNetHelper.node(graph_info.graph, graph_info.center).api['CS::store'](dpacket)  # 要在CS类型配置之后,才会被正确驱逐
     # 请求发生器
-    ask_gen= AskGenerator(graph_info.graph, sim_num_func, sim_pos_func, ipacket, delta=ratio//lam)
-    ask_gen.start(0)
+    ask_gen= AskGenerator(graph_info.graph, sim_num_func, sim_pos_func, ipacket)
+    ask_gen.start(delta=ratio//lam, delay=0)
     #--------------------------------------------------------------------------
     for i in range(0, sim_second*ratio + 1):  # 发送间隔为响应最大延迟
         clock.step()

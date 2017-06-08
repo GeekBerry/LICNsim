@@ -22,6 +22,7 @@ class NetScene(QGraphicsScene):
 
         for nodename, ui_node in UINetHelper.nodeItems(self.graph):
             ui_node.call_backs['ItemPositionHasChanged']= self._nodeMoved
+            ui_node.call_backs['mousePressEvent']= self._nodeMousePressEvent
             ui_node.call_backs['mouseDoubleClickEvent']= self._nodeMouseDoubleClickEvent
             self.addItem(ui_node)
             ui_node.setPos( randint(0, self.AREA_SIZE), randint(0, self.AREA_SIZE) )
@@ -36,7 +37,8 @@ class NetScene(QGraphicsScene):
             self.addItem(ui_edge)
 
     def install(self, announces, api):
-        self.api= api  # FIXME
+        self.announces= announces
+        # self.api= api  # FIXME
 
     def adaptive(self):
         self.setSceneRect( self.itemsBoundingRect().adjusted(-self.SPACE_WIDTH, -self.SPACE_WIDTH, self.SPACE_WIDTH, self.SPACE_WIDTH) )
@@ -56,9 +58,27 @@ class NetScene(QGraphicsScene):
 
     @showCall
     def _nodeMouseDoubleClickEvent(self, node_name):
-        self.api['Main::showNodeInfo'](node_name)
+        self.announces['NodeDoubleClick'](node_name)
+
+    @showCall
+    def _nodeMousePressEvent(self, node_name):
+        self.announces['NodeMousePress'](node_name)
 
     @showCall
     def _edgeMouseDoubleClickEvent(self, src, dst):
-        self.api['Main::showEdgeInfo'](src, dst)
+        self.announces['EdgeDoubleClick'](src, dst)
 
+    @showCall
+    def mouseDoubleClickEvent(self, event):
+        super().mouseDoubleClickEvent(event)
+        if bool( event.pos() ) is False:  # XXX 场景在没有捕捉到Item时, event.pos()为QPointF(), 而非位置
+            self.announces['SceneDoubleClick']()
+
+    # def mousePressEvent(self, event):
+    #     p= self.mouseGrabberItem()
+    #     print(p)
+    #
+    #
+    # @showCall
+    # def nodeDBC(self, nodename):
+    #     pass

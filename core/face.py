@@ -64,7 +64,8 @@ class NoLoopChecker(LoopChecker):
 #     p= lc.isLoop(debug_dp)
 #     print(p)
 
-#-----------------------------------------------------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------------------------------------------------
 class RepeatChecker:  # 在 1个step内保证不会往一个faceid发送,相同类型(PACKET.TYPE)和名字(Name)的包(Packet)
     def __init__(self):
         self.info_set= set()  # 手动管理
@@ -83,7 +84,8 @@ class RepeatChecker:  # 在 1个step内保证不会往一个faceid发送,相同�
 
 #-----------------------------------------------------------------------------------------------------------------------
 from core.packet import Packet
-from core.packet import Name
+from name import Name
+
 
 class FaceUnit(Unit):
     """

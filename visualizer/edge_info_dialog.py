@@ -5,30 +5,48 @@ from debug import showCall
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog
+from core.icn_net import ICNNetHelper
 
 
 class EdgeInfoDialog(QDialog):
-    @showCall
-    def __init__(self, parent, icn_edge, logger):
-        super().__init__(parent)
+    def __new__(cls, parent, *args, **kwargs):
+        dialog= QDialog.__new__(EdgeInfoDialog)
+        QDialog.__init__(dialog, parent)
+
         from visualizer.ui.ui_edge_info import Ui_EdgeInfo
-        self.ui= Ui_EdgeInfo()
-        self.ui.setupUi(self)
+        dialog.ui= Ui_EdgeInfo()
+        dialog.ui.setupUi(dialog)
+        return dialog
+
+    @showCall
+    def __init__(self, parent, graph, src, dst, logger):
+        icn_edge= ICNNetHelper.edge(graph, src, dst)
+        self.src= src
+        self.dst= dst
+
         self.setWindowTitle(f'{icn_edge.name}信息')
         self.ui.tree_attr.init(icn_edge)
         self.ui.table_log.init(icn_edge.name, logger)
 
-    def install(self, announces, api):  # TODO 可编辑Node信息, (编辑时实时修改界面显示, 还是靠刷新来完成)?
+    def install(self, announces, api):
         announces['playSteps'].append(self.refresh)
+        self.announces= announces
 
     @showCall
     def refresh(self, steps= 0):
-        self.ui.tree_attr.refresh()
-        self.ui.table_log.refresh()
+        if self.isVisible():
+            self.ui.tree_attr.refresh()
+            self.ui.table_log.refresh()
+
+    @showCall
+    def closeEvent(self, event):
+        super().closeEvent(event)
+        self.announces['EdgeDialogClose'](self.src, self.dst)
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 from visualizer.common import TreeWidget
-from visualizer.controller import bindModuleController
+from visualizer.common import SpinBox, CheckBox, ComboBox, DoubleSpinBox
 
 
 class EdgeTreeWidget(TreeWidget):
@@ -39,14 +57,21 @@ class EdgeTreeWidget(TreeWidget):
 
     @showCall
     def refresh(self):
+        assert self.icn_edge
         self._showAttrs()
         self.expandToDepth(2)
         self.resizeColumnToContents(0)
 
     @showCall
     def _showAttrs(self):
-        if self.icn_edge:
-            if not bindModuleController(self, self.icn_edge):
-                self['channel'].setTexts(self.icn_edge)
+        self['rate'].setWidgets( SpinBox(self.icn_edge, 'rate') )
+        self['buffer_size'].setWidgets( SpinBox(self.icn_edge, 'buffer_size') )
+        self['delay'].setWidgets( SpinBox(self.icn_edge, 'delay') )
+        self['loss'].setWidgets( DoubleSpinBox(self.icn_edge, 'loss') )
+
+        self['buffer'].clear()
+        self['buffer'].setTexts( len(self.icn_edge._bucket) )
+        for row, each in enumerate(self.icn_edge._bucket):
+            self['buffer'][row].setTexts( each )
 
 

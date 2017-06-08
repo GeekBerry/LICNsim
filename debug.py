@@ -12,27 +12,52 @@ def timeIt(func):
     return _lambda
 
 
-import core.common
+import types
+def objName(obj):  # TODO 整理重写
+    if type(obj) == types.MethodType:
+        addr= hex(id(obj.__self__))
+        return f'{obj.__qualname__}<{addr}>'
+    elif type(obj) == types.FunctionType:
+        return obj.__qualname__
+    elif isinstance(obj, type):
+        return obj.__qualname__
+    elif type(obj) == types.BuiltinFunctionType:
+        return obj.__qualname__
+    else:
+        addr= hex(id(obj))
+        return f'{obj.__class__.__qualname__}<{addr}>'
+
+
+
 import itertools
+import traceback
+
 show_call_print= True
 show_line_iter= itertools.count()
 show_call_deep= 0
 # show_call_file= open('show_call.txt', 'w')
+
 def showCall(func):
     def lam(*args, **kwargs):
         global show_call_deep
         # global show_call_file
 
-        string= str(next(show_line_iter))+':\t' + '\t'*show_call_deep + 'START: ' + core.common.objName(func)
+        string= str(next(show_line_iter))+':\t' + '\t'*show_call_deep + 'START: ' + objName(func)
         if show_call_print:
             print(string)
         # show_call_file.write(string+'\n')
 
         show_call_deep += 1
-        ret= func(*args, **kwargs)
+
+        try:
+            ret= func(*args, **kwargs)
+        except Exception as exc:
+            traceback.print_exc()
+            exit(1)
+
         show_call_deep -= 1
 
-        string= str(next(show_line_iter))+':\t' + '\t'*show_call_deep + 'END: ' + core.common.objName(func)
+        string= str(next(show_line_iter))+':\t' + '\t'*show_call_deep + 'END: ' + objName(func)
         if show_call_print:
             print(string)
         # show_call_file.write(string+'\n')

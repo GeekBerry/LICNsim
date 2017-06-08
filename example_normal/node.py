@@ -42,10 +42,10 @@ from constants import INF
 class Node(NodeBase):
     def __init__(self, name):
         Hardware.__init__(self, f'Node {name}')
-        self.install('buffer', NodeBufferUnit(rate= randint(1, 100), buffer_size=INF) )
+        # self.install('buffer', NodeBufferUnit(rate= INF, buffer_size= INF) )
         self.install('faces',  FaceUnit( LoopChecker(10000), RepeatChecker() )  )
-        self.install('info',   InfoUnit(max_size= 2, life_time= 100000) )
-        self.install('cs',     ContentStoreUnit( capacity= randint(1, 100) )  )
+        self.install('info',   InfoUnit(max_size= INF, life_time= 100000) )
+        self.install('cs',     ContentStoreUnit(capacity=1)  )
         self.install('policy', PolicyUnit(FIFOPolicy) )
         self.install('app',    AppUnit() )
-        self.install('fwd',    ForwarderUnit() )  # 100来自于100*100网格平均响应时间
+        self.install('fwd',    ForwarderUnit() )

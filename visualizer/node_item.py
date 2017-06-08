@@ -1,4 +1,4 @@
-from PyQt5.QtCore import (QRectF, Qt)
+from PyQt5.QtCore import QRectF, Qt, pyqtSignal, QObject
 from PyQt5.QtGui import (QPainterPath)
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem
 
@@ -6,9 +6,11 @@ from debug import showCall
 from core.data_structure import CallTable
 from visualizer.common import threshold
 
+
 class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
     def __init__(self, node_name):
         super().__init__()
+
         self.setZValue(2)
         self.setAcceptHoverEvents(True)
         self.setFlag(QGraphicsItem.ItemIsMovable)
@@ -85,11 +87,16 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
     def setColor(self, color)->None:
         self.style['color']= color
         self.update()
-    #-------------------------------------------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------------------------------------------
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionHasChanged:
             self.call_backs['ItemPositionHasChanged'](self.node_name)
         return super().itemChange(change, value)
+
+    def mousePressEvent(self, event):
+        self.call_backs['mousePressEvent'](self.node_name)
+        super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event):
         self.call_backs['mouseDoubleClickEvent'](self.node_name)

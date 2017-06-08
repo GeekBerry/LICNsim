@@ -5,8 +5,11 @@ import sys
 import debug
 import constants
 
-from core import Packet, Name, Monitor, AnnounceTableLog, Channel, ICNNetHelper, AskGenerator, clock
-from core.algorithm import FixedAsk, UniformPosition, SamplePosition
+from core.packet import Packet
+from core.name import Name
+from core import Monitor, Channel,  clock
+from core.icn_net import ICNNetHelper,AskGenerator
+from core.algorithm import FixedAsk, ExponentAsk, UniformPosition, SamplePosition
 from example_normal.node import Node
 
 from PyQt5.QtCore import QPointF
@@ -23,8 +26,11 @@ def TestChannel(src, dst):
     return Channel(src, dst, rate= randint(1, 10), buffer_size= 1000, delay= SECOND//1000, loss= 0.5)
 
 SECOND= 1000
-ip_A= Packet(Name('/A'), Packet.INTEREST, 1)
-dp_A= Packet(Name('/A'), Packet.DATA, 500)
+ip_A= Packet(Name('/A/'), Packet.INTEREST, 1)
+ip_B= Packet(Name('/A/a'), Packet.INTEREST, 1)
+
+dp_A= Packet(Name('/A/'), Packet.DATA, 500)
+dp_B= Packet(Name('/A/a'), Packet.DATA, 500)
 
 # ======================================================================================================================
 graph = constants.GraphGrid11X11().graph
@@ -34,15 +40,19 @@ graph = constants.GraphGrid11X11().graph
 ICNNetHelper.setup(graph, Node, TestChannel)  # 把graph变成icn graph
 monitor= Monitor(graph)  # 数据库监听graph
 
-logger= AnnounceTableLog()
-logger.addHardwares( ICNNetHelper.nodes(graph) )
-logger.addHardwares( ICNNetHelper.edges(graph) )
+# logger= AnnounceTableLog()
+# logger.addHardwares( ICNNetHelper.nodes(graph) )
+# logger.addHardwares( ICNNetHelper.edges(graph) )
 
 # 请求发生器
-ICNNetHelper.node(graph, (0,0)).api['CS::store'](dp_A)  # 要在CS类型配置之后,才会被正确驱逐
+ICNNetHelper.node(graph, (0,0)).api['CS::store'](dp_A)
+ICNNetHelper.node(graph, (5,5)).api['CS::store'](dp_B)
 
-ask_gen= AskGenerator(graph, FixedAsk(1), UniformPosition(graph), ip_A, delta= SECOND//100)
-ask_gen.start(0)
+ask_gen_A= AskGenerator(graph, FixedAsk(1), UniformPosition(graph), ip_A)
+ask_gen_A.start(delta=SECOND // 100, delay=0)
+
+ask_gen_B= AskGenerator(graph, FixedAsk(1), UniformPosition(graph), ip_B)
+ask_gen_B.start(delta=SECOND // 200, delay=0)
 
 # clock.timing(1000, ICNNetHelper.node(graph, 0).api['CS::setCapacity'], 0)
 
@@ -52,7 +62,7 @@ if __name__ == '__main__':
         app = QApplication(sys.argv)  # 必须放在MainWindow前
 
         UINetHelper.setup(graph, NodeItem, EdgeItem)  # 把graph变成ui graph
-        main_window= MainWindow(graph, monitor, logger)
+        main_window= MainWindow(graph, monitor, logger=None)
 
         for (x,y), node in UINetHelper.nodeItems(graph):
             node.setPos( QPointF(x*200, y*200) )

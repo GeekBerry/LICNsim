@@ -3,7 +3,7 @@ from PyQt5.QtGui import QPainter, QBrush, QColor
 from PyQt5.QtWidgets import QGraphicsView
 
 
-from visualizer.planters import *
+from visualizer.painters import *
 
 from core.packet import Packet
 from core.clock import clock
@@ -23,6 +23,8 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorViewCenter)
 
+        self.setLabelNode= None
+        self.setLabelEdge= None
         self.node_painter= None
         self.edge_painter= None
 
@@ -31,39 +33,59 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
         self.api= api
 
         announces['playSteps'].append(self.refresh)
-        api['NetView::setBackGroundBrush']= self.setBackgroundBrush
         api['NetView::triggerPainter']= self.triggerPainter
+        api['NetView::refreshPainter']= self.refreshPainter
 
     @showCall
-    def triggerPainter(self, painter, boolen= False):
+    def triggerPainter(self, painter, *args):  # 设置,刷新和显示painter
         if isinstance(painter, NodePainter):
-            self.api['MainWindow::setLabelNetNode']( painter.title )
-            self.setBackgroundBrush( painter.back_ground_color )
             self.node_painter= painter
+            self.node_painter.refresh()
+            # 设置背景颜色
+            bg_color= self.node_painter.style.get('back_ground_color', Qt.white)
+            self.setBackgroundBrush(bg_color)
+            # 设置标题
+            title= self.node_painter.style.get('title', '(未知)')
+            self.setLabelNode(title)
         elif isinstance(painter, EdgePainter):
-            self.api['MainWindow::setLabelNetEdge']( painter.title )
             self.edge_painter= painter
+            self.edge_painter.refresh()
+            # 设置标题
+            title= self.edge_painter.style.get('title', '(未知)')
+            self.setLabelEdge(title)
+        else:
+            return
+
+    @showCall
+    def refreshPainter(self, painter):  # 如果painter为当前使用的painter, 立刻刷新
+        if painter is self.node_painter:
+            self.node_painter.refresh()
+            # 设置标题
+            title= self.node_painter.style.get('title', '(未知)')
+            self.setLabelNode(title)
+        elif painter is self.edge_painter:
+            self.edge_painter.refresh()
+            # 设置标题
+            title= self.edge_painter.style.get('title', '(未知)')
+            self.setLabelEdge(title)
         else:
             pass
-
-        painter.update()
-        painter.paint()
 
     @showCall
     def refresh(self, *args):  # FIXME
         if self.node_painter:
-            self.node_painter.update()
-            self.node_painter.paint()
+            self.node_painter.refresh()
 
         if self.edge_painter:
-            self.edge_painter.update()
-            self.edge_painter.paint()
+            self.edge_painter.refresh()
 
     # ------------------------------------------------------------------------------------------------------------------
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_P:
             self.scene().graphLayout()
+        # elif key == Qt.Key_Enter:
+        #     self.api['Player::step']()
         else: super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
@@ -93,177 +115,7 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
             self.scale(scaleFactor, scaleFactor)
 
 
-# # ======================================================================================================================
-# class Painter:
-#     def __init__(self, graph, monitor):
-#         self.graph= graph
-#         self.monitor= monitor
-#
-#     def paint(self):
-#         pass
-#
-# # ----------------------------------------------------------------------------------------------------------------------
-# from core.icn_net import ICNNetHelper
-#
-#
-# class NodesPainter(Painter):
-#     def paint(self):
-#         for nodename, ui_node in UINetHelper.nodeItems(self.graph):
-#             ui_node.setColor(Qt.white)
-#             ui_node.setText('')
-#             ui_node.hideText()
-#
-#             icn_node= ICNNetHelper.node(self.graph, nodename)
-#             unit= icn_node.units.get('buffer')
-#             if unit:
-#                 size= unit.rate/100  # FIXME
-#                 ui_node.setSize(size)
-#
-#
-# # ----------------------------------------------------------------------------------------------------------------------
-# class NameStorePainter(Painter):
-#     def __init__(self, graph, monitor):
-#         super().__init__(graph, monitor)
-#         self.show_name= None
-#
-#     def paint(self):
-#         paint_dict= self.calculate()
-#         for node_name, value in paint_dict.items():
-#             ui_node= UINetHelper.node(self.graph, node_name)
-#             ui_node.setText(' ')
-#             if value is True:
-#                 ui_node.setColor(Qt.red)
-#             else:
-#                 ui_node.setColor(Qt.white)
-#
-#     def calculate(self):
-#         contents= self.monitor.contents.get(self.show_name, [])  # TODO match 或 前缀查找等
-#
-#         store_dict= dict.fromkeys(self.graph)
-#         for node_name in store_dict:
-#             if node_name in contents:
-#                 store_dict[node_name]= True
-#             else:
-#                 store_dict[node_name]= False
-#         return store_dict
-#
-#
-# # ----------------------------------------------------------------------------------------------------------------------
-# class HitRatioPainter(Painter):
-#     def __init__(self, graph, monitor):
-#         super().__init__(graph, monitor)
-#
-#         self.last_record_time= -1  # '-1': 比0小即可
-#         self.hit_miss_table= SheetTable(hit=int, miss=int)
-#
-#     def paint(self):
-#         paint_dict= self.calculate()
-#         for node_name, ratio in paint_dict.items():
-#             ui_node= UINetHelper.node(self.graph, node_name)
-#             if ratio is None:
-#                 ui_node.setColor(Qt.lightGray)
-#                 ui_node.setText('无访问记录')
-#             else:
-#                 UINetHelper.node(self.graph, node_name).setColor(HotColor(ratio))  # DeepColor or HotColor
-#                 UINetHelper.node(self.graph, node_name).setText(f'命中率 {"%0.2f"%(ratio*100)}%')
-#
-#     def calculate(self):
-#         records= self.monitor.node_t(time= lambda t: self.last_record_time < t <= clock.time())
-#         for node_record in records:
-#             entry= self.hit_miss_table[ node_record['node_name']]
-#             entry.hit += node_record['hit']
-#             entry.miss += node_record['miss']
-#         self.last_record_time= clock.time()
-#
-#         # 计算命中率
-#         ratio_dict= dict.fromkeys(self.graph)
-#         for node_name, entry in self.hit_miss_table.items():
-#             if entry.hit or entry.miss:
-#                 ratio_dict[node_name]= entry.hit / (entry.miss + entry.hit)
-#         return ratio_dict
-#
-# # ----------------------------------------------------------------------------------------------------------------------
-# from core.channel import Channel
-#
-#
-# class EdgesPainter(Painter):
-#     def paint(self):
-#         for (src, dst), ui_edge in UINetHelper.edgeItems(self.graph):
-#             ui_edge.setColor(Qt.black)
-#             ui_edge.setText('')
-#             ui_edge.hideText()
-#
-#             icn_edge= ICNNetHelper.edge(self.graph, src, dst)
-#             if isinstance(icn_edge, Channel):
-#                 width= icn_edge.rate/10  # FIXME
-#                 ui_edge.setWidth(width)
-#
-#
-# # ----------------------------------------------------------------------------------------------------------------------
-# from constants import TransferState
-#
-#
-# class TransferPainter(Painter):
-#     COLOR_MAP= {
-#             TransferState.ARRIVED:  Qt.green,
-#             TransferState.SENDING:  QColor(255,160,45),
-#             TransferState.LOSS:     Qt.red,
-#         }
-#
-#     def __init__(self, graph, monitor):
-#         super().__init__(graph, monitor)
-#         self.show_packet_head= None
-#
-#     @showCall
-#     def paint(self):
-#         paint_dict= self.calculate()
-#         for (src, dst), record in paint_dict.items():
-#             ui_edge= UINetHelper.edge(self.graph, src, dst)
-#
-#             if record  and  (record['state'] in self.COLOR_MAP):
-#                 ui_edge.setColor( self.COLOR_MAP[record['state']] )
-#                 ui_edge.setText(TransferRecordToText(record))
-#                 ui_edge.showText()
-#             else:
-#                 ui_edge.setColor(Qt.black)
-#                 ui_edge.setText('')
-#                 ui_edge.hideText()
-#
-#     def calculate(self):
-#         records= self.monitor.transfer_t(packet_head=self.show_packet_head)
-#         transfer_dict= dict.fromkeys(self.graph.edges(), {})
-#         for record in records:
-#             transfer_dict[ (record['src'], record['dst'],) ]= record
-#         return transfer_dict
-#
-#
-# # ----------------------------------------------------------------------------------------------------------------------
-# class RatePainter(Painter):
-#     def __init__(self, graph, monitor):
-#         super().__init__(graph, monitor)
-#         self.delta= 1000  # FIXME
-#
-#     def paint(self):
-#         paint_dict= self.calculate()
-#         for (src, dst), ratio in paint_dict.items():
-#             ui_edge= UINetHelper.edge(self.graph, src, dst)
-#             ui_edge.setColor( HotColor(ratio) )
-#             ui_edge.setText(f'占用率 {"%0.2f"%(ratio*100)}%')
-#             ui_edge.showText()
-#
-#     def calculate(self):
-#         t0, t1= clock.time()-self.delta, clock.time()
-#         records= self.monitor.transfer_t(begin= lambda t: t < t1, end= lambda t: t0 < t )
-#         # 统计忙碌时长
-#         rate_dict= dict.fromkeys( self.graph.edges(), 0 )
-#         for record in records:
-#             rate_dict[ (record['src'],record['dst']) ] += min(t1, record['end']) - max(t0, record['begin'])
-#         # 计算占比
-#         for key in rate_dict:
-#             rate_dict[key] /= self.delta
-#
-#         return rate_dict
-#
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # class Animation:

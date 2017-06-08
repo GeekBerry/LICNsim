@@ -3,31 +3,6 @@ import networkx
 import numpy
 import constants
 
-
-class FixedAsk:
-    def __init__(self, lam):
-        self.lam= lam
-
-    def __call__(self, t):
-        return self.lam
-
-
-class PossionAsk:
-    def __init__(self, lam):
-        self.lam= lam
-
-    def __call__(self, t):
-        return numpy.random.poisson(self.lam)
-
-
-class ExponentAsk:
-    def __init__(self, lam):
-        self.lam= lam
-
-    def __call__(self, t):
-        return 1 if random.random() < numpy.exp(-t*self.lam) else 0
-
-
 #=======================================================================================================================
 def graphHoops(graph, center):
     inter= set()
@@ -109,8 +84,39 @@ def graphApproximateDiameter(graph, sample_num= 10):  # 得到graph近似直径
 #     return None
 
 
-#=======================================================================================================================
+# ======================================================================================================================
+class FixedAsk:
+    def __init__(self, lam):
+        self.lam= lam
+
+    def __call__(self, t):
+        return self.lam
+
+
+class PossionAsk:
+    def __init__(self, lam):
+        self.lam= lam
+
+    def __call__(self, t):
+        return numpy.random.poisson(self.lam)
+
+
+class ExponentAsk:
+    def __init__(self, lam):
+        self.lam= lam
+
+    def __call__(self, t):
+        return 1 if random.random() < numpy.exp(-t*self.lam) else 0
+
+
+# ======================================================================================================================
 class SamplePosition:
+    """
+    从给定节点中随机抽取num个
+    >>> pos_func= SamplePosition([1,2,3,4])
+    >>> pos_func(2)
+    [1, 3] 
+    """
     def __init__(self, nodes):
         self.nodes= nodes
 
@@ -130,9 +136,9 @@ class ZipfPosition:
     def __init__(self, graph, center, alpha):
         self.hoops= [ list(hoop) for hoop in graphHoops(graph, center) ]
         self.length= len( self.hoops )-1
-        self.alpha= alpha # 指数值
+        self.alpha= alpha  # 指数值
 
-    def __call__(self, num): # FIXME 函数运行时间不定
+    def __call__(self, num):  # FIXME 函数运行时间不定
         nodes= set()
         while len(nodes) < num:
             distance= constants.INF
@@ -146,8 +152,9 @@ class ZipfPosition:
 
 
 #=======================================================================================================================
-class GridPosLogic:
+class GridPosLogic:  # 测算节点在网格中的分布均匀度
         CENTER, OUTSIDE, UP, DOWN, LEFT, RIGHT, LEFTUP, RIGHTDOWN, RIGHTUP, LEFTDOWN= range(0, 10)
+
         def __init__(self, cx, cy):
             self.sx, self.sy = 1, 1
             self.cx, self.cy= cx, cy
@@ -185,7 +192,7 @@ class GridPosLogic:
         def inCenter(self, x,y):
             return self.hsx<=x<self.hex and self.hsy<=y<self.hey
 
-        def inUp(self, x,y):
+        def inUp(self, x, y):
             return self.sy<=y<self.cy
 
         def inLeft(self, x,y):

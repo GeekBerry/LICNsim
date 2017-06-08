@@ -1,17 +1,11 @@
-#!/usr/bin/python3
-#coding=utf-8
-import random, re
+# !/usr/bin/python3
+# coding=utf-8
 
-class Name(str):
-    def __new__(cls, string='/'):
-        match= re.match(r'(/[^/]+)+|/', string)  # / 或 /.../...
-        if match and match.end() == len(string):
-            return str.__new__(cls, string)
-        else:
-            raise ValueError(f"string {string}格式不正确, 必须符合 r'(/[^/]+)+|/' ")
+import copy
+import random
 
-    # def __init__(self, string):
-    #     super().__init__(string)
+
+
 
 # TODO 重写
 # class Name(list):
@@ -68,7 +62,6 @@ class Name(str):
 #
 #     def __str__(self):  # FIXME DEBUG
 #         return '/'+'/'.join([ str(each) for each in self])
-
 # if __name__ == '__main__':
 #     print("测试代码")
 #
@@ -79,26 +72,12 @@ class Name(str):
 #     print( n1 + n2 ) # /bupt/mp4/bupt/mp4/1
 #     print( n2 - n1 ) # ['1']
 #     print( n1.isPrefix(n2) ) # True
+# =======================================================================================================================
 
-#=======================================================================================================================
-
-import copy
 
 class Packet:
-    EMPTY, INTEREST, DATA= 0, 1, 2 # 空包, 数据包, 兴趣包
-    TYPE_STRING= ['Empty', 'Interest', 'Data']
-    TYPES= [EMPTY, INTEREST, DATA]
-
-    @classmethod
-    def types(cls):
-        return [cls.EMPTY, cls.INTEREST, cls.DATA]
-
-    @classmethod
-    def typeStr(cls, type):  # TODO 更安全的事项
-        if 0<= type < len(cls.TYPE_STRING):
-            return cls.TYPE_STRING[type]
-        else:
-            return 'TypeError'
+    INTEREST, DATA= 0, 1 # 数据包, 兴趣包
+    TYPE_STRING= ['Interest', 'Data']
 
     def __init__(self, name, type, size= None, data=''):
         self.name= name  # 包名
@@ -126,14 +105,16 @@ class Packet:
         return Packet(self.name, self.type, self.size, copy.deepcopy(self.data))
 
     def __str__(self):
-        return f'Packet({self.name}, {Packet.typeStr(self.type)}, {len(self)}, {hex(self.nonce)})'
+        return f'Packet({self.name}, {Packet.TYPE_STRING[self.type]}, {len(self)}, {hex(self.nonce)})'
 
     def __repr__(self):
         return str(self)
 
 
+from core.name import Name
+
 class PacketHead:
-    def __init__(self, name=Name('/'), type=Packet.EMPTY, nonce=0):
+    def __init__(self, name=Name('/'), type=None, nonce=0):
         self.name= name
         self.type= type
         self.nonce= nonce
@@ -145,7 +126,7 @@ class PacketHead:
         return (self.name, self.type, self.nonce) == (other.name, other.type, other.nonce)
 
     def __str__(self):
-        return f'({self.name}, {Packet.typeStr(self.type)}, {hex(self.nonce)})'
+        return f'({self.name}, {Packet.TYPE_STRING[self.type]}, {hex(self.nonce)})'
 
 
 

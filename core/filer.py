@@ -39,9 +39,9 @@ def division(dividend, divisor)->str:
 
 
 class PacketTracePlugin(FilerPlugin):
-    def __init__(self, packet_name, db):
+    def __init__(self, packet_name, monitor):
         self.packet_name= packet_name
-        self.db=db
+        self.monitor= monitor
 
         self.ask_count= 0   # 请求总量
         self.dist_total= 0  # 距离总和
@@ -56,9 +56,9 @@ class PacketTracePlugin(FilerPlugin):
     def entry(self)->list:
         cur_time= clock.time()
 
-        cs_num= len( self.db.contents[self.packet_name] )
+        cs_num= len(self.monitor.contents[self.packet_name])
 
-        records= self.db.packet_t(packet_name= self.packet_name, time= lambda t: self.last_time <= t < cur_time)
+        records= self.monitor.packet_t(packet_name= self.packet_name, time= lambda t: self.last_time <= t < cur_time)
         store_num, evict_num, distances, delays= 0, 0, [], []
         for record in records:
             store_num += len( record['storing'] )

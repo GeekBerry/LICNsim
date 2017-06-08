@@ -223,28 +223,38 @@ class SheetTable(dict):  # XXX dropField 是非常低效的
 
 # ======================================================================================================================
 def decoratorOfType(Type):
-    class Decorator(Type):
-        def __new__(cls, inside, *args, **kwargs):
-            return Type.__new__(cls, *args, **kwargs)
-
-        def __init__(self, inside, *args, **kwargs):
+    class Decorator:
+        def __init__(self, inside):
             super().__setattr__('_inside_', inside)
-            super().__init__(self, *args, **kwargs)  # 要在__setattr__之后, 以免调用自身函数
 
-        for method_name in set( dir(Type) ) - set( dir(type) ):
+        for method_name in set( dir(Type) ) - set( dir(type) ):  # FIXME 如何找到 Type 所有自定义函数
             exec(
         f'def {method_name}(self, *args, **kwargs):\n'
         f'\t\treturn self._inside_.{method_name}(*args, **kwargs)'
-        )  # 批量重载函数
+        )  # 批量定义重载函数
 
-        def __str__(self):
-            return f'{self.__class__.__name__}({self._inside_.__str__()})'
+        def __repr__(self):
+            return f'{self.__class__.__name__}({ repr(self._inside_) })'
 
     return Decorator
 
+
+# if __name__ == '__main__':
+#     class D( decoratorOfType(dict) ):
+#         def __setitem__(self, key, value):
+#             print('D.setitem', key, value)
+#             super().__setitem__(key, value)
+#
+#     table= {1:100, 2:200}
+#     decortor= D(table)
+#
+#     print(isinstance(decortor, dict))  # False
+#
+#     decortor[3]= 300  # print: D.setitem 3 300
+#     print(table) # {1: 100, 2: 200, 3: 300} 注意table被修改了
+
 # ----------------------------------------------------------------------------------------------------------------------
 DictDecorator= decoratorOfType(dict)
-
 
 class CallBackDictDecorator(DictDecorator):
     """
@@ -468,6 +478,77 @@ class SizeQueue:
 
 
 # ======================================================================================================================
+import copy
+
+class ScaleSeq:
+    def __init__(self, size, scale, default):
+        self.size= size
+        self.scale= scale
+        self.default= default
+        self.order_dict= OrderedDict()
+        self.max_index= -1  # 比 0 小即可
+
+    def indexs(self):
+        return list(self.order_dict.__iter__())
+
+    def current(self):
+        index= clock.time() // self.scale
+        while self.max_index < index:
+            self.max_index += 1
+            self.order_dict[self.max_index]= self.create(self.max_index)
+
+            if len(self.order_dict) > self.size:
+                self.order_dict.popitem(last=False)
+
+        return self.order_dict[index]
+
+    def create(self, index):
+        return copy.deepcopy(self.default)
+
+    def __getitem__(self, index):
+        return self.order_dict[index]
+
+    def __str__(self):  # DEBUG
+        return str(dict(self.order_dict))
+
+
+class AccumScaleSeq(ScaleSeq):
+    def create(self, index):
+        if self.order_dict.get(index-1) is not None:
+            return copy.deepcopy( self.order_dict[index-1] )
+        else:
+            return super().create(index)
+
+
+class ScaleSeqDefault:
+    def __init__(self, size, scale, Default):
+        self.size= size
+        self.scale= scale
+        self.Default= Default
+        self.order_dict= OrderedDict()
+        self.max_index= -1  # 比 0 小即可
+
+    def indexs(self):
+        return list(self.order_dict.__iter__())
+
+    def current(self):
+        index= clock.time() // self.scale
+        while self.max_index < index:
+            self.max_index += 1
+            self.order_dict[self.max_index]= self.Default()
+
+            if len(self.order_dict) > self.size:
+                self.order_dict.popitem(last=False)
+
+        return self.order_dict[index]
+
+    def __getitem__(self, index):
+        return self.order_dict[index]
+
+    def __str__(self):  # DEBUG
+        return str(dict(self.order_dict))
+
+# ======================================================================================================================
 EMPTY_FUNC= lambda *args: None
 
 class Bind:
@@ -485,9 +566,6 @@ class Bind:
     def __call__(self, *args, **kwargs):
         return self.func(*self.args, *args, **kwargs)
 
-    def __str__(self):
-        from core.common import objName
-        return f'Bind( {objName(self.func)}, {", ".join([str(each) for each in self.args])})'
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -529,10 +607,6 @@ class Announce:
         except ValueError:
             pass
 
-    def __repr__(self):
-        from core.common import objName
-        return str([objName(callback) for callback in self.callbacks])
-
 
 # class AnnounceTable(defaultdict):  # 不带Log版
 #     def __init__(self):
@@ -566,62 +640,121 @@ class AnnounceTable:  # 带log版本
             raise TypeError('value 必须是 Announce 子类型')
         self._table[action]= announce
 
-#-----------------------------------------------------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------------------------------------------------
 import math
 
-class SizeLeakyBucket:
-    def __init__(self, rate, max_size):
-        self.rate= rate
-        self._queue= SizeQueue(max_size)
+
+class Leaker(Announce):
+    def __init__(self, rate):
+        super().__init__()
+
+        self.rate= rate  # 速率
+        self._accum= rate  # 余量
+
+        self.timer= Timer(self.finish)
+        self.reset_timer= Timer(self.reset)
+
+    def __bool__(self):  # True: 正在工作, False: 空闲
+        return bool(self.timer)
+
+    def __call__(self, size, data):
+        if not self:
+            self.reset_timer.cancel()
+
+            delay= math.ceil( (size - self._accum)/self.rate )
+            self._accum += delay*self.rate - size
+
+            self.timer.timing(delay, data)
+            return True
+        else:
+            return False
+
+    def reset(self):
         self._accum= self.rate
-        self._last_activated_time= clock.time()
-        self._blocked= False
+
+    def finish(self, data):
+        clock.timing(0, super().__call__, data)  # XXX 只能用timing(delay=0), 否者可能会递归调用
+        self.reset_timer.timing(1)
+
+
+# if __name__ == '__main__':
+#     queue= [ (1, 'A'), (1, 'B'), (10,'C'), (1,'D')]
+#
+#     leaky= LeakAnnounce(10)
+#
+#     leaky.append( lambda data: print(clock.time(), data) )
+#
+#
+#     def call_back(*datas):
+#         if queue:
+#             leaky( *queue.pop(0) )
+#
+#     leaky.append( call_back )
+#
+#
+#     leaky( *queue.pop(0) )
+#     for i in range(100):
+#         clock.step()
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+class SizeLeakyBucket:
+    """
+    callbacks:
+        'queue': 数据装入桶里
+        'full':  桶满, 数据装入失败
+        'begin': 数据开始滴漏
+        'end':   数据漏出
+    """
+    def __init__(self, rate, max_size):
+        self.queue= SizeQueue(max_size)
+
+        self.leaker= Leaker(rate)
+        self.leaker.append( lambda *datas: self.pop() )
+        self.leaker.append( lambda *datas: self.activate() )
+
         self.callbacks= CallTable()
 
     @property
     def max_size(self):
-        return self._queue.max_size
+        return self.queue.max_size
 
     @max_size.setter
     def max_size(self, value):
-        self._queue.max_size= value
+        self.queue.max_size= value
 
-    def __iter__(self):  # 不返回 size
-        for size, args in self._queue:
-            yield args
+    @property
+    def rate(self):
+        return self.leaker.rate
+
+    @rate.setter
+    def rate(self, value):
+        self.leaker.rate= value
+
+    def __iter__(self):
+        for size, args in self.queue:
+            yield args  # 不返回 size
 
     def __len__(self):
-        return len(self._queue)
+        return len(self.queue)
 
-    def append(self, size, *args):
-        if self._queue.append(size, args):
-            self.callbacks['queue'](*args)
-            if not self._blocked:
-                self._leaky()
+    def append(self, size, *datas):
+        if self.queue.append(size, datas):
+            self.callbacks['queue'](*datas)
+            self.activate()
         else:
-            self.callbacks['full'](*args)
+            self.callbacks['full'](*datas)
 
-    def _leaky(self):
-        if self._last_activated_time < clock.time():
-            self._accum= self.rate
-            self._last_activated_time= clock.time()
+    def activate(self):
+        if self.queue and (not self.leaker):
+            size, datas= self.queue.top()
+            self.callbacks['begin'](*datas)
+            self.leaker(size, datas)
 
-        if self._queue and (not self._blocked):
-            size, args= self._queue.top()
-            delay= math.ceil( (size - self._accum)/self.rate )
-            self._accum += delay*self.rate - size
-
-            self.callbacks['begin'](*args)
-            clock.timing(delay, self._pop)
-            self._blocked= True
-
-    def _pop(self):
-        size, args= self._queue.pop()
-        self.callbacks['end'](*args)
-        self._blocked= False
-        self._last_activated_time= clock.time()
-        self._leaky()
+    def pop(self):
+        size, datas= self.queue.pop()
+        self.callbacks['end'](*datas)
 
 
 # if __name__ == '__main__':

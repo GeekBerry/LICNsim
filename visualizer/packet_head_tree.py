@@ -3,7 +3,8 @@
 
 from debug import showCall
 
-from core.packet import Packet, Name, PacketHead
+from core.packet import Packet, PacketHead
+from core.name import Name
 from visualizer.common import TreeWidget
 
 from PyQt5.QtCore import Qt
@@ -23,7 +24,7 @@ class PacketHeadTreeWidget(TreeWidget):
         self.api= api
 
     @showCall
-    def refresh(self, steps):
+    def refresh(self, steps=None):
         self._show()
         # self.expandToDepth(0)
 

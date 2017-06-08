@@ -4,6 +4,7 @@
 from collections import defaultdict, deque
 
 NoneFunc= lambda:None
+
 class Handle:
     def __init__(self, func=NoneFunc, *args, **kwargs):
         self.func= func
@@ -60,21 +61,17 @@ class Clock:
         return handle
 
 
-
-
 class Timer:
-    def __init__(self, func, *args, **kwargs):
+    def __init__(self, func):
         self.func= func
-        self.args= args
-        self.kwargs= kwargs
         self.handle= Handle()
 
     def __bool__(self):
         return bool(self.handle)
 
-    def timing(self, delay, __to_head__= False):
+    def timing(self, delay, *args, **kwargs):
         self.handle.clear()
-        self.handle= clock.timing(delay, self.func, *self.args, **self.kwargs, __to_head__=__to_head__)
+        self.handle= clock.timing(delay, self.func, *args, **kwargs)
 
     def cancel(self):
         self.handle.clear()

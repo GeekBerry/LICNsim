@@ -1,15 +1,12 @@
 #!/usr/bin/python3
 #coding=utf-8
-from core.common import Hardware, Unit, objName
+from core.common import Hardware, Unit
 from core.data_structure import Announce
 
 
 class NodeBase(Hardware):
     def __init__(self, name):
         super().__init__(f'Node({name})')
-
-    def __str__(self):
-        return objName(self)
 
 
 # =======================================================================================================================
