@@ -39,7 +39,7 @@ from core.policy import FIFOPolicy, PolicyUnit
 from constants import INF
 
 
-class Node(NodeBase):
+class TestNode(NodeBase):
     def __init__(self, name):
         Hardware.__init__(self, f'Node {name}')
         # self.install('buffer', NodeBufferUnit(rate= INF, buffer_size= INF) )

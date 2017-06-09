@@ -114,11 +114,16 @@ from PyQt5.QtWidgets import QSpinBox, QCheckBox, QComboBox, QDoubleSpinBox
 
 
 class SpinBox(QSpinBox):
-    def __init__(self, obj, attr):
-        self.get= lambda: obj.__getattribute__(attr)
-        self.set= lambda: obj.__setattr__( attr, self.value() )
+    def __init__(self, obj=None, attr=None):
         super().__init__(None)
         self.setRange(1, INF)
+
+        if obj is not None and attr is not None:  # DEBUG
+            self.bind(obj, attr)
+
+    def bind(self, obj, attr):
+        self.get= lambda: obj.__getattribute__(attr)
+        self.set= lambda: obj.__setattr__( attr, self.value() )
 
         self.setValue( self.get() )
         self.editingFinished.connect( self.set )

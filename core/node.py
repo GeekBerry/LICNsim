@@ -73,6 +73,7 @@ class AppUnit(Unit):
 # ----------------------------------------------------------------------------------------------------------------------
 from core.packet import Packet
 
+
 class ForwarderUnitBase(Unit):
     def install(self, announces, api):
         super().install(announces, api)
@@ -93,6 +94,23 @@ class ForwarderUnitBase(Unit):
     def _inData(self, face_id, packet):
         pass
 
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+from core.data_structure import Bind
+
+
+class MonitorUnit(Unit):
+    def __init__(self, monitor_module, hw_id):
+        self.monitor_module= monitor_module
+        self.hw_id= hw_id
+
+    def install(self, announces, api):
+        api['']
+        pass
+
+    def loadAnnounce(self, anno_name, function):
+        self.announces[anno_name].append( Bind(function, self.hw_id) )
 
 
 

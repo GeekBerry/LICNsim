@@ -10,7 +10,7 @@ from core.name import Name
 from core import Monitor, Channel,  clock
 from core.icn_net import ICNNetHelper,AskGenerator
 from core.algorithm import FixedAsk, ExponentAsk, UniformPosition, SamplePosition
-from example_normal.node import Node
+from example_normal.node import TestNode
 
 from PyQt5.QtCore import QPointF
 from PyQt5.QtWidgets import QApplication
@@ -37,7 +37,7 @@ graph = constants.GraphGrid11X11().graph
 # graph= constants.GraphBA50().graph
 # graph= networkx.DiGraph( networkx.path_graph(2) )
 
-ICNNetHelper.setup(graph, Node, TestChannel)  # 把graph变成icn graph
+ICNNetHelper.setup(graph, TestNode, TestChannel)  # 把graph变成icn graph
 monitor= Monitor(graph)  # 数据库监听graph
 
 # logger= AnnounceTableLog()

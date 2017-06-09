@@ -364,7 +364,6 @@ class SizeDictDecorator(CallBackDictDecorator):
 #         pass
 
 
-
 # ----------------------------------------------------------------------------------------------------------------------
 class TimeDictDecorator(CallBackDictDecorator):
     def __init__(self, table, life_time, set_refresh= True, get_refresh= True):
@@ -548,8 +547,11 @@ class ScaleSeqDefault:
     def __str__(self):  # DEBUG
         return str(dict(self.order_dict))
 
+
 # ======================================================================================================================
-EMPTY_FUNC= lambda *args: None
+def EMPTY_FUNC(*args, **kwargs):
+    pass
+
 
 class Bind:
     def __init__(self, func= EMPTY_FUNC, *args):
@@ -567,15 +569,26 @@ class Bind:
         return self.func(*self.args, *args, **kwargs)
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+class UnmapedWarring:
+    def __init__(self, call_table, call_name):
+        self.call_table= call_table
+        self.call_name= call_name
 
-#-----------------------------------------------------------------------------------------------------------------------
-class CallTable(dict):  # FIXME 能否利用defaultdict实现
+    def __call__(self, *args, **kwargs):
+        # TODO Exception, 和定位
+        print(f'UnmapedWarring:\n'
+              f'\t{self.call_table.__class__.__name__}.["{self.call_name}"]({args}, {kwargs}) 没有对应函数, 调用失败!!!')  # DEBUG
+
+
+class CallTable(dict):
     def __getitem__(self, name):
-        return self.setdefault( name, Bind(EMPTY_FUNC) )
+        return self.setdefault(  name, Bind( UnmapedWarring(self, name) )  )
 
     def __setitem__(self, name, func):
-        callback= self.setdefault( name,  Bind(EMPTY_FUNC) )
+        callback= self.setdefault(name, Bind() )
         callback.func= func
+
 
 # if __name__ == '__main__':
 #     t= CallTable()
@@ -597,6 +610,9 @@ class Announce:
     def __call__(self, *args):
         for callback in self.callbacks:
             callback(*args)
+
+    def pushHead(self, func):
+        self.callbacks.insert(0, func)
 
     def append(self, func):
         self.callbacks.append(func)

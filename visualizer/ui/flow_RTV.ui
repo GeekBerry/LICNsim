@@ -14,15 +14,28 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0">
-    <widget class="QLabel" name="title">
-     <property name="text">
-      <string>(未知)</string>
+   <item row="1" column="0" colspan="3">
+    <widget class="PolyLineCanvas" name="num_canvas" native="true">
+     <property name="minimumSize">
+      <size>
+       <width>256</width>
+       <height>256</height>
+      </size>
      </property>
     </widget>
    </item>
-   <item row="3" column="1">
-    <widget class="QLabel" name="accum_num">
+   <item row="5" column="0" colspan="3">
+    <widget class="PolyLineCanvas" name="size_canvas" native="true">
+     <property name="minimumSize">
+      <size>
+       <width>256</width>
+       <height>256</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="1">
+    <widget class="QLabel" name="accum_size">
      <property name="text">
       <string>(未知)</string>
      </property>
@@ -41,6 +54,13 @@
      </property>
     </spacer>
    </item>
+   <item row="3" column="1">
+    <widget class="QLabel" name="accum_num">
+     <property name="text">
+      <string>(未知)</string>
+     </property>
+    </widget>
+   </item>
    <item row="7" column="0">
     <widget class="QLabel" name="label_5">
      <property name="text">
@@ -48,30 +68,10 @@
      </property>
     </widget>
    </item>
-   <item row="2" column="2">
-    <spacer name="horizontalSpacer">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>169</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="2" column="1">
-    <widget class="QLabel" name="segm_num">
+   <item row="0" column="0">
+    <widget class="QLabel" name="title">
      <property name="text">
       <string>(未知)</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="label_2">
-     <property name="text">
-      <string>总包数量(个)</string>
      </property>
     </widget>
    </item>
@@ -88,6 +88,33 @@
      </property>
     </spacer>
    </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>总包数量(个)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QLabel" name="segm_num">
+     <property name="text">
+      <string>(未知)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>169</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
    <item row="2" column="0">
     <widget class="QLabel" name="label">
      <property name="text">
@@ -95,12 +122,18 @@
      </property>
     </widget>
    </item>
-   <item row="4" column="0" colspan="3">
-    <widget class="Line" name="line">
+   <item row="8" column="0" colspan="3">
+    <spacer name="verticalSpacer">
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Vertical</enum>
      </property>
-    </widget>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item row="6" column="0">
     <widget class="QLabel" name="label_4">
@@ -129,43 +162,10 @@
      </property>
     </spacer>
    </item>
-   <item row="8" column="0" colspan="3">
-    <spacer name="verticalSpacer">
+   <item row="4" column="0" colspan="3">
+    <widget class="Line" name="line">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="7" column="1">
-    <widget class="QLabel" name="accum_size">
-     <property name="text">
-      <string>(未知)</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0" colspan="3">
-    <widget class="PolyLineCanvas" name="size_canvas" native="true">
-     <property name="minimumSize">
-      <size>
-       <width>256</width>
-       <height>256</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0" colspan="3">
-    <widget class="PolyLineCanvas" name="num_canvas" native="true">
-     <property name="minimumSize">
-      <size>
-       <width>256</width>
-       <height>256</height>
-      </size>
+      <enum>Qt::Horizontal</enum>
      </property>
     </widget>
    </item>

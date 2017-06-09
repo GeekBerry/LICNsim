@@ -64,6 +64,10 @@ class Hardware:
 
 
 class Unit:
+    def __init__(self):
+        self.announces= None
+        self.api= None
+
     def install(self, announces, api):
         self.announces= announces
         self.api= api

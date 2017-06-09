@@ -15,8 +15,20 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
+    <item row="1" column="0">
      <widget class="NetWidget" name="net_widget" native="true"/>
+    </item>
+    <item row="0" column="0">
+     <widget class="QQuickWidget" name="quickWidget">
+      <property name="resizeMode">
+       <enum>QQuickWidget::SizeRootObjectToView</enum>
+      </property>
+      <property name="source">
+       <url>
+        <string>file:///C:/Users/bupt632/Desktop/LICNsim/visualizer/ui/mian_widget.qml</string>
+       </url>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -33,6 +45,11 @@
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QQuickWidget</class>
+   <extends>QWidget</extends>
+   <header>QtQuickWidgets/QQuickWidget</header>
+  </customwidget>
   <customwidget>
    <class>NetWidget</class>
    <extends>QWidget</extends>
