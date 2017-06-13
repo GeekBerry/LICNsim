@@ -40,7 +40,6 @@ class CSTableWidget(TableWidget):
         for row, (name, record) in enumerate(items):
             self.setRow( row, name, len(record.store), len(record.pending) )
 
-
     @showCall
     def mousePressEvent(self, event):
         super().mousePressEvent(event)

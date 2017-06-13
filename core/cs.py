@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from core.common import Unit
+from common import Unit
 from core.data_structure import TimeDictDecorator
 
 
@@ -13,12 +13,12 @@ class ContentStoreUnit(Unit):
     def install(self, announces, api):
         super().install(announces,api)
         # 提供的 API
-        api['CS::size']= self.__len__
-        api['CS::setCapacity']= self.setCapacity  # 只能用函数, 因为lambda中不能用赋值操作
-        api['CS::store']= self.store
-        api['CS::match']= self.match
+        api['CS.size']= self.__len__
+        api['CS.setCapacity']= self.setCapacity  # 只能用函数, 因为lambda中不能用赋值操作
+        api['CS.store']= self.store
+        api['CS.match']= self.match
         # 调用的 API
-        self.replace= api['Policy::replace']
+        self.replace= api['Policy.replace']
 
     def __len__(self):
         return len(self.table)
@@ -75,12 +75,14 @@ class ContentStoreUnit(Unit):
 #     api= CallTable()
 #     t.install(announces, api)
 #
-#     api['CS::setCapacity'](5)
+#     api['CS.setCapacity'](5)
 #
 #     print(t.table)
 
-#=======================================================================================================================
+# ======================================================================================================================
 import constants
+
+
 class SimulatCSUnit(ContentStoreUnit):
     """
     模拟一个繁忙的CS, 即数据包插入后一段时间就会被'替换'
@@ -96,8 +98,8 @@ class SimulatCSUnit(ContentStoreUnit):
 
     def install(self, announces, api):
         super().install(announces, api)
-        api['CS::setMode']= self.setMode
-        api['CS::setLifeTime']= self.setLifeTime
+        api['CS.setMode']= self.setMode
+        api['CS.setLifeTime']= self.setLifeTime
 
     def setMode(self, mode):
         if mode == self.MODE.MANUAL: self.table.life_time= constants.INF

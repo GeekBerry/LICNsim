@@ -7,31 +7,31 @@ import random
 
 class ForwarderUnit(ForwarderUnitBase):
     def _inInterest(self, face_id, packet):
-        data= self.api['CS::match'](packet)
+        data= self.api['CS.match'](packet)
         if data is not None:
-            self.api['Face::send']( [face_id], data )
+            self.api['Face.send']( [face_id], data )
         else:
             self.randomForward(face_id, packet)
 
     def _inData(self, face_id, packet):
-        send_ids= self.api['Info::getPendingIds'](packet.name)
+        send_ids= self.api['Info.getPendingIds'](packet.name)
         if send_ids:
-            self.api['Face::send'](send_ids, packet)  # 记录: info[send_id].outI == clock.life_time()
-            self.api['CS::store'](packet)
+            self.api['Face.send'](send_ids, packet)  # 记录: info[send_id].outI == clock.life_time()
+            self.api['CS.store'](packet)
         else:
             self.announces['unsolicited'](face_id, packet)
 
     def randomForward(self,  face_id, packet):
-        face_ids= self.api['Face::getCanSendIds']() - {face_id, 'APP'}
+        face_ids= self.api['Face.getCanSendIds']() - {face_id, 'APP'}
         if face_ids:
             send_ids= random.sample(face_ids, min(len(face_ids), 2) )
-            self.api['Face::send']( send_ids, packet )
+            self.api['Face.send']( send_ids, packet )
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 from random import randint
 from core.node import NodeBase, NodeBufferUnit, AppUnit
-from core.common import Hardware
+from common import Hardware
 from core.cs import ContentStoreUnit
 from core.face import FaceUnit, RepeatChecker, LoopChecker, NoLoopChecker
 from core.info_table import InfoUnit

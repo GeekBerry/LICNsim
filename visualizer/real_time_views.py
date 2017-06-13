@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget
 import numpy
 
 from debug import showCall
-from core.common import strPercent
+from common import strPercent
 from core import clock
 
 

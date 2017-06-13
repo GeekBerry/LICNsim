@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 #coding=utf-8
 import networkx
-
 import name
 
 INF= 0x7FFFFFFF  # 无穷大 此处用4byte整形最大正数

@@ -2,23 +2,9 @@
 # coding=utf-8
 
 
-
-
-def singleton(cls, *args, **kw):
-    instance={}
-
-    def _singleton():
-        if cls not in instance:
-            instance[cls]=cls(*args, **kw)
-        return instance[cls]
-    return _singleton
-
-
-def strPercent(value):
-    return '%0.2f%%'%( value*100 )
+import os
 # ======================================================================================================================
 import sys
-import os
 
 
 def getFileClass(path):
@@ -43,39 +29,5 @@ def setSysKwargs(**kwargs)->str:
     return string
 
 # ======================================================================================================================
-from core.data_structure import CallTable, AnnounceTable
-
-
-class Hardware:
-    def __init__(self, name):
-        self.name= name
-        self.api= CallTable()
-        self.announces= AnnounceTable()
-        self.units= {}
-
-    def install(self, unit_name, unit):
-        unit.install(self.announces, self.api)
-        self.units[unit_name]= unit
-
-    def uninstall(self, unit_name):
-        unit= self.units[unit_name]
-        unit.uninstall(self.announces, self.api)
-        del self.units[unit_name]
-
-
-class Unit:
-    def __init__(self):
-        self.announces= None
-        self.api= None
-
-    def install(self, announces, api):
-        self.announces= announces
-        self.api= api
-        pass
-
-    def uninstall(self, announces, api):
-        # self.announces= None
-        # self.api= None
-        pass
 
 

@@ -6,7 +6,8 @@ import random
 import itertools
 
 from constants import INF
-from core import Hardware, clock, Announce, SizeLeakyBucket
+from core import clock, Announce, SizeLeakyBucket
+from common import Hardware
 
 
 class Channel(Hardware, Announce):
@@ -43,7 +44,7 @@ class Channel(Hardware, Announce):
     def __call__(self, packet):
         order= next(self._order_iter)
         self._bucket.append(len(packet), order, packet)
-        # size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
+        # XXX size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
 
     def _transfer(self, order, packet):
         self.announces['end'](order, packet)
@@ -60,6 +61,7 @@ class Channel(Hardware, Announce):
 #=======================================================================================================================
 def PerfectChannel(src, dst):
     return  Channel(src, dst, rate= INF, buffer_size= INF, delay=0, loss= 0.0)
+
 
 def OneStepChannel(src, dst):
     return  Channel(src, dst, rate= INF, buffer_size= INF, delay=1, loss= 0.0)

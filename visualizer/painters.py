@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from debug import showCall
 from core import clock
-from core.common import strPercent
+from common import strPercent
 from core.icn_net import ICNNetHelper
 from visualizer.ui_net import UINetHelper
 from visualizer.common import HotColor, DeepColor, threshold, TransferRecordToText

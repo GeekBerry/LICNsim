@@ -1,57 +1,27 @@
-from core.data_structure import AnnounceTable, CallTable
-
 import networkx
+import itertools
+
+from common import Unit, Hardware
+
 from debug import showCall
 
 
-class Simulator:
+# ======================================================================================================================
+class TopologyModule(Unit):
     def __init__(self):
         self.graph= networkx.DiGraph()
-
-        self.api= CallTable()
-        self.announces= AnnounceTable()
-        self.module_table= {}
-        # install
-        self.api['Sim.getGraph']= lambda: self.graph
-
-    def install(self, module_name, module):
-        module.install(self.announces, self.api)
-        self.module_table[module_name]= module
-
-    def uninstall(self, module_name):
-        module= self.module_table[module_name]
-        module.uninstall(self.announces, self.api)
-        del self.module_table[module_name]
-
-
-class Module:
-    def __init__(self):
-        self.announces= None
-        self.api= None
-
-    def install(self, announces, api):
-        self.announces= announces
-        self.api= api
-        pass
-
-    def uninstall(self, announces, api):
-        # self.announces= None
-        # self.api= None
-        pass
-
-
-# ======================================================================================================================
-import itertools
-
-
-class TopologyModule(Module):
-    def __init__(self):
-        super().__init__()
         self.node_id_iter= itertools.count(start=0, step=1)
 
     def install(self, announces, api):
         super().install(announces, api)
-        self.api['Topo::addSubGraph']= self.addSubGraph
+        self.api['Topo.graph']= lambda :self.graph
+        self.api['Topo.nodeIds']= lambda :self.graph.nodes()
+        self.api['Topo.edgeIds']= lambda :self.graph.edges()
+        self.api['Topo.neiborTable']= self.neiborTable
+        self.api['Topo.addSubGraph']= self.addSubGraph
+
+    def neiborTable(self):  # XXX networks 的 graph 定义正好符合 neibor_table 的定义
+        return self.graph
 
     @showCall
     def addSubGraph(self, sub_graph):
@@ -63,13 +33,10 @@ class TopologyModule(Module):
         node_id_map= {}  # {sub_graph.NodeName:node_id}
         egde_list= []  # [edge_id, ...]
 
-        di_graph= self.api['Sim.getGraph']()
-        assert isinstance(di_graph, networkx.DiGraph)  # DEBUG
-
         # 添加节点
         for node_name in sub_graph.nodes():
             index= next(self.node_id_iter)
-            di_graph.add_node(index)
+            self.graph.add_node(index)
             node_id_map[node_name]= index
 
         # 添加边
@@ -77,59 +44,65 @@ class TopologyModule(Module):
             src_id= node_id_map[src_name]
             dst_id= node_id_map[dst_name]
             # 正向边
-            di_graph.add_edge(src_id, dst_id)
-            egde_list.append( (src_id, dst_id,) )
+            self.graph.add_edge(src_id, dst_id)
+            egde_list.append( (src_id, dst_id) )
             # 反向边
-            di_graph.add_edge(dst_id, src_id)
-            di_graph.add_edge(dst_id, src_id)
+            self.graph.add_edge(dst_id, src_id)
+            egde_list.append( (dst_id, src_id) )
 
         return node_id_map.values(), egde_list
 
 
 # ======================================================================================================================
-class ICNNetModule(Module):
-    def __init__(self):
-        super().__init__()
-        pass
-
+class ICNNetModule(Unit):
     def install(self, announces, api):
         super().install(announces, api)
         api['ICNNet.addNet']= self.addNet
         api['ICNNet.nodeItems']= self.nodeItems
         api['ICNNet.edgeItems']= self.edgeItems
+        api['ICNNet.getNode']= self.getNode
+        api['ICNNet.getEdge']= self.getEdge
+
+    def getNode(self, node_id):
+        graph= self.api['Topo.graph']()
+        assert isinstance(graph, networkx.DiGraph)  # DEBUG
+        return graph.node[node_id]
 
     def nodeItems(self):
-        di_graph= self.api['Sim.getGraph']()
-        assert isinstance(di_graph, networkx.DiGraph)  # DEBUG
+        graph= self.api['Topo.graph']()
+        assert isinstance(graph, networkx.DiGraph)  # DEBUG
+        for node_id in graph:
+            yield node_id, graph.node[node_id]
 
-        for node_id in di_graph:
-            yield node_id, di_graph.node[node_id]
+    def getEdge(self, src_id, dst_id):
+        graph= self.api['Topo.graph']()
+        assert isinstance(graph, networkx.DiGraph)  # DEBUG
+        return graph[src_id][dst_id]
 
     def edgeItems(self):
-        di_graph= self.api['Sim.getGraph']()
-        assert isinstance(di_graph, networkx.DiGraph)  # DEBUG
-
-        for src,dst in di_graph.edges():
-            yield (src,dst), di_graph[src][dst]
+        graph= self.api['Topo.graph']()
+        assert isinstance(graph, networkx.DiGraph)  # DEBUG
+        for src,dst in graph.edges():
+            yield (src,dst), graph[src][dst]
 
     def addNet(self, top_graph, NodeType, ChannelType):
-        node_ids, edge_ids= self.api['Topo::addSubGraph'](top_graph)
+        node_ids, edge_ids= self.api['Topo.addSubGraph'](top_graph)
 
-        di_graph= self.api['Sim.getGraph']()
-        assert isinstance(di_graph, networkx.DiGraph)  # DEBUG
+        graph= self.api['Topo.graph']()
+        assert isinstance(graph, networkx.DiGraph)  # DEBUG
 
         # 先建立所有 Node
         for node_id in node_ids:
             icn_node= NodeType(node_id)
-            di_graph.node[node_id]= icn_node
+            graph.node[node_id]= icn_node
             self.announces['addICNNode'](node_id, icn_node)
 
         # 再建立 Channel
         for src_id, dst_id in edge_ids:
             icn_channel= ChannelType(src_id, dst_id)
-            di_graph.node[src_id].api['Face::setOutChannel'](dst_id, icn_channel)  # src 节点通往 dst 的信道 Channel(src -> dst)
-            di_graph.node[dst_id].api['Face::setInChannel'](src_id, icn_channel)  # dst 接收 src 的信道为 Channel(src -> dst)
-            di_graph[src_id][dst_id]= icn_channel
+            graph.node[src_id].api['Face.setOutChannel'](dst_id, icn_channel)  # src 节点通往 dst 的信道 Channel(src -> dst)
+            graph.node[dst_id].api['Face.setInChannel'](src_id, icn_channel)  # dst 接收 src 的信道为 Channel(src -> dst)
+            graph[src_id][dst_id]= icn_channel
             self.announces['addICNChannel'](src_id, dst_id, icn_channel)
 
 
@@ -138,7 +111,7 @@ from collections import defaultdict
 from core.data_structure import Bind
 
 
-class HubModule(Module):
+class HubModule(Unit):
     """
     将网络中每个 Node 或 channel 的指定 Announce 绑定上节点或信道的id, 发送到 sim 的 announces 上
     在监听到网络中有 addICNNode 和 addICNChannel 时, 自动为新增 Node 和 Channel 添加绑定
@@ -147,7 +120,6 @@ class HubModule(Module):
     >>> api['Hub.loadChannelAnnounce']('begin', print) # Channel(10, 15).announces['begin'](order, packet) => print(10, 15, order, packet)
     """
     def __init__(self):
-        super().__init__()
         self.node_anno_table= defaultdict(set) # {AnnounceName:set(function, ...), ...}
         self.channel_anno_table= defaultdict(set) # {AnnounceName:set(function, ...), ...}
 
@@ -187,52 +159,61 @@ from core.clock import clock
 from core.data_base import DataBaseTable
 
 
-class DataBaseModule(Module):
+class DataBaseModule(Unit):
     def __init__(self):
-        super().__init__()
-        self.database= dict()
+        self.data_base= dict()
 
         # time:int时间, node_id:int节点ID -> store:int存储量, evict:int驱逐量, hit:int内容命中量, miss:int内容缺失量, recv:int接收包量, send:int发送包量
-        self.database['node_t']= DataBaseTable().create('time', 'node_id', store=0, evict=0, hit=0, miss=0, recv=0, send=0)
+        self.data_base['node_t']= DataBaseTable().create('time', 'node_id', store=0, evict=0, hit=0, miss=0, recv=0, send=0)
 
     def install(self, announces, api):
         api['Hub.loadNodeAnnounce']('csHit', self._hitEvent)
         api['Hub.loadNodeAnnounce']('csMiss', self._missEvent)
+        api['DB.table']= lambda table_name: self.data_base.get(table_name)
 
     def _hitEvent(self, node_id, packet):
-        self.database['node_t'][clock.time(), node_id]['hit']+= 1
+        self.data_base['node_t'][clock.time(), node_id]['hit']+= 1
 
     def _missEvent(self, node_id, packet):
-        self.database['node_t'][clock.time(), node_id]['miss']+= 1
+        self.data_base['node_t'][clock.time(), node_id]['miss']+= 1
 
+
+# ======================================================================================================================
+from module.Monitors import *
+
+
+class MonitorModule(Unit):
+    def __init__(self):
+        self.name_tree= NameTree()
+
+    def install(self, announces, api):
+        api['Monitor.getNameTree']= lambda: self.name_tree
+        NameStateMonitor(self.name_tree).install(announces, api)
 
 # ======================================================================================================================
 import sys
 from PyQt5.QtWidgets import QApplication
-from gui.QuiWidget import MainWindow
+from gui.MainWindow import MainWindow
 
 
-class GUIModule(Module):
+class GUIModule(Unit):
     def __init__(self):
-        super().__init__()
+        self.app = QApplication(sys.argv)  # 必须放在MainWindow前
+        self.main_window= MainWindow()
 
     def install(self, announces, api):
         super().install(announces, api)
-        api['Gui::start']= self.start
+        self.main_window.install(self.announces, self.api )
+        api['Gui.start']= self.start
 
     def start(self):
-        app = QApplication(sys.argv)  # 必须放在MainWindow前
-
-        main_window= MainWindow()
-        main_window.install(self.announces, self.api )
-        main_window.show()
-
-        return app.exec_()
+        self.announces['playSteps'](0)  # 用于初始化各个部件
+        self.main_window.show()
+        return self.app.exec_()
 
 
 # ======================================================================================================================
 # if __name__ == '__main__':
-#     import random
 #     from core.clock import clock
 #     from example_normal.main import ip_A, ip_B, dp_A, dp_B
 #     from example_normal.node import TestNode
@@ -251,31 +232,67 @@ class GUIModule(Module):
 #     sim.api['Hub.loadNodeAnnounce']('inPacket', Bind(print, 'inPacket') )
 #     sim.api['Hub.loadNodeAnnounce']('outPacket', Bind(print, 'outPacket') )
 #
-#     sim.graph.node[0].api['CS::store'](dp_A)
+#     sim.graph.node[0].api['CS.store'](dp_A)
 #
 #     for i in range(1000):
 #         if i < 100:
 #             node_id= random.randint(0,10)
-#             sim.graph.node[node_id].api['APP::ask'](ip_A.fission())
+#             sim.graph.node[node_id].api['APP.ask'](ip_A.fission())
 #         clock.step()
 #
 #     print(sim.module_table['database'].database['node_t'].db_table.records)
 
+import random
+from core.clock import Timer
+
+
+class DebugUniformAsker:
+    def __init__(self, node_ids, packet, delta, delay=0):
+        self.node_ids= node_ids
+        self.packet= packet
+
+        self.delta= delta
+        self.timer= Timer(self._ask)
+        self.timer.timing(delay)
+
+    def install(self, announces, api):
+        self.api= api
+
+    def _ask(self):
+        node_ids= random.sample(self.node_ids, 1)
+        sim.api['ICNNet.getNode'](node_ids[0]).api['APP.ask']( self.packet.fission() )
+        self.timer.timing(self.delta)
+
 
 if __name__ == '__main__':
-    sim= Simulator()
+    sim= Hardware('')
     sim.install( 'topology', TopologyModule() )
     sim.install( 'icn_net', ICNNetModule() )
-    sim.install( 'monitor', HubModule() )
+    sim.install( 'hub', HubModule() )
     sim.install( 'database', DataBaseModule() )
+    sim.install( 'monitor', MonitorModule() )
     sim.install( 'gui', GUIModule() )
-    sim.api['Gui::start']()
 
+    from example_normal.node import TestNode
+    from core.channel import OneStepChannel
+    sim.api['ICNNet.addNet']( networkx.grid_2d_graph(4,4), TestNode, OneStepChannel )
+    # sim.api['ICNNet.addNet']( networkx.grid_2d_graph(2,2), TestNode, OneStepChannel )
 
+    # ------------------------------------------------
+    from core.packet import Packet
+    from core.name import Name
 
+    ip_A1= Packet(Name('A/1'), Packet.INTEREST, 1)
+    ip_A2= Packet(Name('A/2'), Packet.INTEREST, 1)
+    dp_A1= Packet(Name('A/1'), Packet.DATA, 500)
+    dp_A2= Packet(Name('A/2'), Packet.DATA, 500)
 
+    sim.api['ICNNet.getNode'](0).api['CS.store'](dp_A1)
+    sim.api['ICNNet.getNode'](1).api['CS.store'](dp_A2)
 
+    DebugUniformAsker( sim.api['Topo.nodeIds'](), ip_A1, 10 ).install(None, sim.api)
 
+    sim.api['Gui.start']()
 
 
 

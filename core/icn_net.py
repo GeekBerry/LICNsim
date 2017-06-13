@@ -22,8 +22,8 @@ class ICNNetHelper:
         # 构造信道, 要先建立所有节点再建立Channel
         for src,dst in graph.edges():
             channel= ChannelFactory(src, dst)
-            graph.node[src]['icn'].api['Face::setOutChannel'](dst, channel)
-            graph.node[dst]['icn'].api['Face::setInChannel'](src, channel)
+            graph.node[src]['icn'].api['Face.setOutChannel'](dst, channel)
+            graph.node[dst]['icn'].api['Face.setInChannel'](src, channel)
             graph[src][dst]['icn']= channel
 
     @staticmethod
@@ -117,7 +117,7 @@ class AskGenerator:
         node_num= self.num_func( clock.time() - self.start_time )
         node_names= self.pos_func(node_num)
         for node_name in node_names:
-            ICNNetHelper.node(self.graph, node_name).api['APP::ask'](self.packet.fission())
+            ICNNetHelper.node(self.graph, node_name).api['APP.ask'](self.packet.fission())
         self.timer.timing(self.delta)
 
     def end(self):

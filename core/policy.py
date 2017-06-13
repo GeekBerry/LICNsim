@@ -2,7 +2,7 @@
 #coding=utf-8
 
 import random
-from core.common import Unit
+from common import Unit
 from core.data_structure import deque
 
 class PolicyUnit(Unit):
@@ -18,8 +18,8 @@ class PolicyUnit(Unit):
         announces['csHit'].append(self.hit)
         announces['csMiss'].append(self.miss)
         # 提供的 API
-        api['Policy::setPolicy']= self.setPolicyType
-        api['Policy::replace']= self.replace
+        api['Policy.setPolicy']= self.setPolicyType
+        api['Policy.replace']= self.replace
 
     def uninstall(self, annouces, api):
         annouces['csStore'].remove(self.store)
@@ -27,11 +27,11 @@ class PolicyUnit(Unit):
         annouces['csHit'].remove(self.hit)
         annouces['csMiss'].remove(self.miss)
 
-        if api['Policy::replace'] is self.replace:
-            del api['Policy::replace']
+        if api['Policy.replace'] is self.replace:
+            del api['Policy.replace']
 
-        if api['Policy::setPolicy'] is self.setPolicyType:
-            del api['Policy::setPolicy']
+        if api['Policy.setPolicy'] is self.setPolicyType:
+            del api['Policy.setPolicy']
 
     def setPolicyType(self, PolocyFactory):
         self.policy= PolocyFactory()

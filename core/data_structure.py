@@ -256,6 +256,7 @@ def decoratorOfType(Type):
 # ----------------------------------------------------------------------------------------------------------------------
 DictDecorator= decoratorOfType(dict)
 
+
 class CallBackDictDecorator(DictDecorator):
     """
     例子:
@@ -611,6 +612,12 @@ class Announce:
         for callback in self.callbacks:
             callback(*args)
 
+        # DEBUG
+        # if len(self.callbacks) == 0:
+        #     self.no_listener_event()
+        # else:
+        #     self.call_event()
+
     def pushHead(self, func):
         self.callbacks.insert(0, func)
 
@@ -624,37 +631,49 @@ class Announce:
             pass
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+class AnnounceTable(dict):  # DEBUG 版本
+    def __getitem__(self, item):
+        anno= self.get(item)
+        if anno is None:
+            anno= Announce()
+            anno.call_event= Bind(print, f'调用{item}')
+            anno.no_listener_event= Bind(print, f'{item}没有监听者')   # DEBUG
+            self[item]= anno
+        return anno
+
+
 # class AnnounceTable(defaultdict):  # 不带Log版
 #     def __init__(self):
 #         super().__init__(Announce)
 
 
-class AnnounceTable:  # 带log版本
-    def __init__(self):
-        self.logger= Announce()
-        self._table= {}  # {name:Announce(), ...}
-
-    def items(self):
-        return self._table.items()
-
-    def __getitem__(self, name):
-        """
-        在新建一个Announce时, 自动为Announce添加一个绑定到self.Announce的项
-        :param name: Announce名称
-        :return: Announce
-        
-        AnnounceTable[name](*args) => [self.logger(name, *args), 其他... ]
-        """
-        announce= self._table.get(name)
-        if announce is None:
-            self._table[name]= announce= Announce()
-            announce.append(Bind(self.logger, name))
-        return announce
-
-    def __setitem__(self, action, announce):
-        if not isinstance(announce, Announce):
-            raise TypeError('value 必须是 Announce 子类型')
-        self._table[action]= announce
+# class AnnounceTable:  # 带log版本
+#     def __init__(self):
+#         self.logger= Announce()
+#         self._table= {}  # {name:Announce(), ...}
+#
+#     def items(self):
+#         return self._table.items()
+#
+#     def __getitem__(self, name):
+#         """
+#         在新建一个Announce时, 自动为Announce添加一个绑定到self.Announce的项
+#         :param name: Announce名称
+#         :return: Announce
+#
+#         AnnounceTable[name](*args) => [self.logger(name, *args), 其他... ]
+#         """
+#         announce= self._table.get(name)
+#         if announce is None:
+#             self._table[name]= announce= Announce()
+#             announce.append(Bind(self.logger, name))
+#         return announce
+#
+#     def __setitem__(self, action, announce):
+#         if not isinstance(announce, Announce):
+#             raise TypeError('value 必须是 Announce 子类型')
+#         self._table[action]= announce
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -668,20 +687,20 @@ class Leaker(Announce):
         self.rate= rate  # 速率
         self._accum= rate  # 余量
 
-        self.timer= Timer(self.finish)
+        self.finish_timer= Timer(self.finish)
         self.reset_timer= Timer(self.reset)
 
     def __bool__(self):  # True: 正在工作, False: 空闲
-        return bool(self.timer)
+        return bool(self.finish_timer)
 
     def __call__(self, size, data):
-        if not self:
+        if not self:  # 空闲中
             self.reset_timer.cancel()
 
             delay= math.ceil( (size - self._accum)/self.rate )
             self._accum += delay*self.rate - size
 
-            self.timer.timing(delay, data)
+            self.finish_timer.timing(delay, data)
             return True
         else:
             return False
@@ -690,8 +709,8 @@ class Leaker(Announce):
         self._accum= self.rate
 
     def finish(self, data):
-        clock.timing(0, super().__call__, data)  # XXX 只能用timing(delay=0), 否者可能会递归调用
-        self.reset_timer.timing(1)
+        clock.timing(0, super().__call__, data)  # XXX 只能用timing(delay=0), 否者会递归造成死循环
+        self.reset_timer.timing(1)  # 下一回合将会被重置
 
 
 # if __name__ == '__main__':
@@ -718,18 +737,18 @@ class Leaker(Announce):
 class SizeLeakyBucket:
     """
     callbacks:
-        'queue': 数据装入桶里
-        'full':  桶满, 数据装入失败
-        'begin': 数据开始滴漏
-        'end':   数据漏出
+        'queue'(*args): 数据装入桶里
+        'full'(*args):  桶满, 数据装入失败
+        'begin'(*args): 数据开始滴漏
+        'end'(*args):   数据漏出
     """
     def __init__(self, rate, max_size):
         self.queue= SizeQueue(max_size)
 
         self.leaker= Leaker(rate)
-        self.leaker.append( lambda *datas: self.pop() )
-        self.leaker.append( lambda *datas: self.activate() )
-
+        # 漏桶滴漏, 先pop出队列, 再激活下一次滴漏
+        self.leaker.append( lambda *datas: self._pop() )  # 先 append _pop
+        self.leaker.append(lambda *datas: self._activate())  # 后 append _activate
         self.callbacks= CallTable()
 
     @property
@@ -758,17 +777,17 @@ class SizeLeakyBucket:
     def append(self, size, *datas):
         if self.queue.append(size, datas):
             self.callbacks['queue'](*datas)
-            self.activate()
+            self._activate()
         else:
             self.callbacks['full'](*datas)
 
-    def activate(self):
+    def _activate(self):
         if self.queue and (not self.leaker):
             size, datas= self.queue.top()
             self.callbacks['begin'](*datas)
             self.leaker(size, datas)
 
-    def pop(self):
+    def _pop(self):
         size, datas= self.queue.pop()
         self.callbacks['end'](*datas)
 

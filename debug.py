@@ -1,6 +1,7 @@
 import cProfile
 import pstats
 import time
+import types
 
 
 def timeIt(func):
@@ -12,7 +13,6 @@ def timeIt(func):
     return _lambda
 
 
-import types
 def objName(obj):  # TODO 整理重写
     if type(obj) == types.MethodType:
         addr= hex(id(obj.__self__))
@@ -54,6 +54,7 @@ def showCall(func):
         except Exception as exc:
             traceback.print_exc()
             exit(1)
+            ret= None
 
         show_call_deep -= 1
 

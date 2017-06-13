@@ -32,8 +32,8 @@ class NodeStateMonitor:
         self.state_accum_seq= AccumScaleSeq( 1, INF, self.NodeStateNameTree() )
 
     def install(self, announces, api):
-        api['NodeStateMonitor::getNameStates']= self.getNameStates
-        api['NodeStateMonitor::getNameItems']= self.getNameItems
+        api['NodeStateMonitor.getNameStates']= self.getNameStates
+        api['NodeStateMonitor.getNameItems']= self.getNameItems
 
     # -------------------------------------------------------------------------
     def storeEvent(self, node_name, packet):
@@ -105,9 +105,9 @@ class NameHitRatioMonitor:
         self.node_accum_seq= AccumScaleSeq( 1, INF, defaultdict(HitRatioRecord) )  # DEBUG 节点只能查看总命中率
 
     def install(self, announces, api):
-        api['NameHitRatioMonitor::nameSegmZip']= Bind(self._nameSeqZip, self.name_segm_seq)
-        api['NameHitRatioMonitor::nameAccumZip']= Bind(self._nameSeqZip, self.name_accum_seq)
-        api['NameHitRatioMonitor::nodeRatio']= self.nodeRatio
+        api['NameHitRatioMonitor.nameSegmZip']= Bind(self._nameSeqZip, self.name_segm_seq)
+        api['NameHitRatioMonitor.nameAccumZip']= Bind(self._nameSeqZip, self.name_accum_seq)
+        api['NameHitRatioMonitor.nodeRatio']= self.nodeRatio
 
     def hitEvent(self, node_name, packet):
         self.name_segm_seq.current().access(packet.name).record.hit+= 1
@@ -171,8 +171,8 @@ class FlowMonitor:
         self.name_accum_seq= AccumScaleSeq( self.MAX_SIZE, self.SCALE, self.FlowNameTree() )
 
     def install(self, annouces, api):
-        api['FlowMonitor::nameSegmZip']= Bind(self._nameSeqZip, self.name_segm_seq)
-        api['FlowMonitor::nameAccumZip']= Bind(self._nameSeqZip, self.name_accum_seq)
+        api['FlowMonitor.nameSegmZip']= Bind(self._nameSeqZip, self.name_segm_seq)
+        api['FlowMonitor.nameAccumZip']= Bind(self._nameSeqZip, self.name_accum_seq)
 
     def flowEvent(self, node_name, faceid, packet):
         self.name_segm_seq.current().access(packet.name).record += FlowRecord(1, len(packet))

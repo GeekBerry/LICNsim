@@ -1,11 +1,12 @@
-from PyQt5.QtCore import QLineF, QPointF, QRectF, Qt
-from PyQt5.QtGui import QPainterPath, QPen, QPolygonF, QFont, QFontMetrics, QTransform
-from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem, QGraphicsTextItem
-
 import numpy
+
+from PyQt5.QtCore import QPointF, QRectF, Qt
+from PyQt5.QtGui import QPainterPath, QPen, QPolygonF
+from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem
+
+from common import threshold
 from core.data_structure import CallTable, Timer
 from debug import showCall
-from visualizer.common import threshold
 
 
 def getAngle(p1, p2):
@@ -26,16 +27,18 @@ def getRightOffsetVector(angle):  # 得到右侧法向量
 
 
 class EdgeItem(QGraphicsItem):
-    def __init__(self, src, dst):
+    def __init__(self, src_id, dst_id):
         super().__init__()
         self.setZValue(1)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
         self.setAcceptHoverEvents(True)
 
-        self.src= src
-        self.dst= dst
+        self.src_id= src_id
+        self.dst_id= dst_id
         self.call_backs= CallTable()
         self.text_item= QGraphicsSimpleTextItem('', self)
+        self.text_item.setZValue(3)
+
         self.hide_timer= Timer(self.hideText)
 
         self.style= {
@@ -50,7 +53,7 @@ class EdgeItem(QGraphicsItem):
             'arrow_width': 1,
 
             'show_text': False,
-            'name_content': f'Edge {src} -> {dst}\n',
+            'name_content': f'Edge {self.src_id} -> {self.dst_id}\n',
             'text_content': '',
             'text_color':Qt.black,
         }
@@ -93,26 +96,25 @@ class EdgeItem(QGraphicsItem):
     def setText(self, text):
         self.style['text_content']= text
 
-    def showText(self, steps= None):
+    # def showText(self, steps= None):
+    #     self.style['show_text']= True
+    #     if steps is None:  # 不定时
+    #         self.hide_timer.cancel()
+    #     else:
+    #         self.hide_timer.timing(steps)
+
+    def showText(self):
         self.style['show_text']= True
-        if steps is None:  # 不定时
-            self.hide_timer.cancel()
-        else:
-            self.hide_timer.timing(steps)
-        self.update()
 
     def hideText(self):
         self.style['show_text']= False
-        self.update()
 
     def setColor(self, color):
         self.style['arrow_color']= color
-        self.update()
 
     def setWidth(self, width:float):
         MAX, MIN= self.style['max_arrow_width'], self.style['min_arrow_width']
         self.style['arrow_width']= threshold(0.0, width, 1.0)*(MAX-MIN) + MIN
-        self.update()
 
     # -------------------------------------------------------------------------
     def paint(self, painter, option, widget= None):
@@ -147,7 +149,7 @@ class EdgeItem(QGraphicsItem):
     # -------------------------------------------------------------------------
     @showCall
     def mouseDoubleClickEvent(self, event):
-        self.call_backs['mouseDoubleClickEvent'](self.src, self.dst)
+        self.call_backs['mouseDoubleClickEvent'](self.src_id, self.dst_id)
         super().mouseDoubleClickEvent(event)
 
     def hoverEnterEvent(self, event):

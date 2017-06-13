@@ -2,7 +2,7 @@
 #coding=utf-8
 
 from constants import INF
-from core.common import Unit
+from common import Unit
 from core.clock import clock
 from core.data_structure import defaultdict, SizeDictDecorator, TimeDictDecorator, SheetTable
 from core.packet import Packet
@@ -72,9 +72,9 @@ class InfoUnit(Unit):
         announces['createFace'].append(self.insertFaceid)
         announces['destroyFace'].append(self.dropFaceid)
         # 提供的 API
-        # api['Info::getCell']= self.getCell
-        api['Info::getPendingIds']= self.getPendingIds
-        api['Info::getCooledIds']= self.getCooledIds
+        # api['Info.getCell']= self.getCell
+        api['Info.getPendingIds']= self.getPendingIds
+        api['Info.getCooledIds']= self.getCooledIds
         # 调用的 API
 
     def infoEvictCallBack(self, name, packet):

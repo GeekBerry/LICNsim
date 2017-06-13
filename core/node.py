@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #coding=utf-8
-from core.common import Hardware, Unit
+from common import Hardware, Unit
 from core.data_structure import Announce
 
 
@@ -16,7 +16,6 @@ from core.data_structure import SizeLeakyBucket
 class NodeBufferUnit(Announce, Unit):
     def __init__(self, rate, buffer_size):
         Announce.__init__(self)
-        Unit.__init__(self)
         self._bucket= SizeLeakyBucket(rate, buffer_size)
 
     @property
@@ -41,7 +40,7 @@ class NodeBufferUnit(Announce, Unit):
         Unit.install(self, announces, api)
 
         self._bucket.callbacks['full']= self.announces['drop']
-        self._bucket.callbacks['end']= super().__call__  # XXX super应该指Announce
+        self._bucket.callbacks['end']= super().__call__  # XXX super 指 Announce
 
     def __call__(self, faceid, packet):
         self._bucket.append(1, faceid, packet)  # size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
@@ -50,18 +49,17 @@ class NodeBufferUnit(Announce, Unit):
 # ----------------------------------------------------------------------------------------------------------------------
 class AppUnit(Unit):
     def __init__(self):
-        super().__init__()
         self.app_channel= Announce()  # 用于发送兴趣包的通道
 
     def install(self, announces, api):
         super().install(announces, api)
         # 提供的 API
-        api['APP::ask']= self._ask
+        api['APP.ask']= self._ask
         # 调用的 API
-        api['Face::setInChannel']('APP', self.app_channel)
-        api['Face::setOutChannel']('APP', self._respond)
+        api['Face.setInChannel']('APP', self.app_channel)
+        api['Face.setOutChannel']('APP', self._respond)
 
-        # api['Face::create']('APP', self.app_channel, self._respond)  # 调用Face的api建立连接
+        # api['Face.create']('APP', self.app_channel, self._respond)  # 调用Face的api建立连接
 
     def _ask(self, packet):
         self.announces['ask'](packet)
@@ -93,25 +91,6 @@ class ForwarderUnitBase(Unit):
 
     def _inData(self, face_id, packet):
         pass
-
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-from core.data_structure import Bind
-
-
-class MonitorUnit(Unit):
-    def __init__(self, monitor_module, hw_id):
-        self.monitor_module= monitor_module
-        self.hw_id= hw_id
-
-    def install(self, announces, api):
-        api['']
-        pass
-
-    def loadAnnounce(self, anno_name, function):
-        self.announces[anno_name].append( Bind(function, self.hw_id) )
-
 
 
 

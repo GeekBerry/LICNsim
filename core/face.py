@@ -1,15 +1,15 @@
 #!/usr/bin/python3
 #coding=utf-8
 
-from core.common import Unit
+from common import Unit
 from core.data_structure import *
 
 class Face:
-    def __init__(self, face_id, callback):
+    def __init__(self, face_id, recv_callback):
         self.face_id= face_id
         self.in_channel= None
         self.out_channel= None
-        self.callback= callback  # 接收时的回调操作
+        self.recv_callback= recv_callback  # 接收时的回调操作
 
     def __bool__(self):
         return (self.in_channel is not None) or (self.out_channel is not None)
@@ -31,7 +31,7 @@ class Face:
         self.out_channel(packet)
 
     def download(self, packet):  # 接收一个包, 被动调用
-        self.callback(self.face_id, packet)
+        self.recv_callback(self.face_id, packet)
 
 
 #=======================================================================================================================
@@ -45,6 +45,7 @@ class LoopChecker:
         else:
             self.info_set[packet.head()]= None  # 当做set来用
             return False
+
 
 class NoLoopChecker(LoopChecker):
     def isLoop(self, packet):
@@ -105,11 +106,11 @@ class FaceUnit(Unit):
     def install(self, announces, api):
         super().install(announces, api)
         # 提供的 API
-        api['Face::setInChannel']= self.setInChannel
-        api['Face::setOutChannel']= self.setOutChannel
-        api['Face::destroy']= self.destroy
-        api['Face::getCanSendIds']= self.getCanSendIds
-        api['Face::send']= self.send
+        api['Face.setInChannel']= self.setInChannel
+        api['Face.setOutChannel']= self.setOutChannel
+        api['Face.destroy']= self.destroy
+        api['Face.getCanSendIds']= self.getCanSendIds
+        api['Face.send']= self.send
 
     def accessFace(self, face_id):
         face= self.table.setdefault( face_id, Face(face_id, self.receive) )

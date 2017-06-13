@@ -80,13 +80,13 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
             self.edge_painter.refresh()
 
     # ------------------------------------------------------------------------------------------------------------------
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key == Qt.Key_P:
-            self.scene().graphLayout()
+    # def keyPressEvent(self, event):
+    #     key = event.key()
+        # if key == Qt.Key_P:
+        #     self.scene().graphLayout()
         # elif key == Qt.Key_Enter:
         #     self.api['Player::step']()
-        else: super().keyPressEvent(event)
+        # else: super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
         self.mouse_press_pos= event.pos()
@@ -102,6 +102,7 @@ class NetView(QGraphicsView):  # TODO 重构, 缓存
             self.mouse_press_pos= event.pos()
         super().mouseMoveEvent(event)
 
+    @showCall
     def wheelEvent(self, event):
         # self.scaleView(math.pow(2.0, -event.angleDelta().y() / 240.0))
         if event.angleDelta().y() < 0:  # 简化版
