@@ -96,6 +96,7 @@ class EdgeItem(QGraphicsItem):
     def setText(self, text):
         self.style['text_content']= text
 
+    # DEBUG
     # def showText(self, steps= None):
     #     self.style['show_text']= True
     #     if steps is None:  # 不定时

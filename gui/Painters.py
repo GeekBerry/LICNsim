@@ -103,14 +103,22 @@ class NameStatePainter(Painter):
         for node_id in node_ids:
             if node_id in record.store:
                 color= Qt.red
+                text= f'储存 {self.show_name}'
             elif node_id in record.pending:
                 color= Qt.green
+                text= f'等待 {self.show_name}'
             else:
                 color= Qt.lightGray
+                text= ''
             self.node_style[node_id]['color']= color
+            self.node_style[node_id]['text']= text
 
-        # 计算, 绘制, 渲染边
         for edge_id in edge_ids:
-            # TODO 边的渲染
-            self.edge_style[edge_id]['show_text']= False
-
+            if edge_id in record.transfer:
+                self.edge_style[edge_id]['color']= Qt.blue
+                self.edge_style[edge_id]['text']= f'传输"{self.show_name}"中'
+                self.edge_style[edge_id]['show_text']= True
+            else:
+                self.edge_style[edge_id]['color']= Qt.lightGray
+                self.edge_style[edge_id]['text']= ''
+                self.edge_style[edge_id]['show_text']= False

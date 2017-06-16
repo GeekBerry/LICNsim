@@ -1,12 +1,36 @@
 #!/usr/bin/python3
-#coding=utf-8
+# coding=utf-8
+
 from common import Hardware, Unit
+from core.packet import Packet
 from core.data_structure import Announce
 
 
 class NodeBase(Hardware):
     def __init__(self, name):
         super().__init__(f'Node({name})')
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+class ForwarderUnitBase(Unit):
+    def install(self, announces, api):
+        super().install(announces, api)
+        # 监听的Announce
+        announces['inPacket'].append(self._inPacket)
+        # 调用的 API
+
+    def _inPacket(self, face_id, packet):
+        if packet.type == Packet.INTEREST:
+            self._inInterest(face_id, packet)
+        elif packet.type == Packet.DATA:
+            self._inData(face_id, packet)
+        else:pass
+
+    def _inInterest(self, face_id, packet):
+        pass
+
+    def _inData(self, face_id, packet):
+        pass
 
 
 # =======================================================================================================================
@@ -46,52 +70,10 @@ class NodeBufferUnit(Announce, Unit):
         self._bucket.append(1, faceid, packet)  # size= 1: rate, buffer_size的单位为(包); size=len(packet): rate, buffer_size的单位为(bytes)
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-class AppUnit(Unit):
-    def __init__(self):
-        self.app_channel= Announce()  # 用于发送兴趣包的通道
-
-    def install(self, announces, api):
-        super().install(announces, api)
-        # 提供的 API
-        api['APP.ask']= self._ask
-        # 调用的 API
-        api['Face.setInChannel']('APP', self.app_channel)
-        api['Face.setOutChannel']('APP', self._respond)
-
-        # api['Face.create']('APP', self.app_channel, self._respond)  # 调用Face的api建立连接
-
-    def _ask(self, packet):
-        self.announces['ask'](packet)
-        self.app_channel(packet)  # 发送packet
-
-    def _respond(self, packet):
-        self.announces['respond'](packet)
-
-# ----------------------------------------------------------------------------------------------------------------------
-from core.packet import Packet
-
-
-class ForwarderUnitBase(Unit):
-    def install(self, announces, api):
-        super().install(announces, api)
-        # 监听的Announce
-        announces['inPacket'].append(self._inPacket)
-        # 调用的 API
-
-    def _inPacket(self, face_id, packet):
-        if packet.type == Packet.INTEREST:
-            self._inInterest(face_id, packet)
-        elif packet.type == Packet.DATA:
-            self._inData(face_id, packet)
-        else:pass
-
-    def _inInterest(self, face_id, packet):
-        pass
-
-    def _inData(self, face_id, packet):
-        pass
-
+if __name__ == '__main__':
+    from core.face import *
+    node= Hardware('')
+    node.install('faces',  FaceUnit( LoopChecker(10000), RepeatChecker() )  )
 
 
 

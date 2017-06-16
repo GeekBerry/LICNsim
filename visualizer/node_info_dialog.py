@@ -195,4 +195,4 @@ class NodeInfoTreeWidget(TreeWidget):
                     self[packet_name][faceid]['recv'][type_name].setTexts( cell.recv[p_type] )
 
                 for p_type, type_name in enumerate(Packet.TYPE_STRING):
-                    self[packet_name][faceid]['send'][type_name].setTexts( cell.send[p_type] )
+                    self[packet_name][faceid]['send'][type_name].setTexts(cell.sendStart[p_type])

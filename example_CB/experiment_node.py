@@ -2,7 +2,8 @@
 #coding=utf-8
 
 from core.clock import clock
-from core.node import ForwarderUnitBase, AppUnit
+from core.node import ForwarderUnitBase
+from face import AppUnit
 from core.data_structure import Dict
 from core.packet import Packet
 

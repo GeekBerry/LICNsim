@@ -14,6 +14,7 @@ class NameStateMonitor:
         def __init__(self):
             self.store= set()  # set(node_id, ...)
             self.pending= set()  # set(node_id, ...)
+            self.transfer= set()  # set(edge_id, ...)
 
         def __repr__(self):
             return str(self.__dict__)
@@ -31,6 +32,10 @@ class NameStateMonitor:
         api['Hub.loadNodeAnnounce']('respond', self._respondEvent)
         api['Hub.loadNodeAnnounce']('csStore', self._storeEvent)
         api['Hub.loadNodeAnnounce']('csEvict', self._evictEvent)
+
+        api['Hub.loadChannelAnnounce']('transferStart', self._transferStartEvent)
+        api['Hub.loadChannelAnnounce']('transferEnd', self._transferEndEvent)
+        api['Hub.loadChannelAnnounce']('transferLoss', self._transferEndEvent)  # Loss 视为 End
 
         api['Monitor.getNameStateRecord']= self.getNameStateRecord
 
@@ -60,3 +65,32 @@ class NameStateMonitor:
         name_node= self.__tree_ref.access(packet.name)
         record= self.accessRecord(name_node)
         record.store.discard(node_id)
+
+    # -------------------------------------------------------------------------
+    def _transferStartEvent(self, src_id, dst_id, packet):
+        name_node= self.__tree_ref.access(packet.name)
+        record= self.accessRecord(name_node)
+        record.transfer.add( (src_id, dst_id) )
+
+    def _transferEndEvent(self, src_id, dst_id, packet):
+        name_node= self.__tree_ref.access(packet.name)
+        record= self.accessRecord(name_node)
+        record.transfer.discard( (src_id, dst_id) )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

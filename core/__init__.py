@@ -1,5 +1,4 @@
 from core.clock import clock
-from core.common import *
 from core.data_structure import *
 from core.monitor import Monitor
 from core.channel import *

@@ -12,7 +12,7 @@ class NameTreeWidget(TreeWidget):
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
         self.itemClicked.connect(self.itemClickedEvent)
 
-        self.setHead('Name', 'Field1')
+        self.setHead('Name', 'FullName', 'PendNum', 'StoreNum', 'TransNum')
 
     def install(self, announces, api):
         self.announces= announces
@@ -26,7 +26,14 @@ class NameTreeWidget(TreeWidget):
 
     def showNameTree(self, tree_item, name_tree):
         for name_key, sub_tree in name_tree.children.items():
-            tree_item[name_key].setTexts(1,2,3)  # name_node
+            full_name= self.getName(tree_item[name_key])
+
+            record= self.api['Monitor.getNameStateRecord'](full_name)
+            pend_num= len(record.pending)
+            store_num= len(record.store)
+            trans_num= len(record.transfer)
+            tree_item[name_key].setTexts(full_name, pend_num, store_num, trans_num)  # name_node
+
             self.showNameTree(tree_item[name_key], sub_tree)
 
     def itemClickedEvent(self, tree_item, p_int):

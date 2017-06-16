@@ -30,10 +30,11 @@ class ForwarderUnit(ForwarderUnitBase):
 
 # ----------------------------------------------------------------------------------------------------------------------
 from random import randint
-from core.node import NodeBase, NodeBufferUnit, AppUnit
+from core.node import NodeBase, NodeBufferUnit
+from face import AppUnit
 from common import Hardware
 from core.cs import ContentStoreUnit
-from core.face import FaceUnit, RepeatChecker, LoopChecker, NoLoopChecker
+from core.face import FaceUnit, RepeatChecker, LoopChecker
 from core.info_table import InfoUnit
 from core.policy import FIFOPolicy, PolicyUnit
 from constants import INF

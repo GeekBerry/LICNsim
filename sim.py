@@ -54,6 +54,8 @@ class TopologyModule(Unit):
 
 
 # ======================================================================================================================
+from core.face import NetFace
+
 class ICNNetModule(Unit):
     def install(self, announces, api):
         super().install(announces, api)
@@ -85,7 +87,7 @@ class ICNNetModule(Unit):
         for src,dst in graph.edges():
             yield (src,dst), graph[src][dst]
 
-    def addNet(self, top_graph, NodeType, ChannelType):
+    def addNet(self, top_graph, NodeFactory, ChannelFactory):
         node_ids, edge_ids= self.api['Topo.addSubGraph'](top_graph)
 
         graph= self.api['Topo.graph']()
@@ -93,15 +95,20 @@ class ICNNetModule(Unit):
 
         # 先建立所有 Node
         for node_id in node_ids:
-            icn_node= NodeType(node_id)
+            icn_node= NodeFactory(node_id)
             graph.node[node_id]= icn_node
             self.announces['addICNNode'](node_id, icn_node)
 
         # 再建立 Channel
         for src_id, dst_id in edge_ids:
-            icn_channel= ChannelType(src_id, dst_id)
-            graph.node[src_id].api['Face.setOutChannel'](dst_id, icn_channel)  # src 节点通往 dst 的信道 Channel(src -> dst)
-            graph.node[dst_id].api['Face.setInChannel'](src_id, icn_channel)  # dst 接收 src 的信道为 Channel(src -> dst)
+            icn_channel= ChannelFactory(src_id, dst_id)
+
+            src_face= graph.node[src_id].api['Face.access'](dst_id, NetFace)  # FIXME FaceType
+            src_face.setOutChannel(icn_channel)  # src 节点通往 dst 的信道 Channel(src -> dst)
+
+            dst_face= graph.node[dst_id].api['Face.access'](src_id, NetFace)  # FIXME FaceType
+            dst_face.setInChannel(icn_channel)  # dst 接收 src 的信道为 Channel(src -> dst)
+
             graph[src_id][dst_id]= icn_channel
             self.announces['addICNChannel'](src_id, dst_id, icn_channel)
 
@@ -213,35 +220,6 @@ class GUIModule(Unit):
 
 
 # ======================================================================================================================
-# if __name__ == '__main__':
-#     from core.clock import clock
-#     from example_normal.main import ip_A, ip_B, dp_A, dp_B
-#     from example_normal.node import TestNode
-#     from example_normal.main import TestChannel
-#
-#     sim= Simulator()
-#     sim.install( 'topology', TopologyModule() )
-#     sim.install( 'icn_net', ICNNetModule() )
-#     sim.install( 'monitor', HubModule() )
-#     sim.install( 'database', DataBaseModule() )
-#
-#     sim.api['ICNNet.addNet']( networkx.grid_2d_graph(11, 11), TestNode, TestChannel )
-#
-#     sim.api['Hub.loadNodeAnnounce']('ask', Bind(print, 'ask') )
-#     sim.api['Hub.loadNodeAnnounce']('respond', Bind(print, 'respond') )
-#     sim.api['Hub.loadNodeAnnounce']('inPacket', Bind(print, 'inPacket') )
-#     sim.api['Hub.loadNodeAnnounce']('outPacket', Bind(print, 'outPacket') )
-#
-#     sim.graph.node[0].api['CS.store'](dp_A)
-#
-#     for i in range(1000):
-#         if i < 100:
-#             node_id= random.randint(0,10)
-#             sim.graph.node[node_id].api['APP.ask'](ip_A.fission())
-#         clock.step()
-#
-#     print(sim.module_table['database'].database['node_t'].db_table.records)
-
 import random
 from core.clock import Timer
 

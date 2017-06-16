@@ -7,6 +7,7 @@ from core.clock import clock
 from core.data_structure import defaultdict, SizeDictDecorator, TimeDictDecorator, SheetTable
 from core.packet import Packet
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 class InfoUnit(Unit):
     """
