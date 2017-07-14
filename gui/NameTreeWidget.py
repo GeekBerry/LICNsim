@@ -1,47 +1,72 @@
 from PyQt5.QtWidgets import QAbstractItemView
-from core.name import Name
+
+from core import Name
 from gui.common import TreeWidget
 from debug import showCall
 
 
 class NameTreeWidget(TreeWidget):
-    NAME_SEG= 0
-
     def __init__(self, parent):
         super().__init__(parent)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
-        self.itemClicked.connect(self.itemClickedEvent)
+        self.setAlternatingRowColors(True)  # 隔行显示颜色
 
-        self.setHead('Name', 'FullName', 'PendNum', 'StoreNum', 'TransNum')
+        self.itemClicked.connect(self.itemClickedEvent)
+        self.setHeads('Name', 'PendNum', 'StoreNum', 'TransNum')
 
     def install(self, announces, api):
         self.announces= announces
         self.api= api
-        announces['playSteps'].append(self.refresh)
+        announces['playSteps'].append(self.playSteps)
 
-    @showCall
-    def refresh(self, steps=None):
-        name_tree= self.api['Monitor.getNameTree']()
+    def playSteps(self, steps):
+        if self.isVisible():
+            self.refresh()
+
+    def refresh(self):
+        # self.clearSelection()
+        name_tree= self.api['NameStoreMonitor.tree']()
+        assert name_tree is not None
         self.showNameTree(self, name_tree)
 
     def showNameTree(self, tree_item, name_tree):
-        for name_key, sub_tree in name_tree.children.items():
-            full_name= self.getName(tree_item[name_key])
+        for name_node in name_tree:
+            if name_node.hasValue():
+                store_record= name_node.getValue()
+                values= len(store_record.pending), len(store_record.store), len(store_record.transfer)
+            else:
+                values= ()
+            tree_item[name_node.key].setValues(*values)
 
-            record= self.api['Monitor.getNameStateRecord'](full_name)
-            pend_num= len(record.pending)
-            store_num= len(record.store)
-            trans_num= len(record.transfer)
-            tree_item[name_key].setTexts(full_name, pend_num, store_num, trans_num)  # name_node
+            self.showNameTree(tree_item[name_node.key], name_node)
 
-            self.showNameTree(tree_item[name_key], sub_tree)
+    def itemClickedEvent(self, tree_item, col):
+        name= Name(tree_item.getPath())
+        self.announces['selectedName'](name)
 
-    def itemClickedEvent(self, tree_item, p_int):
-        self.announces['selectedName']( self.getName(tree_item) )
 
-    def getName(self, tree_item):
-        forebears= []
-        while tree_item:
-            forebears.append( tree_item.text(self.NAME_SEG) )
-            tree_item= tree_item.parent()
-        return Name('/'.join(forebears[::-1]))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

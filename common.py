@@ -1,3 +1,13 @@
+import logging as logging
+logging.basicConfig(level=logging.INFO)
+
+import math
+
+# import sys
+# INF= sys.maxsize  # 无穷大
+INF= 0x7FFFFFFF  # 无穷大 此处用4byte整形最大正数
+
+
 # --------------------  装饰器  -------------------------------
 def singleton(cls, *args, **kw):
     instance={}
@@ -20,14 +30,19 @@ def strPercent(value):
     return '%0.2f%%'%( value*100 )
 
 
+def normalizeINF(value):
+    return 1 - math.exp( -7e-4 * value )  # FIXME
+
+
 # ---------------------  数据结构定义  ----------------------------
 class Hardware:
-    def __init__(self, name):
-        from core import CallTable, AnnounceTable
-        self.name= name
+    def __init__(self, hardware_id):
+        from base.core import CallTable, AnnounceTable
         self.api= CallTable()
         self.announces= AnnounceTable()
         self.units= {}
+
+        self.api['Hardware.getId']= lambda : hardware_id
 
     def install(self, unit_name, unit):
         unit.install(self.announces, self.api)
@@ -48,3 +63,11 @@ class Unit:
         # self.announces= None
         # self.api= None
         pass
+
+# from core import Packet, Name
+# ip_A=  Packet(Name('A'), Packet.INTEREST, 1)
+# ip_A1= Packet(Name('A/1'), Packet.INTEREST, 1)
+# ip_A2= Packet(Name('A/2'), Packet.INTEREST, 1)
+# dp_A= Packet(Name('A'), Packet.DATA, 500)
+# dp_A1= Packet(Name('A/1'), Packet.DATA, 500)
+# dp_A2= Packet(Name('A/2'), Packet.DATA, 500)

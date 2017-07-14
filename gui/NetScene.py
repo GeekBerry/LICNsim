@@ -34,21 +34,23 @@ class NetScene(QGraphicsScene):
     NODE_SIZE= 0.5  # 默认Node大小
     SPACE_WIDTH= 200
 
-    @showCall
     def __init__(self):
         super().__init__()
         self.node_table= {}  # { node_id:node_item, ... }
         self.edge_table= {}  # { (src_id, dst_id):edge_item, ... }
 
-    @showCall
     def install(self, announces, api):
         self.announces= announces
         self.api= api
 
+        announces['playSteps'].append(self.playSteps)
         announces['addICNNode'].append(self.addICNNodeEvent)
         announces['addICNChannel'].append(self.addICNChannelEvent)
-        announces['playSteps'].append(self.refresh)
-        self.announces['painterUpdated'].append(self.painterUpdated)
+        announces['painterUpdated'].append(self.painterUpdated)
+
+    def painterUpdated(self, painter):
+        if painter is self.api['Painter.currentPainter']():
+            self.refresh()
 
     def addICNNodeEvent(self, node_id, icn_node):
         node_item= NodeItem(node_id)
@@ -78,11 +80,10 @@ class NetScene(QGraphicsScene):
         self.update()
 
     # ------------------------------------------------------------------------------------------------------------------
-    def painterUpdated(self, painter):
-        if painter is self.api['Painter.currentPainter']():
-            self.refresh()
+    def playSteps(self, steps):
+        self.refresh()
 
-    def refresh(self, steps=None):
+    def refresh(self):
         painter= self.api['Painter.currentPainter']()
         if painter is None:  # DEBUG
             return
@@ -122,6 +123,7 @@ class NetScene(QGraphicsScene):
                 ui_edge.update()
 
     # ------------------------------------------------------------------------------------------------------------------
+    @showCall
     def _nodeMouseDoubleClickEvent(self, node_id):
         self.announces['NodeDoubleClick'](node_id)
 
@@ -131,10 +133,10 @@ class NetScene(QGraphicsScene):
     def _edgeMouseDoubleClickEvent(self, src_id, dst_id):
         self.announces['EdgeDoubleClick'](src_id, dst_id)
 
-    def mouseDoubleClickEvent(self, event):
-        super().mouseDoubleClickEvent(event)
-        if not event.pos():  # XXX 场景在没有捕捉到Item时, event.pos()为QPointF(), 而非位置
-            self.announces['SceneDoubleClick']()
+    # def mouseDoubleClickEvent(self, event):
+    #     super().mouseDoubleClickEvent(event)
+    #     if not event.pos():  # XXX 场景在没有捕捉到Item时, event.pos()为QPointF(), 而非位置
+    #         self.announces['SceneDoubleClick']()
 
     def keyPressEvent(self, event):
         key = event.key()

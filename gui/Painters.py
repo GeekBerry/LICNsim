@@ -2,9 +2,10 @@ from collections import defaultdict
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
-from gui.common import HotColor, DeepColor
-from common import threshold
+
+from common import threshold, normalizeINF
 from debug import showCall
+from gui.common import HotColor, DeepColor
 
 
 class Painter:
@@ -21,6 +22,7 @@ class Painter:
 
 
 # ======================================================================================================================
+
 class PropertyPainter(Painter):
     def getStyleDict(self)->dict:  # XXX 粗暴的进行全盘渲染, TODO cache
         self._calculate( self.api['Topo.nodeIds'](), self.api['Topo.edgeIds']() )
@@ -35,34 +37,32 @@ class PropertyPainter(Painter):
         # 计算, 绘制, 渲染节点
         for node_id in node_ids:
             icn_node= self.api['ICNNet.getNode'](node_id)
-            assert icn_node is not None  # DEBUG
-
             text= ''
+
+            # SIZE
             cs_unit= icn_node.units.get('cs', None)
             if cs_unit is not None:
-                self.node_style[node_id]['size']= cs_unit.capacity / 100  # FIXME
-                text+= f'CS容量:{cs_unit.capacity}\n'
-
-            buffer_unit= icn_node.units.get('buffer', None)
-            if buffer_unit is not None:
-                self.node_style[node_id]['color']= DeepColor(buffer_unit.rate/100)  # FIXME
-                text+= f'处理能力:{buffer_unit.rate}'
+                capacity= cs_unit.UI_ATTRS['Capacity']['getter'](cs_unit)
+                text+= f'CS 容量{capacity}\n'
+            else:
+                capacity= 0.0
 
             self.node_style[node_id]['text']= text
+            self.node_style[node_id]['size']= normalizeINF(capacity)
 
         # 计算, 绘制, 渲染边
         for src_id, dst_id in edge_ids:
             icn_edge= self.api['ICNNet.getEdge'](src_id, dst_id)
             assert icn_edge is not None  # DEBUG
 
-            self.edge_style[ (src_id, dst_id) ]['width']= icn_edge.rate/10  # FIXME
+            self.edge_style[ (src_id, dst_id) ]['width']= normalizeINF(icn_edge.rate)
             text = f'速率 {icn_edge.rate}\n'
 
             color= HotColor( threshold(0.0, icn_edge.delay/100, 1.0) ) # FIXME
             text += f'延迟 {icn_edge.delay}\n'
 
             color= DeepColor( 0.1+0.9*(1-icn_edge.loss), color)  # 0.1+0.9*loss 避免loss为0 时无颜色显示
-            text += f'丢包率 {"%0.2f"%(icn_edge.loss*100)}%'
+            text += f'丢包率 {strPercent(icn_edge.loss)}'
 
             self.edge_style[ (src_id, dst_id) ]['color']= color
             self.edge_style[ (src_id, dst_id) ]['show_text']= True
@@ -70,14 +70,24 @@ class PropertyPainter(Painter):
 
 
 # ======================================================================================================================
-from core.name import Name
-from module.Monitors import NameStateMonitor
+from base.core import Name
 
 
-class NameStatePainter(Painter):
+class NameStorePainter(Painter):
+    EMPTY_COLOR= Qt.lightGray
+
+    STORE_COLOR= QColor(255, 0, 0)
+    WEAK_STORE_COLOR= QColor(255, 200, 200)
+
+    PEND_COLOR= QColor(0, 255, 0)
+    WEAK_PEND_COLOR= QColor(200, 255, 200)
+
+    TRANSFER_COLOR= QColor(0, 0, 255)
+    WEAK_TRANSFER_COLOR= QColor(200, 200, 255)
+
     def __init__(self):
         super().__init__()
-        self.show_name= Name('')
+        self.show_name= Name()
 
     def install(self, announces, api):
         super().install(announces, api)
@@ -96,29 +106,69 @@ class NameStatePainter(Painter):
             'edge_style': self.edge_style
         }
 
+    def _calculate(self, node_ids, edge_ids):  # FIXME 将计算与渲染分离  TODO
+        name_tree= self.api['NameStoreMonitor.tree']()
+        name_node= name_tree.access(self.show_name)
+
+        node_dict= dict.fromkeys(node_ids, self.EMPTY_COLOR)
+        edge_dict= dict.fromkeys(edge_ids, self.EMPTY_COLOR)
+
+        for sub_node in name_node.descendants():
+            record= sub_node.getValue()
+            for node_id in record.store:
+                node_dict[node_id]= self.STORE_COLOR if (sub_node is name_node) else self.WEAK_STORE_COLOR
+
+            for edge_id in record.transfer:
+                edge_dict[edge_id]= self.TRANSFER_COLOR if (sub_node is name_node) else self.WEAK_TRANSFER_COLOR
+
+        for sub_node in name_node.forebears():
+            record= sub_node.getValue()
+            for node_id in record.pending:
+                node_dict[node_id]= self.PEND_COLOR if (sub_node is name_node) else self.WEAK_PEND_COLOR
+
+            for edge_id in record.transfer:
+                edge_dict[edge_id]= self.TRANSFER_COLOR if (sub_node is name_node) else self.WEAK_TRANSFER_COLOR
+
+        # ---------------------------------------------------------------------
+        for node_id, color in node_dict.items():
+            self.node_style[node_id]['color']= color
+
+        for edge_id, color in edge_dict.items():
+            self.edge_style[edge_id]['color']= color
+            self.edge_style[edge_id]['show_text']= False if (color is self.EMPTY_COLOR) else True
+
+# ======================================================================================================================
+from module.MonitorModule import NodeHitMonitor
+from common import strPercent
+
+
+class NodeHitPainter(Painter):
+    def getStyleDict(self)->dict:
+        self._calculate( self.api['Topo.nodeIds'](), self.api['Topo.edgeIds']() )
+        return {
+            'back_ground_color': QColor(240, 255, 240),
+            'node_style': self.node_style,
+            'edge_style': self.edge_style
+        }
+
     def _calculate(self, node_ids, edge_ids):  # FIXME 将计算与渲染分离
-        record= self.api['Monitor.getNameStateRecord'](self.show_name)
-        assert isinstance(record, NameStateMonitor.Record)
-        # 计算, 绘制, 渲染节点
         for node_id in node_ids:
-            if node_id in record.store:
-                color= Qt.red
-                text= f'储存 {self.show_name}'
-            elif node_id in record.pending:
-                color= Qt.green
-                text= f'等待 {self.show_name}'
-            else:
+            record= self.api['Monitor.getNodeHitRecord'](node_id)
+            assert isinstance(record, NodeHitMonitor.Record)
+
+            ratio= record.ratio
+            if ratio is None:
                 color= Qt.lightGray
-                text= ''
+                text= '无访问记录'
+            else:
+                color= HotColor(ratio)
+                text= f'命中率: {strPercent(ratio)}'
+
             self.node_style[node_id]['color']= color
             self.node_style[node_id]['text']= text
+            # self.node_style[node_id]['show_text']= True  # XXX 是否需要?
 
         for edge_id in edge_ids:
-            if edge_id in record.transfer:
-                self.edge_style[edge_id]['color']= Qt.blue
-                self.edge_style[edge_id]['text']= f'传输"{self.show_name}"中'
-                self.edge_style[edge_id]['show_text']= True
-            else:
-                self.edge_style[edge_id]['color']= Qt.lightGray
-                self.edge_style[edge_id]['text']= ''
-                self.edge_style[edge_id]['show_text']= False
+            self.edge_style[edge_id]['color']= Qt.lightGray
+            self.edge_style[edge_id]['text']= ''
+            self.edge_style[edge_id]['show_text']= False

@@ -1,9 +1,11 @@
 from PyQt5.QtWidgets import QMainWindow
 from gui.common import UIFrom
-from gui.plugin import PlayerPlugin, DocksPlugin, PainterPlugin
+from gui.Plugins import PlayerPlugin, DocksPlugin, PainterPlugin, InfoDialogPlugin
 from gui.NetScene import NetScene
 
 from gui.ui.main_window import Ui_main_window
+
+from debug import showCall
 
 @UIFrom(Ui_main_window)
 class MainWindow(QMainWindow):
@@ -19,6 +21,7 @@ class MainWindow(QMainWindow):
         PainterPlugin(self).install(announces, api)
         PlayerPlugin(self).install(announces, api)
         DocksPlugin(self).install(announces, api)
+        InfoDialogPlugin(self).install(announces, api)
 
 
 # if __name__ == '__main__':

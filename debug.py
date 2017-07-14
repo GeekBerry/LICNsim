@@ -1,16 +1,17 @@
-import cProfile
-import pstats
-import time
+
+# import time
+# def timeIt(func):
+#     def _lambda(*args, **kwargs):
+#         start_time= time.clock()
+#         ret= func(*args, **kwargs)
+#         print(func.__name__, '运行:', (time.clock()- start_time), 's')
+#         return ret
+#     return _lambda
+
+import itertools
+import traceback
+# ======================================================================================================================
 import types
-
-
-def timeIt(func):
-    def _lambda(*args, **kwargs):
-        start_time= time.clock()
-        ret= func(*args, **kwargs)
-        print(func.__name__, '运行:', (time.clock()- start_time), 's')
-        return ret
-    return _lambda
 
 
 def objName(obj):  # TODO 整理重写
@@ -27,10 +28,6 @@ def objName(obj):  # TODO 整理重写
         addr= hex(id(obj))
         return f'{obj.__class__.__qualname__}<{addr}>'
 
-
-
-import itertools
-import traceback
 
 show_call_print= True
 show_line_iter= itertools.count()
@@ -67,9 +64,35 @@ def showCall(func):
     return lam
 
 
+# ======================================================================================================================
+import cProfile
+import pstats
+
 def timeProfile(cmd):
     prof= cProfile.Profile()
     prof.run(cmd)
     pstats.Stats(prof).strip_dirs().sort_stats('tottime').print_stats('', 50)  # sort_stats:  ncalls, tottime, cumtime
 
+# ======================================================================================================================
+def exeScript(sim, script):
+    from base.core import clock, tupleClass
+    Instr= tupleClass('delay', 'action', 'node_id', 'packet')
 
+    ACTION_MAP= {
+        'ask':  lambda node_id, packet: sim.api['ICNNet.getNode'](node_id).api['APP.ask']( packet.fission() ),
+        'store': lambda node_id, packet: sim.api['ICNNet.getNode'](node_id).api['APP.store'](packet),
+    }
+
+    for each in script:
+        instr= Instr(*each)
+        clock.timing( instr.delay, ACTION_MAP[instr.action], instr.node_id, instr.packet )
+
+
+# ======================================================================================================================
+def print_clock():
+    from base.core import clock
+    for t in sorted(clock._todo.keys()):
+        print('Time', t)
+        for handle in clock._todo[t]:
+            if handle:
+                print(f'\t{handle.func}\t{handle.args}\t{handle.kwargs}\n')

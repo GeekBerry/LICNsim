@@ -2,10 +2,8 @@ from PyQt5.QtCore import QRectF, Qt
 from PyQt5.QtGui import (QPainterPath)
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem
 
-from core.data_structure import CallTable
+from base.core import CallTable
 from common import threshold
-
-from debug import showCall
 
 
 class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
@@ -55,7 +53,7 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         painter.setBrush(self.style['color'])
         painter.drawEllipse(self.bounding_rect) # painter.drawRect(self.bounding_rect) TODO 形状可定制 Pixmap
         # 绘制说明
-        if self.style['show_text']:
+        if self.style['show_text'] or True:
             self.text_item.setPen( self.style['text_color'])
             self.text_item.setText( self.style['name_content'] + self.style['text_content'] )
             self.text_item.show()
