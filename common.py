@@ -64,10 +64,4 @@ class Unit:
         # self.api= None
         pass
 
-# from core import Packet, Name
-# ip_A=  Packet(Name('A'), Packet.INTEREST, 1)
-# ip_A1= Packet(Name('A/1'), Packet.INTEREST, 1)
-# ip_A2= Packet(Name('A/2'), Packet.INTEREST, 1)
-# dp_A= Packet(Name('A'), Packet.DATA, 500)
-# dp_A1= Packet(Name('A/1'), Packet.DATA, 500)
-# dp_A2= Packet(Name('A/2'), Packet.DATA, 500)
+

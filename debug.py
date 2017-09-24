@@ -68,10 +68,12 @@ def showCall(func):
 import cProfile
 import pstats
 
+
 def timeProfile(cmd):
     prof= cProfile.Profile()
     prof.run(cmd)
     pstats.Stats(prof).strip_dirs().sort_stats('tottime').print_stats('', 50)  # sort_stats:  ncalls, tottime, cumtime
+
 
 # ======================================================================================================================
 def exeScript(sim, script):

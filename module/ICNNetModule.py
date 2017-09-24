@@ -6,6 +6,12 @@ from common import Unit
 
 class ICNNetModule(Unit):
     def install(self, announces, api):
+        """
+
+        :param announces:
+        :param api:
+        :return:
+        """
         super().install(announces, api)
         api['ICNNet.nodeItems']= self.nodeItems
         api['ICNNet.edgeItems']= self.edgeItems
@@ -47,6 +53,12 @@ class ICNNetModule(Unit):
         return edge_ids
 
     def addNet(self, top_graph, NodeFactory, ChannelFactory):
+        """
+        :param top_graph:
+        :param NodeFactory:
+        :param ChannelFactory:
+        :return: ([int,...], [ （int,int), ...], )  # 节点ID数组，边ID数组
+        """
         node_ids, edge_ids= self.api['Topo.addSubGraph'](top_graph)
         graph= self.api['Topo.graph']()
         self._setNodes(graph, node_ids, NodeFactory)  # 先建立所有 Node

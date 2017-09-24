@@ -37,7 +37,7 @@ class RouterNode(NodeBase):
         self.install('fwd',     RouterForwarderUnit() )
 
         self.install('faces',   FaceUnit( LoopChecker(10_0000), RepeatChecker() )  )
-
+        self.install('app',     AppUnitBase() )
 
 class ClientNode(NodeBase):
     def __init__(self, node_id):

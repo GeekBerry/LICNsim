@@ -20,26 +20,6 @@ class Simulator(Hardware):
         self.install('monitor', MonitorModule())  # 与 database 不同, 用 monitor 执行实时的, 不需储存的监控行为
         self.install('gui', GUIModule())
 
-    def createAndLinkNode(self, NodeType, EdgeType, dst_id):
-        src_id = self.api['ICNNet.createNode'](NodeType)
-        self.api['ICNNet.addEdge'](src_id, dst_id, EdgeType)
-        return src_id
-
-    def generateData(self, node_id, name, delta):
-        icn_node = self.api['ICNNet.getNode'](node_id)
-        icn_node.api['Generate.store'](name, delta)
-
-    def startAskData(self, node_id, name):
-        icn_node = self.api['ICNNet.getNode'](node_id)
-        icn_node.api['Generate.ask'](name)
-
-    def stopAskData(self, node_id):
-        icn_node = self.api['ICNNet.getNode'](node_id)
-        icn_node.api['Generate.stop']()
-
-
-
-
     def createRouterNet(self, graph, NodeType, EdgeType):
         routers, edge_ids = self.api['ICNNet.addNet'](graph, NodeType, EdgeType)
         self.routers.extend(routers)

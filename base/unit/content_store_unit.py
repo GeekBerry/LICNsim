@@ -14,6 +14,7 @@ def exactMatchSelector(packet, data_iter):
     else:
         return None
 
+
 def anyMatchSelector(packet, data_iter):
     for data in data_iter:
         return data
@@ -65,7 +66,7 @@ class ContentStoreUnit(Unit):
         data = selector(packet, data_iter)
 
         if data is not None:
-            data= data.fission()  # 构造一个新的包
+            data = data.fission()  # 构造一个新的包
             self.announces['csHit'](data)
             return data
         else:
@@ -87,7 +88,7 @@ class ContentStoreUnit(Unit):
 
     # -------------------------------------------------------------------------
     def insert(self, packet):
-        self.table[packet.name]= packet
+        self.table[packet.name] = packet
         self.size += packet.size
         self.announces['csStore'](packet)
 
@@ -111,21 +112,21 @@ def unfoldContentStore(cs_unit):
         yield name, packet.typeStr(), hex(packet.nonce), packet.size
 
 
-ContentStoreUnit.UI_ATTRS= {
-    'Capacity':{
-        'type':'Int',
-        'range':(0, 99999999),
+ContentStoreUnit.UI_ATTRS = {
+    'Capacity': {
+        'type': 'Int',
+        'range': (0, 99999999),
         'getter': lambda obj: obj.capacity,
         'setter': lambda obj, value: ContentStoreUnit.setCapacity(obj, value)
     },
 
-    'Size':{
-        'type':'Label',
+    'Size': {
+        'type': 'Label',
         'getter': lambda obj: obj.size,
     },
 
-    'Table':{
-        'type':'Table',
+    'Table': {
+        'type': 'Table',
         'range': ('Name', 'Packet', 'Nonce', 'Size'),
         'getter': unfoldContentStore,
     }

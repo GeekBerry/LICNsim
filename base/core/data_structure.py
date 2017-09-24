@@ -57,8 +57,8 @@ class CallTable(dict):
     def printUnboundWarring(*args, **kwargs):
         stack_summary= traceback.extract_stack()
         item= stack_summary.format()[-3]  # -3: 经验值, 正好对应调用的位置
-        # print('UnboundWarring: 没有对应API函数\n', item, end='')
-        # print('参数:', args, kwargs, end='\n\n')
+        print('UnboundWarring: 没有对应API函数\n', item, end='')
+        print('参数:', args, kwargs, end='\n\n')
         pass
 
     def __getitem__(self, name):
