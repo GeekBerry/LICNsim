@@ -264,7 +264,7 @@ class DataBaseTable:
     def minIter(self, field):
         if field in self.dblite.indices:
             var_keys = self.dblite.indices[field]
-            for var in sorted(var_keys.keys(), reverse=False):  # reverse 为 False 时是顺序
+            for var in sorted( var_keys.keys() ):
                 for rcd_id in var_keys[var]:
                     yield self.Record(self.dblite[rcd_id], data_base=self)
         else:

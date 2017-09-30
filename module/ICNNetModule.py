@@ -1,5 +1,3 @@
-import networkx
-
 from base.unit.face_unit import NetFace
 from common import Unit
 
@@ -7,7 +5,6 @@ from common import Unit
 class ICNNetModule(Unit):
     def install(self, announces, api):
         """
-
         :param announces:
         :param api:
         :return:

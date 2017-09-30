@@ -1,4 +1,3 @@
-import networkx
 import random
 
 from core import Timer, top
@@ -22,6 +21,8 @@ class DebugUniformAsker:
         self.api['ICNNet.getNode'](node_ids[0]).api['APP.ask']( self.packet.fission() )
         self.timer.timing(self.delta)
 
+
+# class
 
 if __name__ == '__main__':
     from core import Packet, Name

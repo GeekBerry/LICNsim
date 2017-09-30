@@ -1,7 +1,5 @@
 import itertools
-
-import networkx
-
+import networkx  # 只能使用 networkx 1.11 TODO 修改对Graph.node[]= Data 的直接赋值
 from common import Unit
 
 

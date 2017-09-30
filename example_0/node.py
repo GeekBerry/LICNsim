@@ -10,6 +10,13 @@ from example_0.forward_unit import *
 from example_0.generate_unit import *
 
 
+
+from base.unit.replace_unit import replaceRealRandomExample
+class SimpleNode(NodeBase):
+    def __init__(self, node_id):
+        self.install('replace', replaceRealRandomExample() )
+
+
 class ServerNode(NodeBase):
     def __init__(self, node_id):
         NodeBase.__init__(self, node_id)
@@ -38,6 +45,7 @@ class RouterNode(NodeBase):
 
         self.install('faces',   FaceUnit( LoopChecker(10_0000), RepeatChecker() )  )
         self.install('app',     AppUnitBase() )
+
 
 class ClientNode(NodeBase):
     def __init__(self, node_id):
