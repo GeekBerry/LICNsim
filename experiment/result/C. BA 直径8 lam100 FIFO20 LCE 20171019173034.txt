@@ -1,0 +1,1 @@
+Time	CSNum	Store	Evict	AskNum	StepDist	AllDist
