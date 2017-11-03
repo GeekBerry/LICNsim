@@ -27,8 +27,6 @@ class PlayerPlugin(MainWindowPlugin):
     DEFAULT_STEP_SIZE = 1
 
     def __init__(self, main_window):
-        self.steps = self.DEFAULT_STEP_SIZE  # 要放在 self.setupUI 执行之前
-
         super().__init__(main_window)
         self.step_timer = QTimer(self)
         self.step_timer.timeout.connect(self.playSteps)
@@ -91,82 +89,65 @@ class PlayerPlugin(MainWindowPlugin):
 # ======================================================================================================================
 from gui.Painters import *
 
-PAINTER_INFOS = [  # TODO 写到配置文件中去
-    {
-        'type': PropertyPainter,
-        'text': '性能图',
-        'pixmap_name': "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/node.png",
-    },
-
-    {
-        'type': NameStorePainter,
-        'text': '缓存图',
-        'pixmap_name': "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/store.png",
-    },
-
-    # {
-    #     'type': NodeHitPainter,
-    #     'text': '命中率图',
-    #     'pixmap_name': "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/hit.png"
-    # }
-]
-
 
 class PainterPlugin(MainWindowPlugin):
+    PAINTERS= (
+        ('性能图', "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/node.png", PropertyPainter),
+        ('缓存图', "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/store.png", NameStorePainter),
+        # ('命中率图', "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/hit.png", NodeHitPainter),
+    )
+
     def setupUI(self, main_window):
         # 工具条
         tool_bar = QToolBar(main_window)
         tool_bar.setWindowTitle('Painter工具栏')
         main_window.addToolBar(Qt.TopToolBarArea, tool_bar)
 
-        self.painters = []
-        for info in PAINTER_INFOS:
-            painter = info['type']()
+        self.painters = {}
+        for text, pixmap_name, PainterType in self.PAINTERS:
+            self.painters[text]= PainterType()
 
-            action = QAction(info['text'], main_window)
+            action = QAction(text, main_window)
             icon = QIcon()
-            icon.addPixmap(QPixmap(info['pixmap_name']), QIcon.Normal, QIcon.Off)
+            icon.addPixmap(QPixmap(pixmap_name), QIcon.Normal, QIcon.Off)
             action.setIcon(icon)
-
             tool_bar.addAction(action)
-            action.triggered.connect(Bind(self.activePainter, painter))
-
-            self.painters.append(painter)
+            action.triggered.connect(Bind(self.activePainter, text))
 
     def install(self, announces, api):
         super().install(announces, api)
-        for painter in self.painters:
+        for painter in self.painters.values():
             painter.install(announces, api)
 
-    def activePainter(self, painter, is_triggered):
-        self.announces['selectPainter'](painter)
+    def activePainter(self, text, is_triggered):
+        self.announces['selectPainter']( self.painters[text] )
 
 
 # ======================================================================================================================
-from gui.RealTimeView import FlowRTV
-
-REAL_TIME_VIEW_INFOS = [
-    {
-        'type': FlowRTV,
-        'title': '传输量曲线',
-    },
-]
-
-
-class RealTimeViewBox(QToolBox):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.currentChanged.connect(self._currentChangedSlot)
-
-        for info in REAL_TIME_VIEW_INFOS:
-            self.addItem(info['type'](self), info['title'])
-
-    def install(self, announces, api):
-        for index in range(0, self.count()):
-            self.widget(index).install(announces, api)
-
-    def _currentChangedSlot(self, index):
-        self.widget(index).refresh()  # TODO 不要直接调用 refresh
+# from gui.RealTimeView import FlowRTV
+#
+# REAL_TIME_VIEW_INFOS = [
+#     {
+#         'type': FlowRTV,
+#         'title': '传输量曲线',
+#     },
+# ]
+#
+#
+# class RealTimeViewBox(QToolBox):
+#     def __init__(self, parent):
+#         super().__init__(parent)
+#         self.currentChanged.connect(self._currentChangedSlot)
+#
+#         for info in REAL_TIME_VIEW_INFOS:
+#             self.addItem(info['type'](self), info['title'])
+#
+#     def install(self, announces, api):
+#         for index in range(0, self.count()):
+#             self.widget(index).install(announces, api)
+#
+#     def _currentChangedSlot(self, index):
+#         self.widget(index).refresh()  # TODO 不要直接调用 refresh
 
 
 # ======================================================================================================================
@@ -174,36 +155,23 @@ from PyQt5.QtWidgets import QDockWidget
 from gui.NameTreeWidget import NameTreeWidget
 from gui.LogWidget import LogWidget
 
-DOCK_WIDGETS_INFOS = [  # TODO 写到配置文件中去
-    {
-        'type': NameTreeWidget,
-        'title': 'Name表',
-        'area': Qt.BottomDockWidgetArea,
-    },
-    # {
-    #     'type': RealTimeViewBox,
-    #     'title': '实时视图',
-    #     'area': Qt.RightDockWidgetArea,
-    # },
-    # {
-    #     'type': LogWidget,
-    #     'title': '日志',
-    #     'area': Qt.BottomDockWidgetArea,
-    # }
-]
-
 
 class DocksPlugin(MainWindowPlugin):
+    DOCKS= (
+        ('Name表', Qt.BottomDockWidgetArea, NameTreeWidget),
+        # ('实时视图', Qt.BottomDockWidgetArea, RealTimeViewBox),
+        # ('日志', Qt.BottomDockWidgetArea, LogWidget),
+    )
+
     def setupUI(self, main_window):
         self.widgets = []
-        for info in DOCK_WIDGETS_INFOS:
-            dock = QDockWidget(main_window)
-            dock.setWindowTitle(info['title'])
-            main_window.addDockWidget(info['area'], dock)
-
-            widget = info['type'](dock)
-            dock.setWidget(widget)
+        for text, area, DockType in self.DOCKS:
+            widget= DockType(main_window)
             self.widgets.append(widget)
+
+            dock= QDockWidget(text, self.parent())
+            dock.setWidget(widget)
+            main_window.addDockWidget(area, dock)
 
     def install(self, announces, api):
         for widget in self.widgets:
@@ -215,17 +183,16 @@ from gui.EdgeDialog import EdgeDialog
 
 
 class InfoDialogPlugin(MainWindowPlugin):
-    def __init__(self, main_window= None):
+    def __init__(self, main_window):
         super().__init__(main_window)
-        self.node_dialog_table= {}  # 记录打开着的 NodeDialog
-        self.edge_dialog_table= {}  # 记录打开着的 EdgeDialog
+        self.node_dialog_table= {}  # { node_id:dialog, ... } 记录打开着的 NodeDialog
+        self.edge_dialog_table= {}  # { (src_id, dst_id):dialog, ... } 记录打开着的 EdgeDialog
 
     def install(self, announces, api):
         super().install(announces, api)
         self.announces['NodeDoubleClick'].append(self.showNodeDialog)
         self.announces['NodeDialogClose'].append(self.closeNodeDialog)
-
-        self.announces['EdgeDoubleClick'].append( self.showEdgeDialog )
+        self.announces['EdgeDoubleClick'].append(self.showEdgeDialog)
         self.announces['EdgeDialogClose'].append(self.closeEdgeDialog)
 
     def showNodeDialog(self, node_id):
