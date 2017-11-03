@@ -15,8 +15,7 @@ class NodeDialog(QDialog):
         self.announces= announces
         announces['playSteps'].append(self.playSteps)
 
-        icn_node= api['ICNNet.getNode'](self.node_id)
-
+        icn_node= api['Sim.getNode'](self.node_id)
         self.ui.tree.addEntry('Node', icn_node)
         for unit_name, unit in icn_node.units.items():
             self.ui.tree.addEntry(unit_name, unit)

@@ -30,4 +30,4 @@ class Ui_node_dialog(object):
         node_dialog.setWindowTitle(_translate("node_dialog", "Dialog"))
 
 
-from BindWidgets import UIAttrsTree
+from gui.BindWidgets import UIAttrsTree

@@ -1,6 +1,14 @@
-from module.DataBaseModule import DataBaseModule
-from module.HubModule import HubModule
-from module.ICNNetModule import ICNNetModule
-from module.MonitorModule import MonitorModule
-from module.TopologyModule import TopologyModule
-from module.GUIModule import GUIModule
+from module.sim import Simulator, SuperSimulator
+
+
+class MoudleBase:
+    def setup(self, sim):
+        self.sim = sim
+
+
+# from module.hub_moudle import *
+# from module.monitor_module import *
+# from module.gui_module import GUIModule
+
+
+

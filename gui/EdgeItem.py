@@ -3,8 +3,7 @@ from PyQt5.QtCore import QPointF, QRectF, Qt
 from PyQt5.QtGui import QPainterPath, QPen, QPolygonF
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem
 
-from base.core import CallTable, Timer
-from common import threshold
+from core import CallTable, Timer, threshold
 from debug import showCall
 
 

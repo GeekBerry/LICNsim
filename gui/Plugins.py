@@ -16,11 +16,10 @@ class MainWindowPlugin(QObject):
 
 
 # ======================================================================================================================
+from core import clock, Bind
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QAction, QToolBar, QToolBox, QSpinBox
-from core import clock
-from base.core import Bind
 
 
 class PlayerPlugin(MainWindowPlugin):
@@ -56,7 +55,7 @@ class PlayerPlugin(MainWindowPlugin):
         icon = QIcon()
         icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/visualizer/images/step.png"), QIcon.Normal, QIcon.Off)
         action_step.setIcon(icon)
-        action_step.triggered.connect(self._clockInc)
+        action_step.triggered.connect(self.playStep)
         self.tool_bar.addAction(action_step)  # FIXME
 
         # 安装步数显示器
@@ -69,7 +68,7 @@ class PlayerPlugin(MainWindowPlugin):
         # TODO 进度条
 
     # @showCall
-    def _clockInc(self, is_triggered=False):
+    def playStep(self, is_triggered=False):
         # TODO 锁住仪表盘
         steps = self.steps_spin.value()
 
@@ -79,7 +78,7 @@ class PlayerPlugin(MainWindowPlugin):
 
     # @showCall
     def playSteps(self):
-        self._clockInc()
+        self.playStep()
         self.step_timer.start()
 
     def _playSlot(self, is_play):
@@ -105,11 +104,11 @@ PAINTER_INFOS = [  # TODO 写到配置文件中去
         'pixmap_name': "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/store.png",
     },
 
-    {
-        'type': NodeHitPainter,
-        'text': '命中率图',
-        'pixmap_name': "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/hit.png"
-    }
+    # {
+    #     'type': NodeHitPainter,
+    #     'text': '命中率图',
+    #     'pixmap_name': "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/hit.png"
+    # }
 ]
 
 
@@ -140,8 +139,7 @@ class PainterPlugin(MainWindowPlugin):
             painter.install(announces, api)
 
     def activePainter(self, painter, is_triggered):
-        self.api['Painter.currentPainter'] = lambda: painter
-        self.announces['painterUpdated'](painter)
+        self.announces['selectPainter'](painter)
 
 
 # ======================================================================================================================
@@ -182,16 +180,16 @@ DOCK_WIDGETS_INFOS = [  # TODO 写到配置文件中去
         'title': 'Name表',
         'area': Qt.BottomDockWidgetArea,
     },
-    {
-        'type': RealTimeViewBox,
-        'title': '实时视图',
-        'area': Qt.RightDockWidgetArea,
-    },
-    {
-        'type': LogWidget,
-        'title': '日志',
-        'area': Qt.BottomDockWidgetArea,
-    }
+    # {
+    #     'type': RealTimeViewBox,
+    #     'title': '实时视图',
+    #     'area': Qt.RightDockWidgetArea,
+    # },
+    # {
+    #     'type': LogWidget,
+    #     'title': '日志',
+    #     'area': Qt.BottomDockWidgetArea,
+    # }
 ]
 
 

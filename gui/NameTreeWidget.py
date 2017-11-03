@@ -5,7 +5,7 @@ from gui.common import TreeWidget
 from debug import showCall
 
 
-class NameTreeWidget(TreeWidget):
+class NameTreeWidget(TreeWidget):  # 配合着 NameMonitor 使用
     def __init__(self, parent):
         super().__init__(parent)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
@@ -25,19 +25,18 @@ class NameTreeWidget(TreeWidget):
 
     def refresh(self):
         # self.clearSelection()
-        name_tree= self.api['NameStoreMonitor.tree']()
-        assert name_tree is not None
-        self.showNameTree(self, name_tree)
+        name_table= self.api['NameMonitor.table']()
+        assert name_table is not None
+        self.showNameTree(self, name_table.name_tree)
 
     def showNameTree(self, tree_item, name_tree):
         for name_node in name_tree:
             if name_node.hasValue():
-                store_record= name_node.getValue()
-                values= len(store_record.pending), len(store_record.store), len(store_record.transfer)
+                record= name_node.getValue()
+                values= len(record.pending), len(record.store), len(record.transfer)
             else:
                 values= ()
             tree_item[name_node.key].setValues(*values)
-
             self.showNameTree(tree_item[name_node.key], name_node)
 
     def itemClickedEvent(self, tree_item, col):

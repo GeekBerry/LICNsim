@@ -2,8 +2,7 @@ from PyQt5.QtCore import QRectF, Qt
 from PyQt5.QtGui import (QPainterPath)
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem
 
-from base.core import CallTable
-from common import threshold
+from core import CallTable, threshold
 
 
 class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果

@@ -27,4 +27,4 @@ class Ui_edge_dialog(object):
         edge_dialog.setWindowTitle(_translate("edge_dialog", "Dialog"))
 
 
-from BindWidgets import UIAttrsTree
+from gui.BindWidgets import UIAttrsTree

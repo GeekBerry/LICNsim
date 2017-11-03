@@ -1,16 +1,18 @@
+from core import Packet, Name
+ip_A = Packet(Name.fromStr('A'), Packet.INTEREST, 1)
+dp_A = Packet(Name.fromStr('A'), Packet.DATA, 500)
+dp_A1 = Packet(Name.fromStr('A/1'), Packet.DATA, 500)
 
-# import time
-# def timeIt(func):
-#     def _lambda(*args, **kwargs):
-#         start_time= time.clock()
-#         ret= func(*args, **kwargs)
-#         print(func.__name__, '运行:', (time.clock()- start_time), 's')
-#         return ret
-#     return _lambda
+# ======================================================================================================================
+from core import INF
+from unit.channel import ExampleChannel
+def OneStepChannel(src_id, dst_id):
+    return ExampleChannel(src_id, dst_id, rate=INF, delay=1, loss=0)
 
+
+# ======================================================================================================================
 import itertools
 import traceback
-# ======================================================================================================================
 import types
 
 
@@ -33,6 +35,7 @@ show_call_print= True
 show_line_iter= itertools.count()
 show_call_deep= 0
 # show_call_file= open('show_call.txt', 'w')
+
 
 def showCall(func):
     def lam(*args, **kwargs):
@@ -62,39 +65,3 @@ def showCall(func):
 
         return ret
     return lam
-
-
-# ======================================================================================================================
-import cProfile
-import pstats
-
-
-def timeProfile(cmd):
-    prof= cProfile.Profile()
-    prof.run(cmd)
-    pstats.Stats(prof).strip_dirs().sort_stats('tottime').print_stats('', 50)  # sort_stats:  ncalls, tottime, cumtime
-
-
-# ======================================================================================================================
-def exeScript(sim, script):
-    from base.core import clock, tupleClass
-    Instr= tupleClass('delay', 'action', 'node_id', 'packet')
-
-    ACTION_MAP= {
-        'ask':  lambda node_id, packet: sim.api['ICNNet.getNode'](node_id).api['APP.ask']( packet.fission() ),
-        'store': lambda node_id, packet: sim.api['ICNNet.getNode'](node_id).api['APP.store'](packet),
-    }
-
-    for each in script:
-        instr= Instr(*each)
-        clock.timing( instr.delay, ACTION_MAP[instr.action], instr.node_id, instr.packet )
-
-
-# ======================================================================================================================
-def print_clock():
-    from base.core import clock
-    for t in sorted(clock._todo.keys()):
-        print('Time', t)
-        for handle in clock._todo[t]:
-            if handle:
-                print(f'\t{handle.func}\t{handle.args}\t{handle.kwargs}\n')

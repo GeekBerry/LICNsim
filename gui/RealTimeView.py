@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QWidget
 
-from base.core import Name
-from core import clock
+from core import clock, Name
 from gui.common import UIFrom
 from gui.ui.flow_rtv import Ui_flow_rtv
 
