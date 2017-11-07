@@ -34,23 +34,20 @@ class NetScene(QGraphicsScene):
     NODE_SIZE= 0.5  # 默认Node大小
     SPACE_WIDTH= 200
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent, announces, api):
+        super().__init__(parent)
         self.node_table= {}  # { node_id:node_item, ... }
         self.edge_table= {}  # { (src_id, dst_id):edge_item, ... }
         self.painter = None
 
-    def install(self, announces, api):
-        self.announces= announces
-
-        self.neighbor= api['Sim.neighbor']
-
         announces['selectPainter'].append(self.selectPainter)
         announces['updatePainter'].append(self.updatePainter)
-
         announces['addICNNode'].append(self.addICNNode)
         announces['addICNChannel'].append(self.addICNChannel)
         announces['playSteps'].append(self.playSteps)
+
+        self.announces= announces
+        self.neighbor= api['Sim.neighbor']  # {node_id:iterable(neighbor, ...), ...}
 
     def addICNNode(self, node_id):
         node_item= NodeItem(node_id)

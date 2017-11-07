@@ -78,6 +78,9 @@ class DataBaseTable:
     def createIndexs(self, *fields):
         self.dblite.create_index(*fields)
 
+    def getFields(self):
+        return self.dblite.fields
+
     def addFields(self, **value_dict):
         for field, default in value_dict.items():
             self.dblite.add_field(field, default= default)
@@ -271,27 +274,31 @@ class DataBaseTable:
             raise NotImplementedError('没有实现对非索引项的遍历')
 
 
-# if __name__ == '__main__':
-#
-#     db_table= DataBaseTable('name', 'age', score=0, city='')
-#
-#     db_table['A', 23]= {'score':100, 'city':'BJ'}
-#     db_table['B', 17]= {'score':90, 'city':'SH'}
-#     db_table['C', 20]= {'score':59, 'city':'SH'}
-#     db_table['D', 28]= {'score':40, 'city':'BJ'}
-#
-#     p= list( db_table.query(city= 'BJ') )
-#     # print(p)
-#     # [Record({'name': 'A', 'age': 23, 'score': 100, 'city': 'BJ', '__id__': 0, '__version__': 0}),
-#     # Record({'name': 'D', 'age': 15, 'score': 40, 'city': 'BJ', '__id__': 3, '__version__': 0})]
-#
-#     p= list( db_table.query(age= lambda age: 18<=age<25, city='SH') )
-#     print(p)
-#     # [Record({'name': 'C', 'age': 20, 'score': 59, 'city': 'SH', '__id__': 2, '__version__': 0})]
-#
-#     p= list( db_table.query(age= lambda age: 25<age, score= lambda num: 60<num) )
-#     print(p)
-#     # []
+
+if __name__ == '__main__':
+    db_table= DataBaseTable().create('name', 'age', score=0, city='') # 不带默认值的为主键;  k1, k2 为主键
+
+    db_table['A', 23]= {'score':100, 'city':'BJ'}
+    db_table['B', 17]= {'score':90, 'city':'SH'}
+    db_table['C', 20]= {'score':59, 'city':'SH'}
+    db_table['D', 28]= {'score':40, 'city':'BJ'}
+
+    p= list( db_table.query(city= 'BJ') )
+    print(p)
+    # [Record({'name': 'A', 'age': 23, 'score': 100, 'city': 'BJ', '__id__': 0, '__version__': 0}),
+    # Record({'name': 'D', 'age': 15, 'score': 40, 'city': 'BJ', '__id__': 3, '__version__': 0})]
+
+    p= list( db_table.query(age= lambda age: 18<=age<25, city='SH') )
+    print(p)
+    # [Record({'name': 'C', 'age': 20, 'score': 59, 'city': 'SH', '__id__': 2, '__version__': 0})]
+
+    p= list( db_table.query(age= lambda age: 25<age, score= lambda num: 60<num) )
+    print(p)
+    # []
+
+    p= list( db_table.query() )
+    print(p)
+    # [Record({'name': 'A', 'age': 23, 'score': 100, 'city': 'BJ', '__id__': 0, '__version__': 0}), Record({'name': 'B', 'age': 17, 'score': 90, 'city': 'SH', '__id__': 1, '__version__': 0}), Record({'name': 'C', 'age': 20, 'score': 59, 'city': 'SH', '__id__': 2, '__version__': 0}), Record({'name': 'D', 'age': 28, 'score': 40, 'city': 'BJ', '__id__': 3, '__version__': 0})]
 
 
 

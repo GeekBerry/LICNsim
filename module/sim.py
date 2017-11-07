@@ -76,8 +76,6 @@ class Simulator:
 
 
 
-
-
 from core import Bind, CallTable, AnnounceTable
 from collections import defaultdict
 

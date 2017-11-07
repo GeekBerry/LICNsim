@@ -14,7 +14,7 @@ class Ui_edge_dialog(object):
         edge_dialog.resize(504, 287)
         self.gridLayout = QtWidgets.QGridLayout(edge_dialog)
         self.gridLayout.setObjectName("gridLayout")
-        self.tree = UIAttrsTree(edge_dialog)
+        self.tree = TreeWidget(edge_dialog)
         self.tree.setObjectName("tree")
         self.tree.headerItem().setText(0, "1")
         self.gridLayout.addWidget(self.tree, 0, 0, 1, 1)
@@ -26,5 +26,4 @@ class Ui_edge_dialog(object):
         _translate = QtCore.QCoreApplication.translate
         edge_dialog.setWindowTitle(_translate("edge_dialog", "Dialog"))
 
-
-from gui.BindWidgets import UIAttrsTree
+from gui.common import TreeWidget

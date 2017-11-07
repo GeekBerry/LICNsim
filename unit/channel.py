@@ -3,7 +3,7 @@ from collections import deque
 from core import Timer, clock, AnnounceTable
 
 
-class ExampleChannel:
+class Channel:
     """
     Announces:
         send -> transfer -> loss/receive
@@ -14,7 +14,7 @@ class ExampleChannel:
         def __init__(self, rate, call_back):
             self.rate = rate
             self.call_back = call_back
-            self.timer = Timer(self.finish)
+            self.timer = Timer(self.finish)  # 当前发送定时器
             self.queue = deque()
 
         def send(self, packet):
@@ -41,6 +41,14 @@ class ExampleChannel:
     @property
     def rate(self):
         return self.sender.rate
+
+    @rate.setter
+    def rate(self, value):
+        self.sender.rate= value
+
+    @property
+    def queue(self):
+        return list(self.sender.queue)
 
     def getId(self):
         return self.__id

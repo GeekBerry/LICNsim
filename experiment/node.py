@@ -2,7 +2,7 @@ from core import Hardware
 from unit import *
 from experiment import *
 
-from unit.content_store import ExampleContentStore
+from unit.content_store import ContentStore
 from experiment.content_store import LCDContentStore, LCPContentStore
 
 
@@ -11,12 +11,12 @@ class RouteNode(Hardware):
         super().__init__(node_id)
 
         self.install('cs', cs_unit)
-        # self.install('replace', ExampleReplaceUnit(ExampleReplaceUnit.FIFO))
+        # self.install('replace', ReplaceUnit('FIFO'))
         self.install('evict', evict_unit)
 
-        self.install('face', ExampleFaceUnit())
+        self.install('face', FaceUnit())
         self.install('app', StoreTrackAppUnit())
-        self.install('info', ExampleInfoUnit())  # 必须安装在ForwardUnit前, info先行处理inPack信号
+        self.install('info', InfoUnit())  # 必须安装在ForwardUnit前, info先行处理inPack信号
         self.install('forward', StoreTrackForwardUnit())
 
         self.api['Node.getId']= self.getId
@@ -40,12 +40,12 @@ class OuterNode(Hardware):
         super().__init__(node_id)
 
         self.install('cs', cs_unit)
-        # self.install('replace', ExampleReplaceUnit(ExampleReplaceUnit.FIFO))
+        # self.install('replace', ReplaceUnit('FIFO'))
         self.install('evict', evict_unit)
 
-        self.install('face', ExampleFaceUnit())
+        self.install('face', FaceUnit())
         self.install('app', StoreTrackAppUnit())
-        self.install('info', ExampleInfoUnit())  # 必须安装在ForwardUnit前, info先行处理inPack信号
+        self.install('info', InfoUnit())  # 必须安装在ForwardUnit前, info先行处理inPack信号
         self.install('forward', StoreTrackForwardUnit())
 
         self.api['Node.getId']= self.getId
@@ -60,7 +60,7 @@ class OuterNode(Hardware):
 def NodeFactor(**kwargs):
     def factor(node_id):
         if kwargs['cs_type'] == 'LCE':
-            cs_unit= ExampleContentStore()
+            cs_unit= ContentStore()
         elif kwargs['cs_type'] == 'LCD':
             cs_unit= LCDContentStore()
         elif kwargs['cs_type'] == 'LCP':

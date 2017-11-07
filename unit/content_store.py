@@ -1,7 +1,7 @@
 from core import Unit, NameTable
 
 
-class ExampleContentStore(Unit):
+class ContentStore(Unit):
     def __init__(self, capacity=10000):
         self.capacity = capacity
         self.size = 0  # 已经占用的尺寸 0<= size <= capacity
@@ -65,5 +65,25 @@ class ExampleContentStore(Unit):
         name_iter = self.replace_iter()
         while self.size > max_size:
             self.discard(next(name_iter))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

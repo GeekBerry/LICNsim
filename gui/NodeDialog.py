@@ -1,34 +1,30 @@
 from PyQt5.QtWidgets import QDialog
 from gui.ui.node_dialog import Ui_node_dialog
 from gui.common import UIFrom
-
-from debug import showCall
+from gui.Controller import NodeController
 
 
 @UIFrom(Ui_node_dialog)
 class NodeDialog(QDialog):
-    def __init__(self, parent, node_id):
+    def __init__(self, parent, announces, api, node_id):
         self.node_id= node_id
-        self.setWindowTitle(f'Node({self.node_id})')
-
-    def install(self, announces, api):
         self.announces= announces
+
         announces['playSteps'].append(self.playSteps)
 
+        self.setWindowTitle(f'Node({self.node_id})')
+        self.ui.tree.setHeads('Attr', 'Detail')
+
         icn_node= api['Sim.getNode'](self.node_id)
-        self.ui.tree.addEntry('Node', icn_node)
-        for unit_name, unit in icn_node.units.items():
-            self.ui.tree.addEntry(unit_name, unit)
-        self.ui.tree.install(announces, api)
+        self.node_ctrl= NodeController(self, icn_node)
+        self.node_ctrl.setTree(self.ui.tree)
+
+        self.ui.tree.expandAll()
 
     def playSteps(self, steps):
-        pass
+        self.node_ctrl.refresh()
 
-    @showCall
     def closeEvent(self, event):
         super().closeEvent(event)
         self.announces['NodeDialogClose'](self.node_id)
-
-
-
 

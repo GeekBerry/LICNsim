@@ -1,7 +1,7 @@
-from unit import ExampleForwardUnit
+from unit import ForwardUnit
 
 
-class StoreTrackForwardUnit(ExampleForwardUnit):
+class StoreTrackForwardUnit(ForwardUnit):
     def install(self, announces, api):
         super().install(announces, api)
 

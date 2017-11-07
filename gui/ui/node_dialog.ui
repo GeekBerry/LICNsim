@@ -15,7 +15,7 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <widget class="UIAttrsTree" name="tree">
+    <widget class="TreeWidget" name="tree">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
@@ -36,7 +36,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>UIAttrsTree</class>
+   <class>TreeWidget</class>
    <extends>QTreeWidget</extends>
    <header>gui.common</header>
   </customwidget>

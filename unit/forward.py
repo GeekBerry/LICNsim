@@ -1,7 +1,7 @@
 from core import Packet, Unit
 
 
-class ExampleForwardUnit(Unit):  # 洪泛
+class ForwardUnit(Unit):  # 洪泛
     def install(self, announces, api):
         super().install(announces, api)
         # 监听的Announce

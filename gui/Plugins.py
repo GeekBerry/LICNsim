@@ -3,16 +3,18 @@ from debug import showCall
 
 
 class MainWindowPlugin(QObject):
-    def __init__(self, main_window):
+    def __init__(self, main_window, announces, api):
         super().__init__(main_window)
-        self.setupUI(main_window)
-
-    def setupUI(self, main_window):  # UI布局
-        pass
-
-    def install(self, announces, api):  # 消息连接
         self.announces = announces
         self.api = api
+
+    #     self.setupUI(main_window)
+    #
+    # def setupUI(self, main_window):  # UI布局
+    #     pass
+    #
+    # def install(self, announces, api):  # 消息连接
+
 
 
 # ======================================================================================================================
@@ -26,13 +28,12 @@ class PlayerPlugin(MainWindowPlugin):
     FRAME_DELAY = 1000  # 单位(ms)
     DEFAULT_STEP_SIZE = 1
 
-    def __init__(self, main_window):
-        super().__init__(main_window)
+    def __init__(self, main_window, announces, api):
+        super().__init__(main_window, announces, api)
         self.step_timer = QTimer(self)
         self.step_timer.timeout.connect(self.playSteps)
         self.step_timer.setInterval(self.FRAME_DELAY)
 
-    def setupUI(self, main_window):
         self.tool_bar = QToolBar(main_window)
         self.tool_bar.setWindowTitle('Play工具栏')
         main_window.addToolBar(Qt.TopToolBarArea, self.tool_bar)
@@ -97,30 +98,26 @@ class PainterPlugin(MainWindowPlugin):
         # ('命中率图', "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/hit.png", NodeHitPainter),
     )
 
-    def setupUI(self, main_window):
+    def __init__(self, main_window, announces, api):
+        super().__init__(main_window, announces, api)
+
         # 工具条
         tool_bar = QToolBar(main_window)
         tool_bar.setWindowTitle('Painter工具栏')
         main_window.addToolBar(Qt.TopToolBarArea, tool_bar)
 
-        self.painters = {}
         for text, pixmap_name, PainterType in self.PAINTERS:
-            self.painters[text]= PainterType()
-
             action = QAction(text, main_window)
             icon = QIcon()
             icon.addPixmap(QPixmap(pixmap_name), QIcon.Normal, QIcon.Off)
             action.setIcon(icon)
             tool_bar.addAction(action)
-            action.triggered.connect(Bind(self.activePainter, text))
 
-    def install(self, announces, api):
-        super().install(announces, api)
-        for painter in self.painters.values():
-            painter.install(announces, api)
+            painter= PainterType(announces, api)
+            action.triggered.connect(Bind(self.activePainter, painter))
 
-    def activePainter(self, text, is_triggered):
-        self.announces['selectPainter']( self.painters[text] )
+    def activePainter(self, painter, is_triggered):
+        self.announces['selectPainter'](painter)
 
 
 # ======================================================================================================================
@@ -151,31 +148,30 @@ class PainterPlugin(MainWindowPlugin):
 
 
 # ======================================================================================================================
-from PyQt5.QtWidgets import QDockWidget
-from gui.NameTreeWidget import NameTreeWidget
-from gui.LogWidget import LogWidget
+# from PyQt5.QtWidgets import QDockWidget
+# from gui.NameTreeWidget import NameTreeWidget
+# from gui.LogWidget import LogWidget
 
 
-class DocksPlugin(MainWindowPlugin):
-    DOCKS= (
-        ('Name表', Qt.BottomDockWidgetArea, NameTreeWidget),
-        # ('实时视图', Qt.BottomDockWidgetArea, RealTimeViewBox),
-        # ('日志', Qt.BottomDockWidgetArea, LogWidget),
-    )
+# class DocksPlugin(MainWindowPlugin):
+#     DOCKS= (
+#         ('Name表', Qt.BottomDockWidgetArea, NameTreeWidget),
+#         # ('实时视图', Qt.BottomDockWidgetArea, RealTimeViewBox),
+#         # ('日志', Qt.BottomDockWidgetArea, LogWidget),
+#     )
+#
+#     def __init__(self, main_window, announces, api):
+#         super().__init__(main_window, announces, api)
+#         self.widgets = []
+#         for text, area, DockType in self.DOCKS:
+#             widget= DockType(main_window)
+#             widget.install(announces, api)
+#             self.widgets.append(widget)
+#
+#             dock= QDockWidget(text, self.parent())
+#             dock.setWidget(widget)
+#             main_window.addDockWidget(area, dock)
 
-    def setupUI(self, main_window):
-        self.widgets = []
-        for text, area, DockType in self.DOCKS:
-            widget= DockType(main_window)
-            self.widgets.append(widget)
-
-            dock= QDockWidget(text, self.parent())
-            dock.setWidget(widget)
-            main_window.addDockWidget(area, dock)
-
-    def install(self, announces, api):
-        for widget in self.widgets:
-            widget.install(announces, api)
 
 # ======================================================================================================================
 from gui.NodeDialog import NodeDialog
@@ -183,13 +179,11 @@ from gui.EdgeDialog import EdgeDialog
 
 
 class InfoDialogPlugin(MainWindowPlugin):
-    def __init__(self, main_window):
-        super().__init__(main_window)
+    def __init__(self, main_window, announces, api):
+        super().__init__(main_window, announces, api)
         self.node_dialog_table= {}  # { node_id:dialog, ... } 记录打开着的 NodeDialog
         self.edge_dialog_table= {}  # { (src_id, dst_id):dialog, ... } 记录打开着的 EdgeDialog
 
-    def install(self, announces, api):
-        super().install(announces, api)
         self.announces['NodeDoubleClick'].append(self.showNodeDialog)
         self.announces['NodeDialogClose'].append(self.closeNodeDialog)
         self.announces['EdgeDoubleClick'].append(self.showEdgeDialog)
@@ -198,8 +192,7 @@ class InfoDialogPlugin(MainWindowPlugin):
     def showNodeDialog(self, node_id):
         dialog= self.node_dialog_table.get(node_id)
         if dialog is None:
-            dialog= NodeDialog(self.parent(), node_id)
-            dialog.install(self.announces, self.api)
+            dialog= NodeDialog(self.parent(), self.announces, self.api, node_id)
             self.node_dialog_table[node_id]= dialog
         dialog.show()
 
@@ -209,8 +202,7 @@ class InfoDialogPlugin(MainWindowPlugin):
     def showEdgeDialog(self, src_id, dst_id):
         dialog= self.edge_dialog_table.get( (src_id, dst_id,) )
         if dialog is None:
-            dialog= EdgeDialog(self.parent(), src_id, dst_id)
-            dialog.install(self.announces, self.api)
+            dialog= EdgeDialog(self.parent(), self.announces, self.api, src_id, dst_id)
             self.edge_dialog_table[ (src_id, dst_id,) ]= dialog
         dialog.show()
 

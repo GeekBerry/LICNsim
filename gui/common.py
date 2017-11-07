@@ -43,14 +43,13 @@ class TreeItem(QTreeWidgetItem):
 
     def __init__(self, parent, text):
         super().__init__(parent, [text])
-        self.table = {}
+        self.table = {}  # {key:TreeItem, ...}
 
     def __getitem__(self, key):
         if key not in self.table:
             self.table[key]= TreeItem(self, str(key))
         return self.table[key]
 
-    @showCall
     def __delitem__(self, key):
         if key in self.table:
             index = self.indexOfChild(self.table[key])
@@ -87,7 +86,7 @@ class TreeWidget(QTreeWidget):
     def __init__(self, *args):
         super().__init__(*args)
         self.setAlternatingRowColors(True)  # 隔行显示颜色
-        self.table = {}
+        self.table = {}  # {key:TreeItem, ...}
 
     def setHeads(self, *values):
         for col, value in enumerate(values):
@@ -98,7 +97,6 @@ class TreeWidget(QTreeWidget):
             self.table[key]= TreeItem(self, str(key))
         return self.table[key]
 
-    @showCall
     def __delitem__(self, key):
         if key in self.table:
             index = self.indexOfTopLevelItem(self.table[key])
@@ -117,16 +115,19 @@ class TableWidget(QTableWidget):
         for col, value in enumerate(values):
             self.setHorizontalHeaderItem(  col, QTableWidgetItem( str(value) )  )
 
-    def setLines(self, *values):
-        self.setRowCount( len(values) )
-        for row, value in enumerate(values):
-            self.setVerticalHeaderItem(  row, QTableWidgetItem( str(value) )  )
+    # def setLines(self, *values):  XXX 这个函数是干嘛的？
+    #     self.setRowCount( len(values) )
+    #     for row, value in enumerate(values):
+    #         self.setVerticalHeaderItem(  row, QTableWidgetItem( str(value) )  )
 
     def setRow(self, row, *datas):
         for col, data in enumerate(datas):
             self.setCell(row, col, data)
 
     def setCell(self, row, col, data=None):
+        if not 0 <= col < self.columnCount():  # XXX 越界赋值会换行， 有必要在此检查边界以免越界覆盖
+            return
+
         item = QTableWidgetItem()
         if isinstance(data, (int, float)):
             item.setData(0, data)

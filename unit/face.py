@@ -1,7 +1,7 @@
 from core import TimeDictDecorator, clock, Bind, Unit
 
 
-class ExampleFaceUnit(Unit):
+class FaceUnit(Unit):
     class LoopChecker:
         def __init__(self, nonce_life_time):
             self.info_set = TimeDictDecorator({}, nonce_life_time)  # 当做set来用

@@ -1,8 +1,8 @@
 import random
-from unit import ExampleContentStore
+from unit import ContentStore
 
 
-class LCPContentStore(ExampleContentStore):
+class LCPContentStore(ContentStore):
     def __init__(self, probability):
         super().__init__()
         self.probability = probability
@@ -14,7 +14,7 @@ class LCPContentStore(ExampleContentStore):
             self.announces['csStoreReject'](data)
 
 
-class LCDContentStore(ExampleContentStore):
+class LCDContentStore(ContentStore):
     def match(self, packet):  # TODO 多项匹配, 条件匹配
         data = super().match(packet)
         if data is not None:

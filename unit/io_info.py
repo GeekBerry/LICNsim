@@ -2,7 +2,7 @@ from collections import defaultdict
 from core import Packet, Unit
 
 
-class ExampleInfoUnit(Unit):
+class InfoUnit(Unit):
     def __init__(self):
         self.pit= defaultdict(set)  # {name:set(face_id), ...}
 
@@ -22,7 +22,7 @@ class ExampleInfoUnit(Unit):
             self.pit[packet.name].discard(face_id)
 
     def getPindIds(self, packet):
-        # 必须新构造set, 以使得出现 RuntimeError"Set changed size during iteration"
+        # 必须新构造set, 以免Forwarder查表过程中对表进行操作，出现 RuntimeError"Set changed size during iteration"
         return set( self.pit[packet.name] )
 
 

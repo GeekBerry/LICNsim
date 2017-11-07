@@ -6,18 +6,16 @@ from debug import showCall
 
 
 class NameTreeWidget(TreeWidget):  # 配合着 NameMonitor 使用
-    def __init__(self, parent):
+    def __init__(self, parent, announces, api):
         super().__init__(parent)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
         self.setAlternatingRowColors(True)  # 隔行显示颜色
 
-        self.itemClicked.connect(self.itemClickedEvent)
-        self.setHeads('Name', 'PendNum', 'StoreNum', 'TransNum')
-
-    def install(self, announces, api):
         self.announces= announces
         self.api= api
         announces['playSteps'].append(self.playSteps)
+
+        self.itemClicked.connect(self.itemClickedEvent)
 
     def playSteps(self, steps):
         if self.isVisible():
@@ -27,6 +25,7 @@ class NameTreeWidget(TreeWidget):  # 配合着 NameMonitor 使用
         # self.clearSelection()
         name_table= self.api['NameMonitor.table']()
         assert name_table is not None
+        self.setHeads('Name', 'PendNum', 'StoreNum', 'TransNum')
         self.showNameTree(self, name_table.name_tree)
 
     def showNameTree(self, tree_item, name_tree):

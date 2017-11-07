@@ -5,9 +5,9 @@ dp_A1 = Packet(Name.fromStr('A/1'), Packet.DATA, 500)
 
 # ======================================================================================================================
 from core import INF
-from unit.channel import ExampleChannel
+from unit.channel import Channel
 def OneStepChannel(src_id, dst_id):
-    return ExampleChannel(src_id, dst_id, rate=INF, delay=1, loss=0)
+    return Channel(src_id, dst_id, rate=INF, delay=1, loss=0)
 
 
 # ======================================================================================================================

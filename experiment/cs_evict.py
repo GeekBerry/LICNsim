@@ -80,12 +80,12 @@ class CSEvictUnit(Unit):
 
 if __name__ == '__main__':
     from core import clock, AnnounceTable, CallTable
-    from unit import ExampleContentStore
+    from unit import ContentStore
     from debug import *
 
     anno, api= AnnounceTable(), CallTable()
 
-    cs= ExampleContentStore()
+    cs= ContentStore()
     cs.install(anno, api)
 
     evict= CSEvictUnit(6, 'FIFO')

@@ -14,7 +14,7 @@ class Ui_node_dialog(object):
         node_dialog.resize(514, 617)
         self.gridLayout = QtWidgets.QGridLayout(node_dialog)
         self.gridLayout.setObjectName("gridLayout")
-        self.tree = UIAttrsTree(node_dialog)
+        self.tree = TreeWidget(node_dialog)
         self.tree.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.tree.setAlternatingRowColors(True)
         self.tree.setObjectName("tree")
@@ -29,5 +29,4 @@ class Ui_node_dialog(object):
         _translate = QtCore.QCoreApplication.translate
         node_dialog.setWindowTitle(_translate("node_dialog", "Dialog"))
 
-
-from gui.BindWidgets import UIAttrsTree
+from gui.common import TreeWidget

@@ -1,14 +1,13 @@
 from core import DataBaseTable, Unit, clock
 
 
-class ExampleReplaceUnit(Unit):
-    FIFO, LRU, LFU= range(0, 3)
-    MODE_FIELD_MAP = {FIFO: 'c_time', LRU: 'a_time', LFU: 'hit_count'}
+class ReplaceUnit(Unit):
+    MODE_FIELD_MAP = {'FIFO': 'c_time', 'LRU': 'a_time', 'LFU': 'hit_count'}
 
-    def __init__(self, mode=FIFO):
+    def __init__(self, mode='FIFO'):
         self.db_table= DataBaseTable().create('name', c_time= None, a_time= None, hit_count=0)
         self.db_table.createIndexs('c_time', 'a_time', 'hit_count')
-        self.mode = mode
+        self._mode = mode
 
     def install(self, announces, api):
         super().install(announces, api)
@@ -17,7 +16,7 @@ class ExampleReplaceUnit(Unit):
         announces['csHit'].append(self.hit)
         announces['csMiss'].append(self.miss)
         api['Replace.replaceIter']= self.replaceIter
-        api['Replace.setMode']= self.setMode
+        api['Replace.setMode']= lambda value: setattr(self, 'mode', value)
 
     def store(self, packet):
         cur_time= clock.time()
@@ -25,7 +24,7 @@ class ExampleReplaceUnit(Unit):
 
     def hit(self, packet):
         self.db_table[packet.name]['a_time']= clock.time()
-        self.db_table[packet.name]['hit_count']+= 1
+        self.db_table[packet.name]['hit_count'] += 1
 
     def miss(self, packet):
         pass
@@ -34,18 +33,23 @@ class ExampleReplaceUnit(Unit):
         del self.db_table[packet.name]
 
     # -------------------------------------------------------------------------
-    def setMode(self, mode):
-        assert mode in self.MODE_FIELD_MAP.keys()
-        self.mode= mode
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self, value):
+        assert value in self.MODE_FIELD_MAP.keys()
+        self._mode= value
 
     def replaceIter(self):
-        field= self.MODE_FIELD_MAP[self.mode]
+        field= self.MODE_FIELD_MAP[self._mode]
         for record in self.db_table.minIter(field):
             yield record['name']
 
 
 if __name__ == '__main__':
-    unit= ExampleReplaceUnit(ExampleReplaceUnit.FIFO)
+    unit= ReplaceUnit('FIFO')
 
     from core import Packet, Name
     p1 = Packet(Name.fromStr('A/1'), 1, Packet.DATA)
@@ -64,12 +68,12 @@ if __name__ == '__main__':
         print(p)
 
     # LRU
-    unit.setMode(ExampleReplaceUnit.LRU)
+    unit.mode= 'LRU'
     for p in unit.replaceIter():
         print(p)
 
     # LFU
-    unit.setMode(ExampleReplaceUnit.LFU)
+    unit.mode= 'LFU'
     for p in unit.replaceIter():
         print(p)
 

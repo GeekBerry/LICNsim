@@ -9,12 +9,12 @@ class ExampleNode(Hardware):
 
         self.anno_map= defaultdict(set)
 
-        self.install('cs', ExampleContentStore())
-        self.install('replace', ExampleReplaceUnit(ExampleReplaceUnit.FIFO))
-        self.install('face', ExampleFaceUnit())
+        self.install('cs', ContentStore())
+        self.install('replace', ReplaceUnit('FIFO'))
+        self.install('face', FaceUnit())
         self.install('app', ExampleAppUnit())
-        self.install('info', ExampleInfoUnit())  # 必须安装在ForwardUnit前, info先行处理inPack信号
-        self.install('forward', ExampleForwardUnit())
+        self.install('info', InfoUnit())  # 必须安装在ForwardUnit前, info先行处理inPack信号
+        self.install('forward', ForwardUnit())
 
         self.api['Node.getId']= self.getId
 
