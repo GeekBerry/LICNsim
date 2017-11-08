@@ -13,7 +13,7 @@ class GUIModule(MoudleBase):
         self.app = QApplication(sys.argv)  # 必须放在 MainWindow 构造前
 
     def setup(self, sim):
-        # super().setup(sim)
+        super().setup(sim)
         self.main_window= MainWindow(None, sim.announces, sim.api)
         self.main_window.addDockPlugin('Name表', NameTreeWidget)
         self.main_window.addPlugin('PainterPlugin', PainterPlugin)

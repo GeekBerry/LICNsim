@@ -43,8 +43,8 @@ class PlayerPlugin(MainWindowPlugin):
         action_play.setCheckable(True)
 
         icon = QIcon()
-        icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/visualizer/images/start.png"), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/visualizer/images/pause.png"), QIcon.Normal, QIcon.On)
+        icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/gui/images/start.png"), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/gui/images/pause.png"), QIcon.Normal, QIcon.On)
         action_play.setIcon(icon)
         action_play.toggled.connect(self._playSlot)
         self.tool_bar.addAction(action_play)  # FIXME
@@ -52,7 +52,7 @@ class PlayerPlugin(MainWindowPlugin):
         # 安装单步按钮
         action_step = QAction('步进', self.tool_bar)
         icon = QIcon()
-        icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/visualizer/images/step.png"), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/gui/images/step.png"), QIcon.Normal, QIcon.Off)
         action_step.setIcon(icon)
         action_step.triggered.connect(self.playStep)
         self.tool_bar.addAction(action_step)  # FIXME
@@ -93,9 +93,9 @@ from gui.Painters import *
 
 class PainterPlugin(MainWindowPlugin):
     PAINTERS= (
-        ('性能图', "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/node.png", PropertyPainter),
-        ('缓存图', "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/store.png", NameStorePainter),
-        # ('命中率图', "C:/Users/bupt632/Desktop/LICNsim/visualizer/images/hit.png", NodeHitPainter),
+        ('性能图', "C:/Users/bupt632/Desktop/LICNsim/gui/images/node.png", PropertyPainter),
+        ('缓存图', "C:/Users/bupt632/Desktop/LICNsim/gui/images/store.png", NameStorePainter),
+        ('命中率图', "C:/Users/bupt632/Desktop/LICNsim/gui/images/hit.png", HitRatioPainter),
     )
 
     def __init__(self, main_window, announces, api):

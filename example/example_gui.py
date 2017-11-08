@@ -5,12 +5,14 @@ from core import *
 from module import *
 from module.gui_module import GUIModule
 from module.name_monitor import NameMonitor
+from node_monitor import NodeMonitor
 from unit.channel import *
 from unit.node import *
 
 sim = SuperSimulator()
 
 sim.install('name_monitor', NameMonitor())
+sim.install('node_moitor', NodeMonitor())
 sim.install('gui', GUIModule())
 
 

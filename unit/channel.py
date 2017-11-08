@@ -1,6 +1,6 @@
 import random
 from collections import deque
-from core import Timer, clock, AnnounceTable
+from core import Timer, clock, AnnounceTable, top
 
 
 class Channel:
@@ -23,11 +23,12 @@ class Channel:
 
         def checkSend(self):
             if not self.timer and self.queue:
-                packet = self.queue.popleft()
-                delay= packet.size//self.rate
-                clock.timing(delay, self.finish, packet)
+                packet = top(self.queue)
+                consuming = packet.size//self.rate
+                clock.timing(consuming, self.finish)
 
-        def finish(self, packet):
+        def finish(self):
+            packet= self.queue.popleft()
             self.call_back(packet)
             self.checkSend()
 
@@ -65,5 +66,5 @@ class Channel:
         if random.random() < self.loss:
             self.announces['loss'](packet)
         else:
-            self.announces['receive'](packet)
+            self.announces['arrive'](packet)
             self.receiver(packet)

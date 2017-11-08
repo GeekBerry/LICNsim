@@ -1,5 +1,5 @@
+from core import NameTable, DefaultDictDecorator, Packet
 from module import MoudleBase
-from core import NameTable, DefaultDictDecorator
 
 
 class NameMonitor(MoudleBase):
@@ -10,14 +10,12 @@ class NameMonitor(MoudleBase):
     PENDING |respond|       |store
     STORED  |evict  |       |
     """
-    class Record:
+    class Record:  # 一个名字下的记录
         def __init__(self):
             self.store= set()  # set(node_id, ...)
             self.pending= set()  # set(node_id, ...)
-            self.transfer= set()  # set(edge_id, ...)
-
-        def __repr__(self):
-            return str(self.__dict__)
+            self.trans_i= set()  # set(edge_id, ...)  传输兴趣包的边
+            self.trans_d= set()  # set(edge_id, ...)  传输数据包的边
 
     def __init__(self):
         self.name_table= DefaultDictDecorator(NameTable(), self.Record)
@@ -27,6 +25,11 @@ class NameMonitor(MoudleBase):
         sim.loadNodeAnnounce('respond', self._respondEvent)
         sim.loadNodeAnnounce('csStore', self._storeEvent)
         sim.loadNodeAnnounce('csEvict', self._evictEvent)
+
+        sim.loadEdgeAnnounce('send', self._sendEvent)
+        sim.loadEdgeAnnounce('loss', self._finishEvent)
+        sim.loadEdgeAnnounce('arrive', self._finishEvent)
+
         sim.api['NameMonitor.table']= lambda :self.name_table
 
     def _askEvent(self, node_id, packet):
@@ -47,27 +50,22 @@ class NameMonitor(MoudleBase):
         record = self.name_table[packet.name]
         record.store.discard(node_id)
 
+    def _sendEvent(self, src_id, dst_id, packet):
+        record= self.name_table[packet.name]
+        if packet.type == Packet.INTEREST:
+            record.trans_i.add( (src_id,dst_id,) )
+        elif packet.type == Packet.DATA:
+            record.trans_d.add( (src_id,dst_id,) )
+        else:
+            pass
 
-from collections import defaultdict
+    def _finishEvent(self, src_id, dst_id, packet):
+        record= self.name_table[packet.name]
+        if packet.type == Packet.INTEREST:
+            record.trans_i.discard( (src_id,dst_id,) )
+        elif packet.type == Packet.DATA:
+            record.trans_d.discard( (src_id,dst_id,) )
+        else:
+            pass
 
 
-class NodeMonitor(MoudleBase):
-    class Record:
-        def __init__(self):
-            self.hit = 0
-            self.miss = 0
-            self.store = 0
-            self
-            self.store= set()  # set(node_id, ...)
-            self.pending= set()  # set(node_id, ...)
-            self.transfer= set()  # set(edge_id, ...)
-
-        def __repr__(self):
-            return str(self.__dict__)
-
-    def setup(self, sim):
-        # sim.loadNodeAnnounce('ask', self._askEvent)
-        # sim.loadNodeAnnounce('respond', self._respondEvent)
-        # sim.loadNodeAnnounce('csStore', self._storeEvent)
-        # sim.loadNodeAnnounce('csEvict', self._evictEvent)
-        sim.api['NameMonitor.table']= lambda :self.name_table

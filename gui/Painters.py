@@ -116,14 +116,11 @@ from core import Name
 class NameStorePainter(Painter):
     EMPTY_COLOR = Qt.lightGray
 
-    STORE_COLOR = QColor(255, 0, 0)
-    WEAK_STORE_COLOR = QColor(255, 200, 200)
+    STORE_COLOR = TRANS_D_COLOR = QColor(255, 0, 0)
+    WEAK_STORE_COLOR = WEAK_TRANS_D_COLOR = QColor(255, 200, 200)
 
-    PEND_COLOR = QColor(0, 255, 0)
-    WEAK_PEND_COLOR = QColor(200, 255, 200)
-
-    TRANSFER_COLOR = QColor(0, 0, 255)
-    WEAK_TRANSFER_COLOR = QColor(200, 200, 255)
+    PEND_COLOR = TRANS_I_COLOR = QColor(0, 255, 0)
+    WEAK_PEND_COLOR = WEAK_TRANS_I_COLOR = QColor(200, 255, 200)
 
     def __init__(self, announces, api):
         super().__init__(announces, api)
@@ -137,27 +134,28 @@ class NameStorePainter(Painter):
             self.show_name = name
             self.announces['updatePainter'](self)
 
+    @showCall
     def _renders(self, node_ids, edge_ids):  # TODO 将计算与渲染分离
         name_table = self.api['NameMonitor.table']()
 
         node_dict = dict.fromkeys(node_ids, self.EMPTY_COLOR)
         edge_dict = dict.fromkeys(edge_ids, self.EMPTY_COLOR)
-
-        for sub_name in name_table.forebear(self.show_name):
+        # 先描绘请求情况
+        for sub_name in name_table.forebear(self.show_name):  # 对于兴趣包，查找前缀
             record = name_table[sub_name]
             for node_id in record.pending:
                 node_dict[node_id] = self.PEND_COLOR if (sub_name == self.show_name) else self.WEAK_PEND_COLOR
 
-            for edge_id in record.transfer:
-                edge_dict[edge_id] = self.TRANSFER_COLOR if (sub_name == self.show_name) else self.WEAK_TRANSFER_COLOR
-
-        for sub_name in name_table.descendant(self.show_name):
+            for edge_id in record.trans_i:
+                edge_dict[edge_id] = self.TRANS_I_COLOR if (sub_name == self.show_name) else self.WEAK_TRANS_I_COLOR
+        # 后描绘数据情况，以覆盖同请求相交的部分
+        for sub_name in name_table.descendant(self.show_name):  # 对于数据包，查找后缀
             record = name_table[sub_name]
             for node_id in record.store:
                 node_dict[node_id] = self.STORE_COLOR if (sub_name == self.show_name) else self.WEAK_STORE_COLOR
 
-            for edge_id in record.transfer:
-                edge_dict[edge_id] = self.TRANSFER_COLOR if (sub_name == self.show_name) else self.WEAK_TRANSFER_COLOR
+            for edge_id in record.trans_d:
+                edge_dict[edge_id] = self.TRANS_D_COLOR if (sub_name == self.show_name) else self.WEAK_TRANS_D_COLOR
 
         # ---------------------------------------------------------------------
         for node_id, color in node_dict.items():
@@ -167,11 +165,37 @@ class NameStorePainter(Painter):
             self.edge_style[edge_id]['color'] = color
             self.edge_style[edge_id]['show_text'] = False if (color is self.EMPTY_COLOR) else True
 
+
 # ======================================================================================================================
-# from module import NodeHitMonitor
-# from core import strPercent
-#
-#
+from core import strPercent
+
+
+class HitRatioPainter(Painter):
+    def __init__(self, announces, api):
+        super().__init__(announces, api)
+        self.back_ground_color = QColor(240, 255, 240)
+
+    @showCall
+    def _renders(self, node_ids, edge_ids):  # TODO 将计算与渲染分离
+        node_table= self.api['NodeMonitor.table']()
+        for node_id in node_ids:
+            record = node_table[node_id]
+
+            ratio= record.hit_ratio
+            color= HotColor(ratio)
+            text= f'命中率: {strPercent(ratio)}'
+
+            self.node_style[node_id]['color']= color
+            self.node_style[node_id]['text']= text
+            self.node_style[node_id]['show_text']= True
+
+        for edge_id in edge_ids:
+            self.edge_style[edge_id]['color']= Qt.lightGray
+            self.edge_style[edge_id]['text']= ''
+            self.edge_style[edge_id]['show_text']= False
+
+
+
 # class NodeHitPainter(Painter):
 #     def getStyleDict(self)->dict:
 #         self._calculate( self.api['Topo.nodeIds'](), self.api['Topo.edgeIds']() )
@@ -191,14 +215,10 @@ class NameStorePainter(Painter):
 #                 color= Qt.lightGray
 #                 text= '无访问记录'
 #             else:
-#                 color= HotColor(ratio)
-#                 text= f'命中率: {strPercent(ratio)}'
+#
 #
 #             self.node_style[node_id]['color']= color
 #             self.node_style[node_id]['text']= text
 #             # self.node_style[node_id]['show_text']= True  # XXX 是否需要?
-#
-#         for edge_id in edge_ids:
-#             self.edge_style[edge_id]['color']= Qt.lightGray
-#             self.edge_style[edge_id]['text']= ''
-#             self.edge_style[edge_id]['show_text']= False
+
+

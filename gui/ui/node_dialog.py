@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_node_dialog(object):
     def setupUi(self, node_dialog):
         node_dialog.setObjectName("node_dialog")
-        node_dialog.resize(514, 617)
+        node_dialog.resize(542, 561)
         self.gridLayout = QtWidgets.QGridLayout(node_dialog)
         self.gridLayout.setObjectName("gridLayout")
         self.tree = TreeWidget(node_dialog)
