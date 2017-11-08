@@ -2,21 +2,8 @@
 #coding=utf-8
 
 # from common import logging
-from collections import deque, defaultdict
-from core import Timer, clock
-
-
-def top(iterable):
-    """
-    iterable 中有 None 和 StopIteration 将无法区别, 请分清使用场景
-    :param iterable:
-    :return: None or Any
-    """
-    try:
-        return next(iter(iterable))
-    except StopIteration:
-        return None
-
+from collections import deque
+from core import Timer, clock, top
 
 # ======================================================================================================================
 def EMPTY_FUNC(*args, **kwargs):
@@ -231,7 +218,6 @@ class BaseDictDecorator(decorator(dict)):
     def popitem(self): raise NotImplementedError
 
 
-
 class SizeDictDecorator(BaseDictDecorator):
     size_evict_call_back= EMPTY_FUNC
 
@@ -416,3 +402,36 @@ class DefaultDictDecorator(BaseDictDecorator):
 #     t2[1]= 1000
 #     head(clock.time(), d, t1.key_queue, t2.info)  # 7 {1: 1000} deque([1]) {1: 9}
 
+
+# ---------------------  专用数据结构定义  ----------------------------
+
+class Hardware:
+    def __init__(self, hardware_id):
+        from core import CallTable, AnnounceTable
+        self.__id= hardware_id
+        self.api= CallTable()
+        self.announces= AnnounceTable()
+        self.units= {}
+
+    def getId(self):
+        return self.__id
+
+    def install(self, unit_name, unit):
+        unit.install(self.announces, self.api)
+        self.units[unit_name]= unit
+
+    def uninstall(self, unit_name):
+        unit= self.units[unit_name]
+        unit.uninstall(self.announces, self.api)
+        del self.units[unit_name]
+
+
+class Unit:
+    def install(self, announces, api):
+        self.announces= announces
+        self.api= api
+
+    def uninstall(self, announces, api):
+        # self.announces= None
+        # self.api= None
+        pass

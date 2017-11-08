@@ -1,3 +1,4 @@
+from collections import defaultdict
 from core import TimeDictDecorator, clock, Bind, Unit
 
 
@@ -32,9 +33,17 @@ class FaceUnit(Unit):
                 return True
 
     # -------------------------------------------------------------------------
+    class Entry:
+        def __init__(self):
+            self.receivable= False
+            self.in_channel = None
+
+            self.sendable= False
+            self.out_channel = None
+
     def __init__(self, nonce_life_time= 100_000):
-        self.in_channels= {}
-        self.out_channels= {}
+        self.table= defaultdict(self.Entry)
+
         self.loop_checker= self.LoopChecker(nonce_life_time)
         self.repeat_checker= self.RepeatChecker()
 
@@ -50,19 +59,31 @@ class FaceUnit(Unit):
 
     # -------------------------------------------------------------------------
     def setInChannel(self, face_id, channel):
-        assert face_id not in self.in_channels
-        self.in_channels[face_id]= channel
-        channel.receiver= Bind(self.receive, face_id)
+        entry= self.table[face_id]
+        assert entry.in_channel is None
+        entry.receivable= True
+        entry.in_channel= channel
+        entry.in_channel.receiver = Bind(self.receive, face_id)
 
     def setOutChannel(self, face_id, channel):
-        assert face_id not in self.out_channels
-        self.out_channels[face_id]= channel
+        entry= self.table[face_id]
+        assert entry.out_channel is None
+        entry.sendable = True
+        entry.out_channel= channel
 
     def getInFaceIds(self):
-        return set( self.in_channels.keys() )
+        face_ids= set()
+        for face_id, entry in self.table.items():
+            if entry.receivable:
+                face_ids.add(face_id)
+        return face_ids
 
     def getOutFaceIds(self):
-        return set( self.out_channels.keys() )
+        face_ids= set()
+        for face_id, entry in self.table.items():
+            if entry.sendable:
+                face_ids.add(face_id)
+        return face_ids
 
     # -------------------------------------------------------------------------
     def sends(self, face_ids, packet):
@@ -71,14 +92,16 @@ class FaceUnit(Unit):
 
     def send(self, face_id, packet):
         if not self.repeat_checker.isRepeat(face_id, packet):
-            self.announces['outPacket'](face_id, packet)
-            self.out_channels[face_id].send(packet)
+            if self.table[face_id].sendable:
+                self.announces['outPacket'](face_id, packet)  # announces 放在执行前，以保证日志顺序
+                self.table[face_id].out_channel.send(packet)
         else:
             self.announces['repeatePacket'](face_id, packet)
 
     def receive(self, face_id, packet):
         if not self.loop_checker.isLoop(packet):
-            self.announces['inPacket'](face_id, packet)
+            if self.table[face_id].receivable:
+                self.announces['inPacket'](face_id, packet)
         else:
             self.announces['loopPacket'](face_id, packet)
 

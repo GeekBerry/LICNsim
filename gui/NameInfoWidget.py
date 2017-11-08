@@ -6,7 +6,7 @@ from module.name_monitor import NameMonitor
 from debug import showCall
 
 
-class NameTreeWidget(TreeWidget):  # 配合着 NameMonitor 使用
+class NameInfoWidget(TreeWidget):  # 配合着 NameMonitor 使用
     def __init__(self, parent, announces, api):
         super().__init__(parent)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
@@ -23,10 +23,11 @@ class NameTreeWidget(TreeWidget):  # 配合着 NameMonitor 使用
             self.refresh()
 
     def refresh(self):
-        # self.clearSelection()
         name_table= self.api['NameMonitor.table']()
         assert name_table is not None
         self.setHeads('Name', 'PendNum', 'StoreNum', 'TransINum', 'TransDNum')
+
+        # self.clearSelection()
         self.showNameTree(self, name_table.name_tree)
 
     def showNameTree(self, tree_item, name_tree):

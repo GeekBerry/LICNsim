@@ -8,14 +8,6 @@ class MainWindowPlugin(QObject):
         self.announces = announces
         self.api = api
 
-    #     self.setupUI(main_window)
-    #
-    # def setupUI(self, main_window):  # UI布局
-    #     pass
-    #
-    # def install(self, announces, api):  # 消息连接
-
-
 
 # ======================================================================================================================
 from core import clock, Bind
@@ -149,13 +141,13 @@ class PainterPlugin(MainWindowPlugin):
 
 # ======================================================================================================================
 # from PyQt5.QtWidgets import QDockWidget
-# from gui.NameTreeWidget import NameTreeWidget
+# from gui.NameInfoWidget import NameInfoWidget
 # from gui.LogWidget import LogWidget
 
 
 # class DocksPlugin(MainWindowPlugin):
 #     DOCKS= (
-#         ('Name表', Qt.BottomDockWidgetArea, NameTreeWidget),
+#         ('Name表', Qt.BottomDockWidgetArea, NameInfoWidget),
 #         # ('实时视图', Qt.BottomDockWidgetArea, RealTimeViewBox),
 #         # ('日志', Qt.BottomDockWidgetArea, LogWidget),
 #     )

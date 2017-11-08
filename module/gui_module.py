@@ -3,7 +3,7 @@ import sys
 from PyQt5.QtWidgets import QApplication
 from gui.MainWindow import MainWindow
 from gui.Plugins import PlayerPlugin, PainterPlugin, InfoDialogPlugin
-from gui.NameTreeWidget import NameTreeWidget
+from gui.NameInfoWidget import NameInfoWidget
 
 from module import MoudleBase
 
@@ -15,7 +15,7 @@ class GUIModule(MoudleBase):
     def setup(self, sim):
         super().setup(sim)
         self.main_window= MainWindow(None, sim.announces, sim.api)
-        self.main_window.addDockPlugin('Name表', NameTreeWidget)
+        self.main_window.addDockPlugin('Name表', NameInfoWidget)
         self.main_window.addPlugin('PainterPlugin', PainterPlugin)
         self.main_window.addPlugin('PlayerPlugin', PlayerPlugin)
         self.main_window.addPlugin('InfoDialogPlugin', InfoDialogPlugin)
