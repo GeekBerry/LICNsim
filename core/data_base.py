@@ -274,8 +274,7 @@ class DataBaseTable:
             raise NotImplementedError('没有实现对非索引项的遍历')
 
 
-
-if __name__ == '__main__':
+if __name__ == '__main__' and 0:
     db_table= DataBaseTable().create('name', 'age', score=0, city='') # 不带默认值的为主键;  k1, k2 为主键
 
     db_table['A', 23]= {'score':100, 'city':'BJ'}

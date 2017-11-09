@@ -10,7 +10,6 @@ class NameInfoWidget(TreeWidget):  # 配合着 NameMonitor 使用
     def __init__(self, parent, announces, api):
         super().__init__(parent)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
-        self.setAlternatingRowColors(True)  # 隔行显示颜色
 
         self.announces= announces
         self.api= api

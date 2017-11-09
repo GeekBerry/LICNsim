@@ -34,7 +34,7 @@ class NodeController(Controller):
         def __init__(self, parent, cs_unit):
             super().__init__(parent)
             if hasattr(cs_unit, 'capacity'):
-                self.pair_dict['capacity'] = BindSpinBox(self, cs_unit, 'capacity', range=(0, 10000))
+                self.pair_dict['capacity'] = BindSpinBox(self, (0, 10000), cs_unit, 'capacity',)
 
             if hasattr(cs_unit, 'size'):
                 self.pair_dict['size'] = BindLabel(self, cs_unit, 'size')
@@ -88,13 +88,13 @@ class EdgeController(Controller):
         super().__init__(parent)
 
         if hasattr(channel, 'rate'):
-            self.pair_dict['rate'] = BindSpinBox(self, channel, 'rate', range=(0, INF))
+            self.pair_dict['rate'] = BindSpinBox(self, (0, INF), channel, 'rate')
 
         if hasattr(channel, 'delay'):
-            self.pair_dict['delay'] = BindSpinBox(self, channel, 'delay', range=(0, INF))
+            self.pair_dict['delay'] = BindSpinBox(self, (0, INF), channel, 'delay')
 
         if hasattr(channel, 'loss'):
-            self.pair_dict['loss'] = BindDoubleSpinBox(self, channel, 'loss', range=(0.0, 1.0))
+            self.pair_dict['loss'] = BindDoubleSpinBox(self, (0.0, 1.0), channel, 'loss')
 
         if hasattr(channel, 'queue'):
             self.pair_dict['queue'] = BindTable(self, Packet.HEAD_FIELDS, map(Packet.head, channel.queue))

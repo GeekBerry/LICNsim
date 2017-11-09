@@ -35,7 +35,7 @@ class UIFrom:
 
 
 # ================================================================================
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget, QAbstractScrollArea
 
 
 class TreeItem(QTreeWidgetItem):
@@ -110,6 +110,11 @@ from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 
 
 class TableWidget(QTableWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        self.setAlternatingRowColors(True)  # 隔行显示颜色
+
     def setHeads(self, *values):
         self.setColumnCount(len(values))
         for col, value in enumerate(values):

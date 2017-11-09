@@ -5,7 +5,9 @@ from core import *
 from module import *
 from module.gui_module import GUIModule
 from module.name_monitor import NameMonitor
-from node_monitor import NodeMonitor
+from module.node_monitor import NodeMonitor
+from module.db_module import DBMoudle
+
 from unit.channel import *
 from unit.node import *
 
@@ -14,12 +16,13 @@ sim = SuperSimulator()
 sim.install('name_monitor', NameMonitor())
 sim.install('node_moitor', NodeMonitor())
 sim.install('gui', GUIModule())
+sim.install('db', DBMoudle())
 
 
-sim.loadNodeAnnounce('csStore', Bind(print, 'csStore'))
-sim.loadNodeAnnounce('csEvict', Bind(print, 'csEvict'))
-sim.loadNodeAnnounce('inPacket', Bind(print, 'inPacket'))
-sim.loadNodeAnnounce('outPacket', Bind(print, 'outPacket'))
+# sim.loadNodeAnnounce('csStore', Bind(print, 'csStore'))
+# sim.loadNodeAnnounce('csEvict', Bind(print, 'csEvict'))
+# sim.loadNodeAnnounce('inPacket', Bind(print, 'inPacket'))
+# sim.loadNodeAnnounce('outPacket', Bind(print, 'outPacket'))
 
 
 graph = networkx.grid_2d_graph(4, 4)

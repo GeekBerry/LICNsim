@@ -1,8 +1,15 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QCheckBox, QSpinBox, QDoubleSpinBox, QComboBox, QAbstractItemView
+from PyQt5.QtWidgets import QLabel, QCheckBox, QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QAbstractItemView
 from common import TableWidget
 
 from debug import showCall
+
+
+def bindWidgetToAttr(widget, obj, attr):
+    if hasattr(obj, attr):
+        widget.obj = obj
+        widget.attr = attr
+        widget.refresh()
 
 
 class BindLabel(QLabel):
@@ -19,10 +26,8 @@ class BindLabel(QLabel):
 class BindCheckBox(QCheckBox):
     def __init__(self, parent, obj, attr):
         super().__init__(parent)
-        self.obj = obj
-        self.attr = attr
-        self.refresh()
         self.stateChanged.connect(self.stateChangedSlot)
+        bindWidgetToAttr(self, obj, attr)
 
     def refresh(self):
         if getattr(self.obj, self.attr):
@@ -37,15 +42,25 @@ class BindCheckBox(QCheckBox):
             setattr(self.obj, self.attr, Qt.Unchecked)
 
 
-class BindSpinBox(QSpinBox):
-    def __init__(self, parent, obj, attr, range):
-        super().__init__(parent)
-        self.obj = obj
-        self.attr = attr
-
-        self.setRange(*range)
-        self.refresh()
+class BindLineEdit(QLineEdit):
+    def __init__(self, parnet, obj, attr):
+        super().__init__(parnet)
         self.editingFinished.connect(self.editingFinishedSlot)
+        bindWidgetToAttr(self, obj, attr)
+
+    def refresh(self):
+        self.setText( getattr(self.obj, self.attr) )
+
+    def editingFinishedSlot(self):
+        setattr(self.obj, self.attr, self.text())
+
+
+class BindSpinBox(QSpinBox):
+    def __init__(self, parent, range, obj, attr):
+        super().__init__(parent)
+        self.setRange(*range)
+        self.editingFinished.connect(self.editingFinishedSlot)
+        bindWidgetToAttr(self, obj, attr)
 
     def editingFinishedSlot(self):
         setattr(self.obj, self.attr, self.value())
@@ -62,14 +77,14 @@ class BindDoubleSpinBox(QDoubleSpinBox):
     refresh = BindSpinBox.refresh
     wheelEvent = BindSpinBox.wheelEvent
 
-    def __init__(self, parent, obj, attr, range):
+    def __init__(self, parent, range, obj, attr):
         super().__init__(parent)
+        self.setRange(*range)
+        self.editingFinished.connect(self.editingFinishedSlot)
+
         self.obj = obj
         self.attr = attr
-
-        self.setRange(*range)
         self.refresh()
-        self.editingFinished.connect(self.editingFinishedSlot)
 
 
 class BindComboBox(QComboBox):
@@ -116,5 +131,7 @@ class BindTable(TableWidget):
         self.setRowCount(len(rows))
         for row, values in enumerate(rows):
             self.setRow(row, *values)
+
+
 
 

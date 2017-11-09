@@ -73,7 +73,6 @@ class PropertyPainter(Painter):
     def _closeNodeDialog(self, node_id):
         self.announces['updatePainter'](self)
 
-    @showCall
     def _renders(self, node_ids, edge_ids):  # FIXME 将计算与渲染分离
         # 计算, 绘制, 渲染节点
         for node_id in node_ids:
@@ -134,7 +133,6 @@ class NameStorePainter(Painter):
             self.show_name = name
             self.announces['updatePainter'](self)
 
-    @showCall
     def _renders(self, node_ids, edge_ids):  # TODO 将计算与渲染分离
         name_table = self.api['NameMonitor.table']()
 
@@ -175,7 +173,6 @@ class HitRatioPainter(Painter):
         super().__init__(announces, api)
         self.back_ground_color = QColor(240, 255, 240)
 
-    @showCall
     def _renders(self, node_ids, edge_ids):  # TODO 将计算与渲染分离
         node_table= self.api['NodeMonitor.table']()
         for node_id in node_ids:
@@ -193,32 +190,5 @@ class HitRatioPainter(Painter):
             self.edge_style[edge_id]['color']= Qt.lightGray
             self.edge_style[edge_id]['text']= ''
             self.edge_style[edge_id]['show_text']= False
-
-
-
-# class NodeHitPainter(Painter):
-#     def getStyleDict(self)->dict:
-#         self._calculate( self.api['Topo.nodeIds'](), self.api['Topo.edgeIds']() )
-#         return {
-#             'back_ground_color': QColor(240, 255, 240),
-#             'node_style': self.node_style,
-#             'edge_style': self.edge_style
-#         }
-#
-#     def _calculate(self, node_ids, edge_ids):  # FIXME 将计算与渲染分离
-#         for node_id in node_ids:
-#             record= self.api['Monitor.getNodeHitRecord'](node_id)
-#             assert isinstance(record, NodeHitMonitor.Record)
-#
-#             ratio= record.ratio
-#             if ratio is None:
-#                 color= Qt.lightGray
-#                 text= '无访问记录'
-#             else:
-#
-#
-#             self.node_style[node_id]['color']= color
-#             self.node_style[node_id]['text']= text
-#             # self.node_style[node_id]['show_text']= True  # XXX 是否需要?
 
 
