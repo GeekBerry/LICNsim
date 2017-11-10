@@ -15,8 +15,8 @@ sim = SuperSimulator()
 
 sim.install('name_monitor', NameMonitor())
 sim.install('node_moitor', NodeMonitor())
-sim.install('gui', GUIModule())
 sim.install('db', DBMoudle())
+sim.install('gui', GUIModule())
 
 
 # sim.loadNodeAnnounce('csStore', Bind(print, 'csStore'))

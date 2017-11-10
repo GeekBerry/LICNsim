@@ -1,4 +1,4 @@
-from core import Unit, NameTable
+from core import Unit, NameTable, Packet
 
 
 class ContentStore(Unit):
@@ -35,7 +35,7 @@ class ContentStore(Unit):
         """
         data = self.table.get(packet.name)  # 完全匹配法
         if data is not None:
-            data = data.fission()  # 构造一个新的包
+            data = Packet.fission(data)  # 构造一个新的包
             self.announces['csHit'](data)
             return data
         else:

@@ -2,6 +2,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 import math
+import random
 
 # import sys
 # INF= sys.maxsize  # 无穷大

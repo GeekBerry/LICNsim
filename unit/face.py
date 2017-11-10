@@ -88,13 +88,13 @@ class FaceUnit(Unit):
     # -------------------------------------------------------------------------
     def sends(self, face_ids, packet):
         for face_id in face_ids:
-            self.send(face_id, packet)
+            clock.timing(0, self._send, face_id, packet)  # 保证 send 行为是在一个时间片末尾执行
 
-    def send(self, face_id, packet):
+    def _send(self, face_id, packet):
         if not self.repeat_checker.isRepeat(face_id, packet):
             if self.table[face_id].sendable:
-                self.announces['outPacket'](face_id, packet)  # announces 放在执行前，以保证日志顺序
                 self.table[face_id].out_channel.send(packet)
+                self.announces['outPacket'](face_id, packet)
         else:
             self.announces['repeatePacket'](face_id, packet)
 
