@@ -1,2 +1,2 @@
 from common import *
-from BindWidgets import *
+from widgets import *

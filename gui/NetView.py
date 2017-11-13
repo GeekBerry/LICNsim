@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QGraphicsView
 from debug import showCall
 
 
-class NetView(QGraphicsView):  # TODO 重构, 缓存
+class NetView(QGraphicsView):
     def __init__(self, parent):
         super().__init__(parent)
         self.setCacheMode(QGraphicsView.CacheBackground)

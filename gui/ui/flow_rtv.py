@@ -78,4 +78,4 @@ class Ui_flow_rtv(object):
         self.note_label.setText(_translate("flow_rtv", "(未知)"))
 
 from gui.MatplotlibCanvas import PolyLineCanvas
-from gui.common import ComboBox
+from gui import ComboBox

@@ -16,17 +16,10 @@ class MainWindow(QMainWindow):
 
         self.scene = NetScene(self, announces, api)
         self.ui.net_view.setScene(self.scene)
-
         self.plugins= {}  # 保存 plugin ，使得 plugin 生命期同 self 一样长
 
     def addPlugin(self, text, PluginFactor):
         self.plugins[text]= PluginFactor(self, self.announces, self.api)
-
-    def addDockPlugin(self, text, PluginFactor, area=Qt.BottomDockWidgetArea):
-        plugin= PluginFactor(self, self.announces, self.api)
-        dock= QDockWidget(text, self)
-        dock.setWidget(plugin)
-        self.addDockWidget(area, dock)
 
 
 if __name__ == '__main__':

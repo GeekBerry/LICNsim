@@ -13,7 +13,7 @@ class MainWindowPlugin(QObject):
 from core import clock, Bind
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QAction, QToolBar, QToolBox, QSpinBox
+from PyQt5.QtWidgets import QAction, QToolBar, QToolBox, QSpinBox, QLabel
 
 
 class PlayerPlugin(MainWindowPlugin):
@@ -57,14 +57,16 @@ class PlayerPlugin(MainWindowPlugin):
         self.tool_bar.addWidget(self.steps_spin)
 
         # TODO 进度条
+        self.lable= QLabel(f'current_time: {clock.time()}')
+        main_window.statusBar().addPermanentWidget(self.lable)  # addWidget 或者 addPermanentWidget
 
-    # @showCall
     def playStep(self, is_triggered=False):
         # TODO 锁住仪表盘
         steps = self.steps_spin.value()
 
         for i in range(0, steps):
             clock.step()
+        self.lable.setText(f'current_time: {clock.time()}')
         self.announces['playSteps'](steps)
 
     # @showCall
@@ -202,58 +204,42 @@ class InfoDialogPlugin(MainWindowPlugin):
         del self.edge_dialog_table[ (src_id, dst_id,) ]
 
 
+# ======================================================================================================================
+from gui.NameInfoWidget import NameInfoWidget
+from PyQt5.QtWidgets import QDockWidget
 
 
+class NameInfoPlugin(MainWindowPlugin):
+    def __init__(self, main_window, announces, api):
+        super().__init__(main_window, announces, api)
+        name_info_widget= NameInfoWidget(main_window, announces, api)
+        dock = QDockWidget('NameInfo表', main_window)
+        dock.setWidget(name_info_widget)
+        main_window.addDockWidget(Qt.BottomDockWidgetArea, dock)
+
+        self.lable= QLabel(f'selected_name: "{Name()}"')
+        main_window.statusBar().addPermanentWidget(self.lable)  # addWidget 或者 addPermanentWidget
+        announces['selectedName'].append(self.selectedName)
+
+    def selectedName(self, name):
+        self.lable.setText(f'selected_name: "{name}"')
 
 
+# ======================================================================================================================
+from gui.LogWidget import LogWidget
 
 
+class LogPlugin(MainWindowPlugin):
+    def __init__(self, main_window, announces, api):
+        super().__init__(main_window, announces, api)
+        log_widget= LogWidget(main_window, announces, api)
+        dock = QDockWidget('Log表', main_window)
+        dock.setWidget(log_widget)
+        main_window.addDockWidget(Qt.BottomDockWidgetArea, dock)
 
+        self.lable= QLabel(f'log_query_msg: Done')
+        main_window.statusBar().addWidget(self.lable)  # 或者 addPermanentWidget
+        announces['logQueryMessage'].append(self.logQueryMessage)
 
-
-
-
-
-
-
-
-
-
-
-
-# TODO 解析该格式; 是否有必要???
-# style= {
-#     'type': QToolBar,
-#     'window_title':'Play工具栏',
-#     'actions':{
-#         'play_action':{
-#             'type':QAction,
-#             'text':'播放/暂停',
-#             'icon':{
-#                 'type':QIcon,
-#                 'pixmap':{
-#                     (QIcon.Normal, QIcon.Off): 'C:/Users/bupt632/Desktop/LICNsim/visualizer/images/start.png',
-#                     (QIcon.Normal, QIcon.On): 'C:/Users/bupt632/Desktop/LICNsim/visualizer/images/pause.png'
-#                 },
-#             },  # icon
-#             'check_able':True,
-#         },  # action
-#
-#         'step_action':{
-#             'type':QAction,
-#             'text':'步进',
-#             'icon':{
-#                 'type':QIcon,
-#                 'pixmap':{
-#                     (QIcon.Normal, QIcon.Off): 'C:/Users/bupt632/Desktop/LICNsim/visualizer/images/step.png',
-#                 }
-#             },  # icon
-#         },  # action
-#
-#         'steps_box':{
-#             'type':SpinBox,
-#             'range':(0, 10000),
-#             'single_step': 100,
-#         }
-#     },
-# }  # style
+    def logQueryMessage(self, msg):
+        self.lable.setText(f'log_query_msg: {msg}')

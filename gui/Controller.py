@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget
 
-from BindWidgets import *
 from core import INF, Packet
+from gui import *
 
 
 class Controller(QWidget):

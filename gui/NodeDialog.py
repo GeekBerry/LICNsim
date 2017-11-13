@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QDialog
+
+from gui import UIFrom
 from gui.ui.node_dialog import Ui_node_dialog
-from gui.common import UIFrom
 from gui.Controller import NodeController
 
 

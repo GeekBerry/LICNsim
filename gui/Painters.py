@@ -4,8 +4,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
 from core import threshold, normalizeINF, strPercent
+from gui import HotColor, DeepColor
 from debug import showCall
-from gui.common import HotColor, DeepColor
 
 
 class Painter:
@@ -114,46 +114,45 @@ from core import Name
 
 class NameStorePainter(Painter):
     EMPTY_COLOR = Qt.lightGray
-
     STORE_COLOR = TRANS_D_COLOR = QColor(255, 0, 0)
     WEAK_STORE_COLOR = WEAK_TRANS_D_COLOR = QColor(255, 200, 200)
-
     PEND_COLOR = TRANS_I_COLOR = QColor(0, 255, 0)
     WEAK_PEND_COLOR = WEAK_TRANS_I_COLOR = QColor(200, 255, 200)
 
     def __init__(self, announces, api):
         super().__init__(announces, api)
         self.back_ground_color = QColor(255, 240, 240)
-
-        self.show_name = Name()
+        self._show_name = Name()
         announces['selectedName'].append(self._selectedName)
 
     def _selectedName(self, name):
-        if name != self.show_name:
-            self.show_name = name
+        if name != self._show_name:
+            self._show_name = name
             self.announces['updatePainter'](self)
 
     def _renders(self, node_ids, edge_ids):  # TODO 将计算与渲染分离
         name_table = self.api['NameMonitor.table']()
+        if name_table is None:  # 没有安装 NameMonitor ？？？
+            return
 
         node_dict = dict.fromkeys(node_ids, self.EMPTY_COLOR)
         edge_dict = dict.fromkeys(edge_ids, self.EMPTY_COLOR)
         # 先描绘请求情况
-        for sub_name in name_table.forebear(self.show_name):  # 对于兴趣包，查找前缀
+        for sub_name in name_table.forebear(self._show_name):  # 对于兴趣包，查找前缀
             record = name_table[sub_name]
             for node_id in record.pending:
-                node_dict[node_id] = self.PEND_COLOR if (sub_name == self.show_name) else self.WEAK_PEND_COLOR
+                node_dict[node_id] = self.PEND_COLOR if (sub_name == self._show_name) else self.WEAK_PEND_COLOR
 
             for edge_id in record.trans_i:
-                edge_dict[edge_id] = self.TRANS_I_COLOR if (sub_name == self.show_name) else self.WEAK_TRANS_I_COLOR
+                edge_dict[edge_id] = self.TRANS_I_COLOR if (sub_name == self._show_name) else self.WEAK_TRANS_I_COLOR
         # 后描绘数据情况，以覆盖同请求相交的部分
-        for sub_name in name_table.descendant(self.show_name):  # 对于数据包，查找后缀
+        for sub_name in name_table.descendant(self._show_name):  # 对于数据包，查找后缀
             record = name_table[sub_name]
             for node_id in record.store:
-                node_dict[node_id] = self.STORE_COLOR if (sub_name == self.show_name) else self.WEAK_STORE_COLOR
+                node_dict[node_id] = self.STORE_COLOR if (sub_name == self._show_name) else self.WEAK_STORE_COLOR
 
             for edge_id in record.trans_d:
-                edge_dict[edge_id] = self.TRANS_D_COLOR if (sub_name == self.show_name) else self.WEAK_TRANS_D_COLOR
+                edge_dict[edge_id] = self.TRANS_D_COLOR if (sub_name == self._show_name) else self.WEAK_TRANS_D_COLOR
 
         # ---------------------------------------------------------------------
         for node_id, color in node_dict.items():
@@ -175,6 +174,9 @@ class HitRatioPainter(Painter):
 
     def _renders(self, node_ids, edge_ids):  # TODO 将计算与渲染分离
         node_table= self.api['NodeMonitor.table']()
+        if node_table is None:  # 没有安装 NodeMonitor？？？
+            return
+
         for node_id in node_ids:
             record = node_table[node_id]
 

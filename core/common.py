@@ -32,6 +32,11 @@ def top(iterable):
     except StopIteration:
         return None
 
+
+def tops(iterable, num):
+    return [value for index, value in zip(range(num), iterable) ]
+
+
 def threshold(min, value, max):
     if value<min: return min
     if value>max: return max

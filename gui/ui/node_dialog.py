@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'node_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.8.1
+# Created by: PyQt5 UI code generator 5.9.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_node_dialog(object):
     def setupUi(self, node_dialog):
         node_dialog.setObjectName("node_dialog")
-        node_dialog.resize(542, 561)
+        node_dialog.resize(600, 600)
         self.gridLayout = QtWidgets.QGridLayout(node_dialog)
         self.gridLayout.setObjectName("gridLayout")
         self.tree = TreeWidget(node_dialog)
@@ -29,4 +29,5 @@ class Ui_node_dialog(object):
         _translate = QtCore.QCoreApplication.translate
         node_dialog.setWindowTitle(_translate("node_dialog", "Dialog"))
 
-from gui.common import TreeWidget
+
+from gui import TreeWidget

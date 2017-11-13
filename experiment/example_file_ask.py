@@ -29,7 +29,7 @@ for cs_time in (20,40,60,80,100):
 
     sim = SuperSimulator()
     sim.install('cs_track', StoreTrackMoudle(ip_A.name))
-    sim.install('db', DBMoudle())
+    sim.install('db', LogMoudle())
     sim.install('reporter', ReporterModule(sim.modules['db'].db_table, SECOND, file_name) )
 
     node_map = sim.addGraph(graph, NodeFactor(cs_type= CS_TYPE, p=0.5, cs_time= cs_time*SECOND, evict_mode= EVICT_MODE), OneStepChannel)

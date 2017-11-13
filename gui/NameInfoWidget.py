@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QAbstractItemView
 
 from core import Name
-from gui.common import TreeWidget
+from gui import TreeWidget
 from module.name_monitor import NameMonitor
 from debug import showCall
 
@@ -15,7 +15,7 @@ class NameInfoWidget(TreeWidget):  # 配合着 NameMonitor 使用
         self.api= api
         announces['playSteps'].append(self.playSteps)
 
-        self.itemClicked.connect(self.itemClickedEvent)
+        self.itemClicked.connect(self.itemClickedSlot)
 
     def playSteps(self, steps):
         if self.isVisible():
@@ -23,9 +23,10 @@ class NameInfoWidget(TreeWidget):  # 配合着 NameMonitor 使用
 
     def refresh(self):
         name_table= self.api['NameMonitor.table']()
-        assert name_table is not None
-        self.setHeads('Name', 'PendNum', 'StoreNum', 'TransINum', 'TransDNum')
+        if name_table is None:
+            return  # 没有安装 NameMonitor ？？？
 
+        self.setHeads('Name', 'PendNum', 'StoreNum', 'TransINum', 'TransDNum')
         # self.clearSelection()
         self.showNameTree(self, name_table.name_tree)
 
@@ -40,7 +41,7 @@ class NameInfoWidget(TreeWidget):  # 配合着 NameMonitor 使用
             tree_item[name_node.key].setValues(*values)
             self.showNameTree(tree_item[name_node.key], name_node)
 
-    def itemClickedEvent(self, tree_item, col):
+    def itemClickedSlot(self, tree_item, col):
         name= Name(tree_item.getPath())
         self.announces['selectedName'](name)
 

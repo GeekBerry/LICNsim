@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'edge_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.8.1
+# Created by: PyQt5 UI code generator 5.9.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_edge_dialog(object):
     def setupUi(self, edge_dialog):
         edge_dialog.setObjectName("edge_dialog")
-        edge_dialog.resize(504, 287)
+        edge_dialog.resize(600, 300)
         self.gridLayout = QtWidgets.QGridLayout(edge_dialog)
         self.gridLayout.setObjectName("gridLayout")
         self.tree = TreeWidget(edge_dialog)
@@ -26,4 +26,5 @@ class Ui_edge_dialog(object):
         _translate = QtCore.QCoreApplication.translate
         edge_dialog.setWindowTitle(_translate("edge_dialog", "Dialog"))
 
-from gui.common import TreeWidget
+
+from gui import TreeWidget

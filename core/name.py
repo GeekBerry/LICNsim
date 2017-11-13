@@ -30,6 +30,7 @@ class Name(tuple):
         return '/'.join(map(str, self))
 
 
+
 # if __name__ == '__main__':
 #     name1= Name('A/1')
 #     name2= Name('A/1')

@@ -2,7 +2,7 @@ from core import Packet, Unit
 
 
 class ExampleAppUnit(Unit):
-    APP_LAYER_FACE_ID = 'application'
+    APP_LAYER_FACE_ID = -1  # 或者用'application'
     receiver = None  # 回调接受者
 
     def install(self, announces, api):

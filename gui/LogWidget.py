@@ -1,115 +1,118 @@
-from core import clock
-from gui.common import TableWidget
+from PyQt5.QtWidgets import QWidget, QAbstractItemView
+
+from core import clock, tops
+from gui import UIFrom
+from gui.ui.log_widget import Ui_log_widget
+
+from algorithm.recur_parser import RecurParser, Stream, sym, re
+from debug import showCall
 
 
-class LogTableWidget(TableWidget):
-    ORDER, TIME, ID, OPERATE, DESTINATION, P_HEAD= range(0, 6)
-    HEADS= ('Order', 'Time', 'ID', 'Operate', 'Destination', 'PacketHead')
+class QueryParser(RecurParser):
+    def __init__(self):
+        Ends = sym(re.compile('\s*'), name='Ends')
+        Int = sym(re.compile('-?\d+'), name='Int')
+        Str = sym(re.compile(r"\'([^\'])*\'"), name='Str')
+        Tuple = sym(re.compile(r'(\([^\)]*\))'), name='Tuple')
+        Field = sym(['index', 'time', 'node_id', 'action', 'face_id', 'name', 'type','size', 'nonce'], name='Field')
 
-    def init(self):
-        self.setHeads('Order', 'Time', 'ID', 'Operate', 'Destination', 'PacketHead')
+        self['Time'] = 'T'
+        self['Expre'] = self['Time'], Ends, ['+', '-'], Ends, Int  # 只接受时间的加减形式
+        Var = self['Expre'] | self['Time'] | Str | Int
+        self['InEntry'] = Field, Ends, 'in', Ends, Tuple
+        self['EqEntry'] = Field, Ends, '==', Ends, Var
+        self['CmpEntry'] = sym(Var, Ends, ['<=', '<'], name='LeftCmp') * (0, 1), \
+                           Ends, Field, Ends, \
+                           sym(['<=', '<'], Ends, Var, name='RightCmp') * (0, 1)
+        Entry = self['EqEntry'] | self['CmpEntry'] | self['InEntry']
+        self['Start'] = sym(Ends, Entry, Ends, sym(',') | None)*(0,...)
 
-    def setRecords(self, records):
-        self.setSortingEnabled(False)
+    def Time(self, match):
+        return 'clock.time()'
 
-        self.clearContents()
-        self.setRowCount(len(records))
-        for row, record in enumerate( reversed(records) ):  # reversed 逆 Order 序
-            self.setRow(row, record['order'], record['time'], record['id'], record['operate'], record['dst'], record['p_head'])
+    def Expre(self, match):
+        return ''.join(match)
 
-        self.setSortingEnabled(True)
+    def InEntry(self, match):
+        return f'{match[0]}= lambda arg: arg in {match[4]}'
+
+    def EqEntry(self, match):
+        return f'{match[0]}={match[4]}'
+
+    def CmpEntry(self, match):
+        left = ''.join(match[0][0]) if match[0] else ''
+        right = ''.join(match[4][0]) if match[4] else ''
+        return f'{match[2]}= lambda arg: {left}arg{right}' if left or right else None
+
+    def Start(self, match):
+        return ','.join([each[1] for each in match])
 
 
-# ======================================================================================================================
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtCore import Qt
-
-from gui.common import UIFrom
-from gui.ui.log_widget import Ui_log_table
-
-
-@UIFrom(Ui_log_table)
+@UIFrom(Ui_log_widget)
 class LogWidget(QWidget):
-    ALL_COMBO_TEXT= '...all...'
+    MAX_SHOW_RECORD_NUM= 100
 
-    def __init__(self, parent):
-        self.last_play_time= 0
-        self.db_table= None
+    def __init__(self, parent, announces, api):
+        self.ui.table.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
+        self.ui.button.pressed.connect(self.refresh)
+        self.ui.edit.editingFinished.connect(self.refresh)
+        self.ui.check.stateChanged.connect(self.playSteps)
 
-        assert isinstance(self.ui, Ui_log_table)
-        self.ui.refresh_button.clicked.connect(self._refreshClickedSlot)
-
-        self.ui.id_combo.addItem(self.ALL_COMBO_TEXT, None)
-        self.ui.operate_combo.addItem(self.ALL_COMBO_TEXT, None)
-        self.ui.packet_combo.addItem(self.ALL_COMBO_TEXT, None)
-
-        self.ui.table.init()  # 一些需要在UIFrom.setupUi后执行的初始化
-        self.ui.table.cellDoubleClicked.connect(self._cellDoubleClickedSlot)
-
-    def install(self, announces, api):
-        self.db_table= api['DB.table']('log_t')
+        self.announces= announces
+        self.api= api
         announces['playSteps'].append(self.playSteps)
+        self.head_fields= api['DBMoudle.getFields']
+        self.db_query = api['DBMoudle.query']
 
-    def playSteps(self, steps):
-        cur_time= clock.time()
+        self.__last_query_key = None  # (time, query_str)
 
-        if self.isVisible():
-            self.ui.time_start_box.setValue(self.last_play_time)
-            self.ui.time_end_box.setValue(cur_time)
-
-            if self.ui.refresh_check.checkState() == Qt.Checked:
-                self.refresh()
-
-        self.last_play_time= cur_time
+    def playSteps(self, *args):
+        if self.ui.check.checkState():
+            self.refresh()
 
     def refresh(self):
-        assert self.db_table is not None
+        text = self.ui.edit.text()  # TODO 加一个文本解释器
+        if self.__last_query_key == (clock.time(), text):
+            return  # 检查查询时间和条件，避免重复查询
 
-        condition= self._loadCondition()
-        records = list( self.db_table.query(**condition) )
-        self.ui.table.setRecords(records)
-        self.ui.num_label.setText(  str( len(records) )  )
+        query_str = self._parser(text)
+        if query_str is None:
+            return None
 
-    # -------------------------------------------------------------------------
-    def _loadCondition(self):  # TODO 重构
-        condition= {}
-        # 设置时间范围条件
-        time_start= self.ui.time_start_box.value()
-        time_end= self.ui.time_end_box.value()
-        condition['time']= lambda t: time_start <= t <= time_end
+        records = self._query(query_str)
+        if records is None:
+            return  # 没有 LogMoudle ？？？
 
-        # 设置 Operate 条件
-        data= self.ui.operate_combo.currentData()
-        if data is not None:
-            condition['operate']= data
-        # 设置 ID 条件
-        data= self.ui.id_combo.currentData()
-        if data is not None:
-            condition['id']= data
-        # 设置 PacketHead 条件
-        data= self.ui.packet_combo.currentData()
-        if data is not None:
-            condition['p_head']= data
+        self._draw(records)
+        self.__last_query_key = (clock.time(), text)
 
-        return condition
+    def _parser(self, text):
+        # 查询操作
+        stream= Stream(text)
+        query_str = stream.parser( QueryParser()['Start'] )
 
-    def _refreshClickedSlot(self, bool=False):
-        self.refresh()
+        if not stream.eof():
+            self.announces['logQueryMessage']('Parser Failed')
+            return None
+        else:
+            return query_str
 
-    def _cellDoubleClickedSlot(self, row, col):  # TODO 重构
-        if col == self.ui.table.ID:
-            text= self.ui.table.getCellText(row, col)
-            data= self.ui.table.getCellData(row, col)
-            index= self.ui.id_combo.addItem(text, data)
-            self.ui.id_combo.setCurrentIndex(index)
-        elif col == self.ui.table.OPERATE:
-            text= self.ui.table.getCellText(row, col)
-            data= self.ui.table.getCellData(row, col)
-            index= self.ui.operate_combo.addItem(text, data)
-            self.ui.operate_combo.setCurrentIndex(index)
-        elif col == self.ui.table.P_HEAD:
-            text= self.ui.table.getCellText(row, col)
-            data= self.ui.table.getCellData(row, col)
-            index= self.ui.packet_combo.addItem(text, data)
-            self.ui.packet_combo.setCurrentIndex(index)
+    def _query(self, condition_str):
+        try:
+            exec(f'records= self.db_query({condition_str})')
+        except Exception as err:
+            self.announces['logQueryMessage'](err.args[0])
+            return None
+        else:
+            self.announces['logQueryMessage']('Done')
+            return locals()['records']
+
+    def _draw(self, records):
+        # 显示表
+        self.ui.table.setHeads( *self.head_fields() )
+        if records is not None:
+            records= tops(records, self.MAX_SHOW_RECORD_NUM)  # 先生成列表，才能统计长度
+            self.ui.table.setRowCount(len(records))
+            for row, record in enumerate(records):
+                self.ui.table.setRow(row, *record.values())
 
