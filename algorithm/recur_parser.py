@@ -2,33 +2,23 @@ import re, sys
 REGULAR_TYPE = type(re.compile(''))
 
 
-def cond(func, iterable, end=None, most=None) -> list:
+def cond(func, iterable, end=None):
     """
     将func作用于iterable上，生成列表，但遇到第一个None结果时，列表生成结束
-    >>> cond(lambda x:x, [1,2,None,3])
+    >>> list( cond(lambda x:x, [1,2,None,3]) )
     [1,2]
-    :param func:
-    :param iterable:
-    :return: list
     """
-    result = []
     for each in map(func, iterable):
-        if each != end:
-            result.append(each)
-        else:
-            break
-
-        if (most is not None) and (len(result) >= most):
-            break
-
-    return result
+        if each == end:
+            raise StopIteration
+        yield each
 
 
 # =============================================================================
 class Stream:
     def __init__(self, string, begin=0, end=None):
         self.string = string
-        self.begin= begin
+        self.begin = begin
         self.index = begin
         self.end = len(string) if end is None else end
 
@@ -52,32 +42,36 @@ class Stream:
         match = symbol.match(self)
         if match is None:
             self.index = save_index
-            result= None
+            result = None
         else:
             result = symbol.reduce(match)
         return result
 
 
 class DebugStream(Stream):
-    def __init__(self, string, begin=0, end=None, log_stream= sys.stdout):
+    def __init__(self, string, begin=0, end=None, log_stream=None):
         super().__init__(string, begin, end)
-
-        self.log_stream= log_stream
-        self.stack= []  # [symbol, ...]
+        self.log_stream = log_stream
+        self.stack = []  # [symbol, ...]
 
     def parser(self, symbol):
-        self.log_stream.write(f'{"    "*len(self.stack)}<{symbol.name}, sym={symbol}, behind="{self.behind()}">\n')
+        if self.log_stream:
+            self.log_stream.write(f'{"    "*len(self.stack)}<{symbol.name}, sym={symbol}, behind="{self.behind()}">\n')
+
         self.stack.append(symbol)
-        result= super().parser(symbol)
+        result = super().parser(symbol)
         self.stack.pop(-1)
-        self.log_stream.write(f'{"    "*len(self.stack)}</{symbol.name}, result={repr(result)}">\n')
+
+        if self.log_stream:
+            self.log_stream.write(f'{"    "*len(self.stack)}</{symbol.name}, result={repr(result)}">\n')
         return result
 
-    def before(self, count=40):
-        return self.string[self.index-count:self.index]
+    def before(self, count=40):  # 40: 半个dos屏幕宽度
+        return self.string[self.index - count:self.index]
 
-    def behind(self, count=40):
-        return self.string[self.index:self.index+count]
+    def behind(self, count=40):  # 40: 半个dos屏幕宽度
+        return self.string[self.index:self.index + count]
+
 
 # =============================================================================
 class Symbol:
@@ -103,7 +97,7 @@ class Symbol:
         if arg is None:
             return SymbolEmpty()
 
-        if issubclass(arg, Exception):
+        if isinstance(arg, Exception):
             return SymbolException(arg)
 
         raise Exception(f'未知类型 {type(arg)}')
@@ -120,6 +114,11 @@ class Symbol:
         return SymbolAny([self, sym])
 
     def match(self, stream):
+        """
+        读取流和匹配相应数据
+        :param stream: Stream
+        :return: None代表匹配失败，通常为str
+        """
         raise NotImplementedError
 
     def reduce(self, result):  # 将 match 的结果映射返回
@@ -133,31 +132,32 @@ class Symbol:
 
 
 class SymbolEmpty(Symbol):
-    name= 'EMPTY'
+    name = 'EMPTY'
 
     def match(self, stream):
         return ''
 
 
 class SymbolException(Symbol):
-    def __init__(self, ExceptionType):
-        self.name= ExceptionType.__name__
-        self.ExceptionType= ExceptionType
+    def __init__(self, exception):
+        self.name = f'{exception.__class__.__name__}({"".join(map(repr, exception.args))})'
+        self.exception = exception
 
     def match(self, stream):
-        string= []
-
-        if isinstance(stream, DebugStream):
-            string.append('\nParserStack(Name:Symbol)\n')
+        if isinstance(stream, DebugStream):  # 是 debug 模式
+            expect_str = []
+            expect_str.append('\nParserStack(Name: Symbol)\n')
             for i, symbol in enumerate(stream.stack):
-                string.append(f'{"    "*i}{symbol.name}: {symbol}\n')
+                expect_str.append(f'{"    "*i}{symbol.name}: {symbol}\n')
 
-            before= stream.before().replace('\n',r'\n')
-            behind= stream.behind().replace('\n',r'\n')
-            string.append(f'{before}{behind}\n')
-            string.append(f'{" "*len(before)}^\n')
+            before = stream.before().replace('\n', r'\n')
+            behind = stream.behind().replace('\n', r'\n')
+            expect_str.append(f'{before}{behind}\n')
+            expect_str.append(f'{" "*len(before)}^\n')
 
-        raise self.ExceptionType(''.join(string))
+            sys.stderr.write( ''.join(expect_str) )
+
+        raise self.exception
 
 
 class SymbolString(Symbol):
@@ -198,7 +198,7 @@ class SymbolAll(Symbol):
         return self
 
     def match(self, stream):
-        result = cond(lambda each: stream.parser(each), self.seq)
+        result = list( cond(lambda each: stream.parser(each), self.seq) )
         return result if len(result) == len(self.seq) else None
 
     def __str__(self):
@@ -249,22 +249,25 @@ class SymbolRepeats(Symbol):
 
 
 class SymbolRef(Symbol):
+    """
+    用于引用一个还未存在的列表中Symbol(效率很低, 要尽量少用)
+    """
     def __init__(self, table, key):
-        self.table= table
-        self.key= key
+        self.table = table
+        self.key = key
 
     def __getattribute__(self, item):
-        table= super().__getattribute__('table')
-        key= super().__getattribute__('key')
+        table = super().__getattribute__('table')
+        key = super().__getattribute__('key')
 
-        symbol= table.get(key)
+        symbol = table.get(key)
         if symbol is not None:
             return getattr(symbol, item)
         else:
             raise KeyError(f'{table} 中没有键 {key}')
 
 
-def sym(*args, name=None):
+def sym(*args, name=None, reduce=None):
     if len(args) == 0:
         symbol = Symbol.toSymbol(None)
     elif len(args) == 1:
@@ -274,6 +277,9 @@ def sym(*args, name=None):
 
     if name is not None:
         symbol.name = name
+
+    if reduce is not None:
+        symbol.reduce= reduce
 
     return symbol
 
@@ -297,36 +303,33 @@ if __name__ == '__main__':
     class CaluParser(RecurParser):
         def __init__(self):
             # 终结符
-            ends= sym(re.compile('\s*'))
-            self['integer']= re.compile(r'[0-9]+')
+            ends = sym(re.compile('\s*'), name='ends')
+            integer = sym(re.compile(r'[0-9]+'), name='integer', reduce= int)
             # 非终结符
             self['Start'] = ends, self['AddSub'], ends
-            self['AddSub']= self['MulDiv'], self['AddSubMore']
-            self['AddSubMore']= sym(ends, ['+','-'], ends, self['MulDiv'], self['AddSubMore']) | None
-            self['MulDiv']= self['Var'], self['MulDivMore']
-            self['MulDivMore']= sym(ends, ['*','/'], ends, self['Var'], self['MulDivMore']) | None
-            self['Var']= sym('(', ends, self['AddSub'], ends, ')') | self['integer']
-
-        def integer(self, rst):
-            return int(rst)
+            self['AddSub'] = self['MulDiv'], self['AddSubMore']
+            self['AddSubMore'] = sym(ends, ['+', '-'], ends, self['MulDiv'], self['AddSubMore']) | None
+            self['MulDiv'] = self['Var'], self['MulDivMore']
+            self['MulDivMore'] = sym(ends, ['*', '/'], ends, self['Var'], self['MulDivMore']) | None
+            self['Var'] = sym('(', ends, self['AddSub'], ends, ')') | integer
 
         def Start(self, rst):
             return rst[1]  # Start -> Ends Var Ends
 
         def AddSub(self, rst):
-            num, more= rst[0], rst[1]
+            num, more = rst[0], rst[1]
             while more:  # AddSub -> Var [Ends Operate Ends Var AddSubMore]
                 if more[1] == '+': num += more[3]
                 if more[1] == '-': num -= more[3]
-                more= more[4]
+                more = more[4]
             return num
 
         def MulDiv(self, rst):
-            num, more= rst[0], rst[1]
+            num, more = rst[0], rst[1]
             while more:  # MulDiv -> Var [Ends Operate Ends Var MulDivMore]
                 if more[1] == '*': num *= more[3]
                 if more[1] == '/': num /= more[3]
-                more= more[4]
+                more = more[4]
             return num
 
         def Var(self, rst):
@@ -336,7 +339,6 @@ if __name__ == '__main__':
                 return rst
 
 
-    s= DebugStream(' 10 + ( 1 + 2 ) * 4 - 2')
-    p = s.parser( CaluParser()['Start'] )
+    s = DebugStream(' 10 + ', log_stream=sys.stdout)
+    p = s.parser(CaluParser()['Start'])
     print(p, s.eof())
-

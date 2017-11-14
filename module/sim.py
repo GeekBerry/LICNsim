@@ -61,7 +61,7 @@ class Simulator:
         :param graph: nexworkx.Graph
         :param NodeFactory:
         :param ChannelFactory:
-        :return: node_ids
+        :return: {old_node_id: new_node_id, ...}
         """
         id_map = {}  # {graph.node_id: self.graph.node_id}
         # 添加节点
@@ -73,7 +73,6 @@ class Simulator:
             self.addEdge(id_map[src_id], id_map[dst_id], ChannelFactory)
             self.addEdge(id_map[dst_id], id_map[src_id], ChannelFactory)
         return id_map
-
 
 
 from core import Bind, CallTable, AnnounceTable
