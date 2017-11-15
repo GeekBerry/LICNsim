@@ -4,11 +4,11 @@ from core import clock, tops
 from gui import UIFrom
 from gui.ui.log_widget import Ui_log_widget
 
-from algorithm.recur_parser import RecurParser, Stream, sym, re
+from algorithm.recur_parser import SymbolTable, Stream, sym, re
 from debug import showCall
 
 
-class QueryParser(RecurParser):
+class QueryParser(SymbolTable):
     def __init__(self):
         Ends = sym(re.compile('\s*'), name='Ends')
         Int = sym(re.compile('-?\d+'), name='Int')

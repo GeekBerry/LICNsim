@@ -77,7 +77,7 @@ class DebugStream(Stream):
 # =============================================================================
 def sym(arg, *args, name=None, func=None):
     def toSymbol(arg):
-        if type(arg) is RecurParser.SymbolKey:
+        if type(arg) is SymbolTable.SymbolKey:
             return arg
 
         if isinstance(arg, Symbol):
@@ -261,51 +261,8 @@ class SymbolRepeat(Symbol):
         return f'{self.symbol}*({self.least},{most})'
 
 
-# class SymbolRef(Symbol):
-#     """
-#     用于引用一个还未存在的列表中Symbol(效率低, 尽量少用)
-#     为了绑定机制需要，有必要将父类中已有方法和成员重写一遍
-#     """
-#     def __init__(self, table, key):
-#         self.__table = table
-#         self._key = key
-#
-#     @property
-#     def __symbol(self):
-#         symbol = self.__table.get(self._key)  # 用 get 以避免递归调用
-#         if symbol is not None:
-#             return symbol
-#         else:
-#             raise KeyError(f"{self.__table.__class__.__name__} {self.__table.keys()} 中没有 '{self._key}' 项")
-#
-#     def __getattr__(self, item):
-#         return self.__symbol.__getattr__(item)
-#
-#     @property
-#     def name(self):
-#         return self.__symbol.name
-#
-#     def match(self, stream):
-#         return self.__symbol.match(stream)
-#
-#     def func(self, match):
-#         return self.__symbol.func(match)
-#
-#     def __mul__(self, other):
-#         return self.__symbol.__mul__(other)
-#
-#     def __add__(self, other):
-#         return self.__symbol.__add__(other)
-#
-#     def __or__(self, other):
-#         return self.__symbol.__or__(other)
-#
-#     def __str__(self):
-#         return self.__symbol.__str__()
-
-
 # ==========================================================================================
-class RecurParser(dict):
+class SymbolTable(dict):
     class SymbolKey(str):
         pass
 
@@ -323,15 +280,15 @@ class RecurParser(dict):
         except KeyError:
             return self.SymbolKey(item)
 
-    def backFill(self):
+    def check(self):
         self.__checked_seq = set()  # 记录检查过的序列，注意只有序列会被递归检查， 所以只检查序列
         for k, each in self.items():
             if isinstance(each, self.SymbolKey):
                 self[k] = self.get(each)
             else:
-                self._backFillSymbol(each)
+                self._checkSymbol(each)
 
-    def _backFillSeq(self, seq):
+    def _checkSeq(self, seq):
         if id(seq) in self.__checked_seq:
             return
 
@@ -339,13 +296,13 @@ class RecurParser(dict):
             if isinstance(each, self.SymbolKey):
                 seq[i] = self.get(each)
             else:
-                self._backFillSymbol(each)
+                self._checkSymbol(each)
         self.__checked_seq.add(id(seq))
 
-    def _backFillSymbol(self, symbol):
+    def _checkSymbol(self, symbol):
         assert type(symbol) is not self.SymbolKey
         if type(symbol) in (SymbolAll, SymbolAny):
-            self._backFillSeq(symbol.seq)
+            self._checkSeq(symbol.seq)
         elif type(symbol) is SymbolRepeat:
             if isinstance(symbol.symbol, self.SymbolKey):
                 symbol.symbol = self.get(symbol.symbol)
@@ -355,7 +312,7 @@ class RecurParser(dict):
 
 # ==========================================================================================
 if __name__ == '__main__':
-    class CaluParser(RecurParser):  # 正整数加减乘除计算器
+    class CaluParser(SymbolTable):  # 正整数加减乘除计算器
         def __init__(self):
             # 终结符
             ends = sym(re.compile('\s*'), name='ends')
@@ -366,8 +323,8 @@ if __name__ == '__main__':
             self['AddSubMore'] = sym(ends, ['+', '-'], ends, self['MulDiv'], self['AddSubMore']) | None
             self['MulDiv'] = self['Var'], self['MulDivMore']
             self['MulDivMore'] = sym(ends, ['*', '/'], ends, self['Var'], self['MulDivMore']) | None
-            self['Var'] = sym('(', ends, self['AddSub'], ends, ')') | integer | Exception('expect a Var')
-            self.backFill()  # 需要回填地址
+            self['Var'] = sym('(', ends, self['AddSub'], ends, ')') | integer | Exception('expect Var')
+            self.check()  # 回填地址
 
         def Start(self, match):
             return match[1]  # Start -> Ends Var Ends
@@ -394,9 +351,7 @@ if __name__ == '__main__':
             else:  # Var -> Int
                 return match
 
-
     s = DebugStream(' 1+ 2*3', )  # log_stream=sys.stdout
     p = s.parser(CaluParser()['Start'])
     print(p, s.eof())
 
-# print(CaluParser()['AddSubMore'])
