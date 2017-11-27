@@ -50,7 +50,7 @@ class NodeController(Controller):
                 self.pair_dict['mode'] = BindComboBox(self, replace_unit, 'mode', ('FIFO', 'LRU', 'LFU'))
 
             if hasattr(replace_unit, 'db_table'):
-                # TODO for core import DataBaseTable; assert isinstance(replace_unit.db_table, DataBaseTable)
+                # assert isinstance(replace_unit.db_table, DataBaseTable)
                 self.pair_dict['table'] = BindTable(self,
                                                     replace_unit.db_table.getFields(),
                                                     map(lambda record: record.values(), replace_unit.db_table.query())
@@ -71,6 +71,7 @@ class NodeController(Controller):
     def __init__(self, parent, icn_node):
         super().__init__(parent)
 
+        self.pair_dict['node type']= QLabel(icn_node.__class__.__name__)
         for key, unit in icn_node.units.items():
             if key == 'cs':  # XXX 依照什么进行类型判断？ key 还是 unit 的类型
                 self.pair_dict[key] = self.ContentStoreController(self, unit)

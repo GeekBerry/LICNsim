@@ -38,7 +38,7 @@ class Stream:
         return self.index >= self.end
 
     def parser(self, symbol):
-        #  TODO 可以在此函数做 cache: { (index, symbol):match, ...}
+        #  TODO 可以在此函数做 cache: { (index, symbol):result, ...}
         index = self.index
         match = symbol.match(self)
         if match is None:
@@ -122,10 +122,10 @@ class Symbol:
         raise ValueError(f'未知参数{arg}')
 
     def __add__(self, other):
-        return SymbolAll([self, sym(other)])
+        return SymbolAll(self, sym(other))
 
     def __or__(self, other):
-        return SymbolAny([self, sym(other)])
+        return SymbolAny(self, sym(other))
 
     def match(self, stream):
         """
@@ -168,7 +168,6 @@ class SymbolException(Symbol):
             expect_str.append(f'{" "*len(before)}^\n')
 
             sys.stderr.write(''.join(expect_str))
-
         raise self.exception
 
     def __str__(self):
@@ -281,9 +280,11 @@ class SymbolTable(dict):
             return self.SymbolKey(item)
 
     def check(self):
-        self.__checked_seq = set()  # 记录检查过的序列，注意只有序列会被递归检查， 所以只检查序列
+        # 记录检查过的序列，注意只有序列会被递归检查， 所以只检查序列
+        self.__checked_seq = set()
+
         for k, each in self.items():
-            if isinstance(each, self.SymbolKey):
+            if type(each) is self.SymbolKey:
                 self[k] = self.get(each)
             else:
                 self._checkSymbol(each)
@@ -293,20 +294,23 @@ class SymbolTable(dict):
             return
 
         for i, each in enumerate(seq):
-            if isinstance(each, self.SymbolKey):
+            if type(each) is self.SymbolKey:
                 seq[i] = self.get(each)
             else:
                 self._checkSymbol(each)
+
         self.__checked_seq.add(id(seq))
 
     def _checkSymbol(self, symbol):
         assert type(symbol) is not self.SymbolKey
+
         if type(symbol) in (SymbolAll, SymbolAny):
             self._checkSeq(symbol.seq)
         elif type(symbol) is SymbolRepeat:
-            if isinstance(symbol.symbol, self.SymbolKey):
+            if type(symbol.symbol) is self.SymbolKey:
                 symbol.symbol = self.get(symbol.symbol)
-        else:  # 终结符
+            self._checkSymbol(symbol.symbol)
+        else:  # 是终结符
             pass
 
 
@@ -318,40 +322,40 @@ if __name__ == '__main__':
             ends = sym(re.compile('\s*'), name='ends')
             integer = sym(re.compile(r'[0-9]+'), name='integer', func=int)
             # 非终结符
-            self['Start'] = ends, self['AddSub'], ends
-            self['AddSub'] = self['MulDiv'], self['AddSubMore']
-            self['AddSubMore'] = sym(ends, ['+', '-'], ends, self['MulDiv'], self['AddSubMore']) | None
-            self['MulDiv'] = self['Var'], self['MulDivMore']
-            self['MulDivMore'] = sym(ends, ['*', '/'], ends, self['Var'], self['MulDivMore']) | None
-            self['Var'] = sym('(', ends, self['AddSub'], ends, ')') | integer | Exception('expect Var')
+            self['Start'] = ends, self['Expr'], ends
+            self['Expr'] = self['Term'], sym(ends, ['+', '-'], ends, self['Term'])*(0, ...)
+            self['Term'] = self['Fact'], sym(ends, ['*', '/'], ends, self['Fact'])*(0, ...)
+            self['Fact'] = sym('(', ends, self['Expr'], ends, ')') | integer | Exception('expect Fact')
             self.check()  # 回填地址
 
         def Start(self, match):
             return match[1]  # Start -> Ends Var Ends
 
-        def AddSub(self, match):
-            num, more = match[0], match[1]
-            while more:  # AddSub -> Var [Ends Operate Ends Var AddSubMore]
-                if more[1] == '+': num += more[3]
-                if more[1] == '-': num -= more[3]
-                more = more[4]
-            return num
+        def Expr(self, match):
+            var, vars = match
+            for each in vars:  # [ends, + or -, ends, Fact]
+                if each[1] == '+':
+                    var += each[3]
+                if each[1] == '-':
+                    var -= each[3]
+            return var
 
-        def MulDiv(self, match):
-            num, more = match[0], match[1]
-            while more:  # MulDiv -> Var [Ends Operate Ends Var MulDivMore]
-                if more[1] == '*': num *= more[3]
-                if more[1] == '/': num /= more[3]
-                more = more[4]
-            return num
+        def Term(self, match):
+            var, vars = match
+            for each in vars:  # [ends, * or /, ends, Fact]
+                if each[1] == '*':
+                    var *= each[3]
+                if each[1] == '/':
+                    var /= each[3]
+            return var
 
-        def Var(self, match):
+        def Fact(self, match):
             if type(match) is list:  # Var -> ( Ends AddSub Ends )
                 return match[2]
             else:  # Var -> Int
                 return match
 
-    s = DebugStream(' 1+ 2*3', )  # log_stream=sys.stdout
+    s = DebugStream(' 1 + ( 2 * 3 ) ')
     p = s.parser(CaluParser()['Start'])
-    print(p, s.eof())
+    print(p, s.eof())  # 7 True
 

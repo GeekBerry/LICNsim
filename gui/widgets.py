@@ -1,6 +1,7 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QCheckBox, QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QAbstractItemView, \
-    QTreeWidgetItem, QWidget, QTreeWidget, QHeaderView, QTableWidget, QAbstractScrollArea, QTableWidgetItem
+from PyQt5.QtWidgets import (QLabel, QCheckBox, QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox,
+                             QAbstractItemView, QTreeWidgetItem, QWidget, QTreeWidget, QHeaderView,
+                             QTableWidget, QAbstractScrollArea, QTableWidgetItem)
 
 from debug import showCall
 
@@ -115,7 +116,7 @@ class TableWidget(QTableWidget):
 
 
 # =============================================================================
-def bindWidgetToAttr(widget, obj, attr):
+def _bindWidgetToAttr(widget, obj, attr):
     if hasattr(obj, attr):
         widget.obj = obj
         widget.attr = attr
@@ -125,7 +126,7 @@ def bindWidgetToAttr(widget, obj, attr):
 class BindLabel(QLabel):
     def __init__(self, parent, obj, attr):
         super().__init__(parent)
-        bindWidgetToAttr(self, obj, attr)
+        _bindWidgetToAttr(self, obj, attr)
 
     def refresh(self):
         self.setText(str(getattr(self.obj, self.attr)))
@@ -135,7 +136,7 @@ class BindCheckBox(QCheckBox):
     def __init__(self, parent, obj, attr):
         super().__init__(parent)
         self.stateChanged.connect(self.stateChangedSlot)
-        bindWidgetToAttr(self, obj, attr)
+        _bindWidgetToAttr(self, obj, attr)
 
     def refresh(self):
         if getattr(self.obj, self.attr):
@@ -154,7 +155,7 @@ class BindLineEdit(QLineEdit):
     def __init__(self, parnet, obj, attr):
         super().__init__(parnet)
         self.editingFinished.connect(self.editingFinishedSlot)
-        bindWidgetToAttr(self, obj, attr)
+        _bindWidgetToAttr(self, obj, attr)
 
     def refresh(self):
         self.setText( getattr(self.obj, self.attr) )
@@ -168,7 +169,7 @@ class BindSpinBox(QSpinBox):
         super().__init__(parent)
         self.setRange(*range)
         self.editingFinished.connect(self.editingFinishedSlot)
-        bindWidgetToAttr(self, obj, attr)
+        _bindWidgetToAttr(self, obj, attr)
 
     def editingFinishedSlot(self):
         setattr(self.obj, self.attr, self.value())
@@ -189,7 +190,7 @@ class BindDoubleSpinBox(QDoubleSpinBox):
         super().__init__(parent)
         self.setRange(*range)
         self.editingFinished.connect(self.editingFinishedSlot)
-        bindWidgetToAttr(self, obj, attr)
+        _bindWidgetToAttr(self, obj, attr)
 
 
 class BindComboBox(QComboBox):
@@ -203,7 +204,7 @@ class BindComboBox(QComboBox):
         super().__init__(parent)
         self.addItems(range)
         self.currentIndexChanged.connect(self.currentIndexChangedSlot)
-        bindWidgetToAttr(self, obj, attr)
+        _bindWidgetToAttr(self, obj, attr)
 
     def currentIndexChangedSlot(self, index):
         setattr(self.obj, self.attr, self.itemText(index))
@@ -227,7 +228,6 @@ class BindTable(TableWidget):
         self.setHeads(*heads)
         self.refresh()
 
-    @showCall
     def refresh(self):
         rows = list(self.row_iter)  # 先生成列表才能统计行数
         self.setRowCount(len(rows))
@@ -235,19 +235,3 @@ class BindTable(TableWidget):
             self.setRow(row, *values)
 
 
-# class ComboBox(QComboBox):
-#     def addItem(self, text, data=None):
-#         index = self.findText(text)
-#         if index == -1:  # 没有找到, 返回 '-1'
-#             index = 0
-#             while index < self.count() and text < self.itemText(index):  # 插入排序
-#                 index += 1
-#             self.insertItem(index, text, data)
-#         return index
-#
-#     def addItems(self, items):
-#         for text, data in items:
-#             self.addItem(text, data)
-#
-#     def wheelEvent(self, event):  # 禁用滚轮
-#         pass

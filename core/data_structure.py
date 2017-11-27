@@ -406,15 +406,10 @@ class DefaultDictDecorator(BaseDictDecorator):
 # ---------------------  专用数据结构定义  ----------------------------
 
 class Hardware:
-    def __init__(self, hardware_id):
-        from core import CallTable, AnnounceTable
-        self.__id= hardware_id
+    def __init__(self):
         self.api= CallTable()
         self.announces= AnnounceTable()
         self.units= {}
-
-    def getId(self):
-        return self.__id
 
     def install(self, unit_name, unit):
         unit.install(self.announces, self.api)
@@ -432,6 +427,7 @@ class Unit:
         self.api= api
 
     def uninstall(self, announces, api):
+        # TODO 完整卸载
         # self.announces= None
         # self.api= None
         pass

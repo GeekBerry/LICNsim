@@ -3,9 +3,19 @@ from core import Unit, NameTable, Packet
 
 class ContentStore(Unit):
     def __init__(self, capacity=10000):
-        self.capacity = capacity
-        self.size = 0  # 已经占用的尺寸 0<= size <= capacity
+        self._capacity = capacity
+        self.size = 0  # 已经占用的尺寸 0<= size <= _capacity
         self.table = NameTable()
+
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @capacity.setter
+    def capacity(self, value):
+        assert 0 < value
+        self.limit(value)
+        self._capacity= value
 
     def install(self, announces, api):
         super().install(announces, api)
@@ -21,9 +31,9 @@ class ContentStore(Unit):
         :param packet: 数据包
         :return:
         """
-        assert packet.size <= self.capacity
+        assert packet.size <= self._capacity
         if packet.name not in self.table:
-            self.limit(self.capacity - packet.size)  # 腾出足够空间
+            self.limit(self._capacity - packet.size)  # 腾出足够空间
             self.insert(packet)  # 插入
         else:  # 重复
             pass
@@ -47,7 +57,7 @@ class ContentStore(Unit):
         self.table[packet.name] = packet
         self.size += packet.size
         self.announces['csStore'](packet)
-        assert self.size <= self.capacity
+        assert self.size <= self._capacity
 
     def discard(self, name):
         try:

@@ -3,6 +3,8 @@ class Name(tuple):
     def __new__(cls, iterable=None):
         if iterable is None:
             return tuple.__new__(cls)
+        if isinstance(iterable, str):
+            return tuple.__new__(cls, iterable.split('/'))
         else:
             return tuple.__new__(cls, map(str, iterable))
 
@@ -10,11 +12,16 @@ class Name(tuple):
     # def fromArgs(cls, *args):
     #     return Name(args)
 
-    @classmethod
-    def fromStr(cls, string):
-        return Name(string.split('/'))
+    # @classmethod
+    # def fromStr(cls, string):
+    #     return Name(string.split('/'))
 
-    def matchLength(self, other):
+    def matchLength(self, other)->int:
+        """
+        找出共同前缀长度
+        :param other:Name
+        :return:int
+        """
         match_len = 0
         for sge1, sge2 in zip(self, other):
             if sge1 == sge2:
@@ -23,28 +30,30 @@ class Name(tuple):
                 break
         return match_len
 
-    def isPrefix(self, other):  # 'A/1' isPrefix 'A/1'
-        return self.matchLength(other) == len(self)
+    def isPrefix(self, name):
+        return self.matchLength(name) == len(self)
 
     def __str__(self):
         return '/'.join(map(str, self))
 
 
+if __name__ == '__main__':
+    name1= Name('A/1')
+    name2= Name('A/1')
+    print(name1.isPrefix(name2), name2.isPrefix(name1))  # True True
 
-# if __name__ == '__main__':
-#     name1= Name('A/1')
-#     name2= Name('A/1')
-#     print(name1.isPrefix(name2), name2.isPrefix(name1))  # True True
-#
-#     name1= Name('A/1')
-#     name2= Name('A')
-#     print(name1.isPrefix(name2), name2.isPrefix(name1))  # False True
-#
-#     name1= Name('A/1')
-#     name2= Name('B')
-#     print(name1.isPrefix(name2), name2.isPrefix(name1))  # False False
-#
-#     print(  Name().isPrefix(Name('A'))  )
+    name1= Name('A/1')
+    name2= Name('A')
+    print(name1.isPrefix(name2), name2.isPrefix(name1))  # False True
+
+    name1= Name('A/1')
+    name2= Name('B')
+    print(name1.isPrefix(name2), name2.isPrefix(name1))  # False False
+
+    name1= Name('')
+    name2= Name('A')
+    print(name1.isPrefix(name2), name2.isPrefix(name1))  # False False
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -177,9 +186,9 @@ class NameTree:
 
 # if __name__ == '__main__':
 #     nt= NameTree()
-#     nt.access( Name.fromStr('A/a/1') )
-#     nt.access( Name.fromStr('A/a/2') )
-#     nt.access( Name.fromStr('A/b') )
+#     nt.access( Name('A/a/1') )
+#     nt.access( Name('A/a/2') )
+#     nt.access( Name('A/b') )
 #
 #     p= list( nt.descendants() )
 #     print(p)
@@ -187,7 +196,7 @@ class NameTree:
 # if __name__ == '__main__':
 #     nt= NameTree()
 #
-#     nt.access(Name.fromStr('A/a/1'))
+#     nt.access(Name('A/a/1'))
 #     nt.access(Name(['A','a',2]))
 #     nt.print()
 #

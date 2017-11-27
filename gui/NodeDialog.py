@@ -27,5 +27,5 @@ class NodeDialog(QDialog):
 
     def closeEvent(self, event):
         super().closeEvent(event)
-        self.announces['NodeDialogClose'](self.node_id)
+        self.announces['closeNodeDialog'](self.node_id)
 

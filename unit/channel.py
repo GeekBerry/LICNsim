@@ -33,11 +33,15 @@ class Channel:
             self.checkSend()
 
     def __init__(self, src_id, dst_id, rate: int, delay: int, loss: float):
-        self.__id= src_id, dst_id
+        self._edge_id= src_id, dst_id
         self.sender= self.Sender(rate, self.transfer)
         self.delay= delay
         self.loss= loss
         self.announces = AnnounceTable()
+
+    @property
+    def edge_id(self):
+        return self._edge_id
 
     @property
     def rate(self):
@@ -50,9 +54,6 @@ class Channel:
     @property
     def queue(self):
         return list(self.sender.queue)
-
-    def getId(self):
-        return self.__id
 
     def send(self, packet):
         self.announces['send'](packet)

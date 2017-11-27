@@ -1,7 +1,7 @@
 from core import Packet, Name
-ip_A = Packet(Name.fromStr('A'), Packet.INTEREST, 1)
-dp_A = Packet(Name.fromStr('A'), Packet.DATA, 500)
-dp_A1 = Packet(Name.fromStr('A/1'), Packet.DATA, 500)
+ip_A = Packet(Name('A'), Packet.INTEREST, 1)
+dp_A = Packet(Name('A'), Packet.DATA, 500)
+dp_A1 = Packet(Name('A/1'), Packet.DATA, 500)
 
 # ======================================================================================================================
 from core import INF

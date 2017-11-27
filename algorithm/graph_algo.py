@@ -1,6 +1,7 @@
 import random
 import networkx
 import numpy
+from PyQt5.QtCore import QPointF
 
 
 class FixedAsk:
@@ -110,112 +111,142 @@ def graphApproximateDiameter(graph, sample_num=10):  # 得到graph近似直径
 
 
 # =======================================================================================================================
-class SamplePosition:
-    def __init__(self, nodes):
-        self.nodes = nodes
-
-    def __call__(self, num):
-        return random.sample(self.nodes, num) if num else []
-
-
-class UniformPosition:
-    def __init__(self, graph, *args):
-        self.nodes = graph.nodes()
-
-    def __call__(self, num):
-        return random.sample(self.nodes, num) if num else []
-
-
-class ZipfPosition:
-    def __init__(self, graph, center, alpha):
-        self.hoops = [list(hoop) for hoop in graphHoops(graph, center)]
-        self.length = len(self.hoops) - 1
-        self.alpha = alpha  # 指数值
-
-    def __call__(self, num):  # FIXME 函数运行时间不定
-        nodes = set()
-        while len(nodes) < num:
-            distance = constants.INF
-            while distance >= self.length:
-                distance = numpy.random.zipf(self.alpha)
-
-            node = random.choice(self.hoops[distance])
-            nodes.add(node)
-
-        return nodes
+# 计算引力和斥力
+# def layoutPosition(neibor_table, pos_table, ratio):
+#     """
+#     :param neibor_table: {node_id:[ner_id, ...], ...}
+#     :param pos_table: {node_id:QPointF(x, y), ...}
+#     :param ratio:
+#     :return:None
+#     """
+#     for node_id, node_pos in pos_table.items():
+#         force = QPointF(0.0, 0.0)
+#         weight = len(neibor_table[node_id])  # 邻居数量
+#
+#         for other_id, other_pos in pos_table.items():
+#             vec = other_pos - node_pos
+#             vls = vec.x() * vec.x() + vec.y() * vec.y()  # vector_length_square
+#
+#             if 0 < vls < 4 * ratio:  # vec.length() 小于 4*ratio才计算斥力; '4'来自于经验
+#                 force -= (vec / vls) * ratio  # 空间中节点间为排斥力
+#
+#             if other_id in neibor_table[node_id]:
+#                 force += vec / weight  # 连接的节点间为吸引力
+#
+#         pos_table[node_id] = node_pos + force * 0.4  # 0.4来自于经验,太大无法收敛,太小变化太慢
 
 
 # =======================================================================================================================
-class GridPosLogic:
-    CENTER, OUTSIDE, UP, DOWN, LEFT, RIGHT, LEFTUP, RIGHTDOWN, RIGHTUP, LEFTDOWN = range(0, 10)
-
-    def __init__(self, cx, cy):
-        self.sx, self.sy = 1, 1
-        self.cx, self.cy = cx, cy
-        self.ex, self.ey = 2 * self.cx - 1, 2 * self.cy - 1
-
-        self.hsx, self.hsy = (self.sx + self.cx) // 2, (self.sy + self.cy) // 2
-        self.hex, self.hey = (self.cx + self.ex) // 2, (self.cy + self.ey) // 2
-
-    def reset(self):
-        self.vector = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-    def insert(self, point):
-        x, y = point[0], point[1]
-
-        if self.inCenter(x, y):
-            self.vector[self.CENTER] += 1
-        else:
-            self.vector[self.OUTSIDE] += 1
-
-        if self.inUp(x, y):
-            self.vector[self.UP] += 1
-        else:
-            self.vector[self.DOWN] += 1
-
-        if self.inLeft(x, y):
-            self.vector[self.LEFT] += 1
-        else:
-            self.vector[self.RIGHT] += 1
-
-        if self.inLeftUp(x, y):
-            self.vector[self.LEFTUP] += 1
-        else:
-            self.vector[self.RIGHTDOWN] += 1
-
-        if self.inRightUp(x, y):
-            self.vector[self.RIGHTUP] += 1
-        else:
-            self.vector[self.LEFTDOWN] += 1
-
-    def inCenter(self, x, y):
-        return self.hsx <= x < self.hex and self.hsy <= y < self.hey
-
-    def inUp(self, x, y):
-        return self.sy <= y < self.cy
-
-    def inLeft(self, x, y):
-        return self.sx <= x < self.cx
-
-    def inLeftUp(self, x, y):
-        return x + y <= self.ex
-
-    def inRightUp(self, x, y):
-        return y <= x
+# 一系列挑选点的函数
+# class SamplePosition:
+#     def __init__(self, nodes):
+#         self.nodes = nodes
+#
+#     def __call__(self, num):
+#         return random.sample(self.nodes, num) if num else []
 
 
-class GridPosLogicSmallGrid:
-    def __init__(self, cx, cy):
-        self.sx, self.sy = 1, 1
-        self.ex, self.ey = 2 * cx - 1, 2 * cy - 1
+# class UniformPosition:
+#     def __init__(self, graph, *args):
+#         self.nodes = graph.nodes()
+#
+#     def __call__(self, num):
+#         return random.sample(self.nodes, num) if num else []
 
-    def reset(self):
-        self.vector = [0] * 100
 
-    def insert(self, point):
-        x, y = point[0], point[1]
+# class ZipfPosition:
+#     def __init__(self, graph, center, alpha):
+#         self.hoops = [list(hoop) for hoop in graphHoops(graph, center)]
+#         self.length = len(self.hoops) - 1
+#         self.alpha = alpha  # 指数值
+#
+#     def __call__(self, num):  # FIXME 函数运行时间不定
+#         nodes = set()
+#         while len(nodes) < num:
+#             distance = INF
+#             while distance >= self.length:
+#                 distance = numpy.random.zipf(self.alpha)
+#
+#             node = random.choice(self.hoops[distance])
+#             nodes.add(node)
+#
+#         return nodes
 
-        px = x * 10 // (self.ex + 1)
-        py = y * 10 // (self.ey + 1)
 
-        self.vector[px * 10 + py] += 1
+# =======================================================================================================================
+# class GridPosLogic:
+#     CENTER, OUTSIDE, UP, DOWN, LEFT, RIGHT, LEFTUP, RIGHTDOWN, RIGHTUP, LEFTDOWN = range(0, 10)
+#
+#     def __init__(self, cx, cy):
+#         self.sx, self.sy = 1, 1
+#         self.cx, self.cy = cx, cy
+#         self.ex, self.ey = 2 * self.cx - 1, 2 * self.cy - 1
+#
+#         self.hsx, self.hsy = (self.sx + self.cx) // 2, (self.sy + self.cy) // 2
+#         self.hex, self.hey = (self.cx + self.ex) // 2, (self.cy + self.ey) // 2
+#
+#     def reset(self):
+#         self.vector = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#
+#     def insert(self, point):
+#         x, y = point[0], point[1]
+#
+#         if self.inCenter(x, y):
+#             self.vector[self.CENTER] += 1
+#         else:
+#             self.vector[self.OUTSIDE] += 1
+#
+#         if self.inUp(x, y):
+#             self.vector[self.UP] += 1
+#         else:
+#             self.vector[self.DOWN] += 1
+#
+#         if self.inLeft(x, y):
+#             self.vector[self.LEFT] += 1
+#         else:
+#             self.vector[self.RIGHT] += 1
+#
+#         if self.inLeftUp(x, y):
+#             self.vector[self.LEFTUP] += 1
+#         else:
+#             self.vector[self.RIGHTDOWN] += 1
+#
+#         if self.inRightUp(x, y):
+#             self.vector[self.RIGHTUP] += 1
+#         else:
+#             self.vector[self.LEFTDOWN] += 1
+#
+#     def inCenter(self, x, y):
+#         return self.hsx <= x < self.hex and self.hsy <= y < self.hey
+#
+#     def inUp(self, x, y):
+#         return self.sy <= y < self.cy
+#
+#     def inLeft(self, x, y):
+#         return self.sx <= x < self.cx
+#
+#     def inLeftUp(self, x, y):
+#         return x + y <= self.ex
+#
+#     def inRightUp(self, x, y):
+#         return y <= x
+
+
+# class GridPosLogicSmallGrid:
+#     def __init__(self, cx, cy):
+#         self.sx, self.sy = 1, 1
+#         self.ex, self.ey = 2 * cx - 1, 2 * cy - 1
+#
+#     def reset(self):
+#         self.vector = [0] * 100
+#
+#     def insert(self, point):
+#         x, y = point[0], point[1]
+#
+#         px = x * 10 // (self.ex + 1)
+#         py = y * 10 // (self.ey + 1)
+#
+#         self.vector[px * 10 + py] += 1
+
+
+

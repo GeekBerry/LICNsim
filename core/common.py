@@ -8,7 +8,6 @@ import random
 # INF= sys.maxsize  # 无穷大
 INF= 0x7FFFFFFF  # 无穷大 此处用4byte整形最大正数
 
-
 # --------------------  装饰器  -------------------------------
 def singleton(cls, *args, **kw):
     instance={}

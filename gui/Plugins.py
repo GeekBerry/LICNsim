@@ -1,4 +1,11 @@
-from PyQt5.QtCore import QObject
+import networkx
+from PyQt5.QtCore import Qt, QObject, QTimer
+from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtWidgets import QAction, QToolBar, QSpinBox, QLabel, QButtonGroup, QRadioButton, QDockWidget
+
+from config import *
+from core import clock, Bind, top
+
 from debug import showCall
 
 
@@ -10,12 +17,6 @@ class MainWindowPlugin(QObject):
 
 
 # ======================================================================================================================
-from core import clock, Bind
-from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QAction, QToolBar, QToolBox, QSpinBox, QLabel
-
-
 class PlayerPlugin(MainWindowPlugin):
     FRAME_DELAY = 1000  # 单位(ms)
     DEFAULT_STEP_SIZE = 1
@@ -35,19 +36,19 @@ class PlayerPlugin(MainWindowPlugin):
         action_play.setCheckable(True)
 
         icon = QIcon()
-        icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/gui/images/start.png"), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/gui/images/pause.png"), QIcon.Normal, QIcon.On)
+        icon.addPixmap(QPixmap(PLAY_ACTION_IMAGE), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(QPixmap(PAUSE_ACTION_IMAGE), QIcon.Normal, QIcon.On)
         action_play.setIcon(icon)
         action_play.toggled.connect(self._playSlot)
-        self.tool_bar.addAction(action_play)  # FIXME
+        self.tool_bar.addAction(action_play)
 
         # 安装单步按钮
         action_step = QAction('步进', self.tool_bar)
         icon = QIcon()
-        icon.addPixmap(QPixmap("C:/Users/bupt632/Desktop/LICNsim/gui/images/step.png"), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(QPixmap(STEP_ACTION_IMAGE), QIcon.Normal, QIcon.Off)
         action_step.setIcon(icon)
         action_step.triggered.connect(self.playStep)
-        self.tool_bar.addAction(action_step)  # FIXME
+        self.tool_bar.addAction(action_step)
 
         # 安装步数显示器
         self.steps_spin = QSpinBox(self.tool_bar)
@@ -57,7 +58,7 @@ class PlayerPlugin(MainWindowPlugin):
         self.tool_bar.addWidget(self.steps_spin)
 
         # TODO 进度条
-        self.lable= QLabel(f'current_time: {clock.time()}')
+        self.lable = QLabel(f'current_time: {clock.time()}')
         main_window.statusBar().addPermanentWidget(self.lable)  # addWidget 或者 addPermanentWidget
 
     def playStep(self, is_triggered=False):
@@ -69,7 +70,6 @@ class PlayerPlugin(MainWindowPlugin):
         self.lable.setText(f'current_time: {clock.time()}')
         self.announces['playSteps'](steps)
 
-    # @showCall
     def playSteps(self):
         self.playStep()
         self.step_timer.start()
@@ -82,18 +82,21 @@ class PlayerPlugin(MainWindowPlugin):
 
 
 # ======================================================================================================================
-from gui.Painters import *
+from gui.Painters import PropertyPainter, NameStorePainter, HitRatioPainter
 
 
 class PainterPlugin(MainWindowPlugin):
-    PAINTERS= (
-        ('性能图', "C:/Users/bupt632/Desktop/LICNsim/gui/images/node.png", PropertyPainter),
-        ('缓存图', "C:/Users/bupt632/Desktop/LICNsim/gui/images/store.png", NameStorePainter),
-        ('命中率图', "C:/Users/bupt632/Desktop/LICNsim/gui/images/hit.png", HitRatioPainter),
+    PAINTERS = (
+        ('性能图', PROPERTY_ACTION_IMAGE, PropertyPainter),
+        ('缓存图', STORE_ACTION_IMAGE, NameStorePainter),
+        ('命中率图', HIT_ACTION_IMAGE, HitRatioPainter),
     )
 
     def __init__(self, main_window, announces, api):
         super().__init__(main_window, announces, api)
+        announces['playSteps'].append(self.playSteps)
+        self.painters = {}  # {text: painter, ...}
+        self.current_painter = None
 
         # 工具条
         tool_bar = QToolBar(main_window)
@@ -107,11 +110,22 @@ class PainterPlugin(MainWindowPlugin):
             action.setIcon(icon)
             tool_bar.addAction(action)
 
-            painter= PainterType(announces, api)
-            action.triggered.connect(Bind(self.activePainter, painter))
+            self.painters[text] = PainterType(announces, api)
+            action.triggered.connect(Bind(self.activePainter, text))
 
-    def activePainter(self, painter, is_triggered):
-        self.announces['selectPainter'](painter)
+    def playSteps(self, steps):
+        if self.current_painter is None:  # 设置默认 Painter
+            self.activePainter(top(self.painters))
+        self.current_painter.refresh()
+
+    def activePainter(self, text, is_triggered=None):
+        if self.current_painter is not None:
+            self.current_painter.putDown()
+
+        self.current_painter = self.painters.get(text)
+
+        if self.current_painter is not None:
+            self.current_painter.pickUp()
 
 
 # ======================================================================================================================
@@ -141,31 +155,6 @@ class PainterPlugin(MainWindowPlugin):
 #         self.widget(index).refresh()  # TODO 不要直接调用 refresh
 
 
-# ======================================================================================================================
-# from PyQt5.QtWidgets import QDockWidget
-# from gui.NameInfoWidget import NameInfoWidget
-# from gui.LogWidget import LogWidget
-
-
-# class DocksPlugin(MainWindowPlugin):
-#     DOCKS= (
-#         ('Name表', Qt.BottomDockWidgetArea, NameInfoWidget),
-#         # ('实时视图', Qt.BottomDockWidgetArea, RealTimeViewBox),
-#         # ('日志', Qt.BottomDockWidgetArea, LogWidget),
-#     )
-#
-#     def __init__(self, main_window, announces, api):
-#         super().__init__(main_window, announces, api)
-#         self.widgets = []
-#         for text, area, DockType in self.DOCKS:
-#             widget= DockType(main_window)
-#             widget.install(announces, api)
-#             self.widgets.append(widget)
-#
-#             dock= QDockWidget(text, self.parent())
-#             dock.setWidget(widget)
-#             main_window.addDockWidget(area, dock)
-
 
 # ======================================================================================================================
 from gui.NodeDialog import NodeDialog
@@ -175,53 +164,54 @@ from gui.EdgeDialog import EdgeDialog
 class InfoDialogPlugin(MainWindowPlugin):
     def __init__(self, main_window, announces, api):
         super().__init__(main_window, announces, api)
-        self.node_dialog_table= {}  # { node_id:dialog, ... } 记录打开着的 NodeDialog
-        self.edge_dialog_table= {}  # { (src_id, dst_id):dialog, ... } 记录打开着的 EdgeDialog
+        self.node_dialog_table = {}  # { node_id:dialog, ... } 记录打开着的 NodeDialog
+        self.edge_dialog_table = {}  # { edge_id:dialog, ... } 记录打开着的 EdgeDialog
 
-        self.announces['NodeDoubleClick'].append(self.showNodeDialog)
-        self.announces['NodeDialogClose'].append(self.closeNodeDialog)
-        self.announces['EdgeDoubleClick'].append(self.showEdgeDialog)
-        self.announces['EdgeDialogClose'].append(self.closeEdgeDialog)
+        self.announces['doubleClickNode'].append(self.showNodeDialog)
+        self.announces['closeNodeDialog'].append(self.closeNodeDialog)
+        self.announces['doubleClickEdge'].append(self.showEdgeDialog)
+        self.announces['closeEdgeDialog'].append(self.closeEdgeDialog)
 
     def showNodeDialog(self, node_id):
-        dialog= self.node_dialog_table.get(node_id)
+        dialog = self.node_dialog_table.get(node_id)
         if dialog is None:
-            dialog= NodeDialog(self.parent(), self.announces, self.api, node_id)
-            self.node_dialog_table[node_id]= dialog
+            dialog = NodeDialog(self.parent(), self.announces, self.api, node_id)
+            self.node_dialog_table[node_id] = dialog
         dialog.show()
 
     def closeNodeDialog(self, node_id):
         del self.node_dialog_table[node_id]
+        self.announces['playSteps'](0)
 
-    def showEdgeDialog(self, src_id, dst_id):
-        dialog= self.edge_dialog_table.get( (src_id, dst_id,) )
+    def showEdgeDialog(self, edge_id):
+        dialog = self.edge_dialog_table.get(edge_id)
         if dialog is None:
-            dialog= EdgeDialog(self.parent(), self.announces, self.api, src_id, dst_id)
-            self.edge_dialog_table[ (src_id, dst_id,) ]= dialog
+            dialog = EdgeDialog(self.parent(), self.announces, self.api, edge_id)
+            self.edge_dialog_table[edge_id] = dialog
         dialog.show()
 
-    def closeEdgeDialog(self, src_id, dst_id):
-        del self.edge_dialog_table[ (src_id, dst_id,) ]
+    def closeEdgeDialog(self, edge_id):
+        del self.edge_dialog_table[edge_id]
+        self.announces['playSteps'](0)
 
 
 # ======================================================================================================================
 from gui.NameInfoWidget import NameInfoWidget
-from PyQt5.QtWidgets import QDockWidget
 
 
 class NameInfoPlugin(MainWindowPlugin):
     def __init__(self, main_window, announces, api):
         super().__init__(main_window, announces, api)
-        name_info_widget= NameInfoWidget(main_window, announces, api)
+        name_info_widget = NameInfoWidget(main_window, announces, api)
         dock = QDockWidget('NameInfo表', main_window)
         dock.setWidget(name_info_widget)
         main_window.addDockWidget(Qt.BottomDockWidgetArea, dock)
 
-        self.lable= QLabel(f'selected_name: "{Name()}"')
+        self.lable = QLabel(f'selected_name: ""')
         main_window.statusBar().addPermanentWidget(self.lable)  # addWidget 或者 addPermanentWidget
-        announces['selectedName'].append(self.selectedName)
+        announces['selectedName'].append(self._selectedName)
 
-    def selectedName(self, name):
+    def _selectedName(self, name):
         self.lable.setText(f'selected_name: "{name}"')
 
 
@@ -232,14 +222,96 @@ from gui.LogWidget import LogWidget
 class LogPlugin(MainWindowPlugin):
     def __init__(self, main_window, announces, api):
         super().__init__(main_window, announces, api)
-        log_widget= LogWidget(main_window, announces, api)
+        log_widget = LogWidget(main_window, announces, api)
         dock = QDockWidget('Log表', main_window)
         dock.setWidget(log_widget)
         main_window.addDockWidget(Qt.BottomDockWidgetArea, dock)
 
-        self.lable= QLabel(f'log_query_msg: Done')
+        self.lable = QLabel(f'log_query_msg: Done')
         main_window.statusBar().addWidget(self.lable)  # 或者 addPermanentWidget
         announces['logQueryMessage'].append(self.logQueryMessage)
 
     def logQueryMessage(self, msg):
         self.lable.setText(f'log_query_msg: {msg}')
+
+
+# ======================================================================================================================
+class LayoutPlugin(MainWindowPlugin):
+    def __init__(self, main_window, announces, api):
+        super().__init__(main_window, announces, api)
+        self.topology_ratio = QRadioButton('拓扑布局', main_window)
+        self.physical_ratio = QRadioButton('物理布局', main_window)
+
+        self.group_box = QButtonGroup(main_window)
+        self.group_box.addButton(self.topology_ratio)
+        self.group_box.addButton(self.physical_ratio)
+        self.group_box.buttonClicked.connect(self.buttonClickedSlot)
+
+        tool_bar = QToolBar(main_window)
+        tool_bar.setWindowTitle('位置工具栏')
+        tool_bar.addWidget(self.topology_ratio)
+        tool_bar.addWidget(self.physical_ratio)
+        main_window.addToolBar(Qt.TopToolBarArea, tool_bar)
+
+        self.topology_layout = None
+        self.last_clicked_ratio = None
+        self.pixmap = QPixmap(BACKGROUND_MAP_IMAGE)
+        announces['playSteps'].append(self.playSteps)
+        announces['moveNode'].append(self.moveNode)
+
+    def playSteps(self, steps):
+        if self.group_box.checkedButton() is None:  # 设置默认模式
+            self.topology_layout = self._getTopologyLayout()
+            self.topology_ratio.click()
+
+    def buttonClickedSlot(self, ratio):
+        # 多次点击能实现位置再计算
+        if (ratio is self.topology_ratio) and (ratio is self.last_clicked_ratio):
+            self.topology_layout = self._getTopologyLayout()
+
+        self.api['Scene.setBackgroundPixmap'](self.getBackgroundPixmap())
+        self.api['Scene.setLayout'](self.getLayout())
+
+        self.last_clicked_ratio = ratio
+
+    def moveNode(self, node_id, pos):
+        if self.group_box.checkedButton() is self.topology_ratio:
+            self.topology_layout[node_id] = pos  # 拓扑图模式下修改缓存的位置信息
+        elif self.group_box.checkedButton() is self.physical_ratio:
+            icn_node = self.api['Sim.getNode'](node_id)
+            icn_node.pos = pos  # 物理图模式下修改节点实际位置
+            self.announces['playSteps'](0)
+        else:  # 没有模式被设置
+            pass
+
+    # -------------------------------------------------------------------------
+    def getLayout(self):
+        if self.group_box.checkedButton() is self.topology_ratio:
+            return self.topology_layout
+        elif self.group_box.checkedButton() is self.physical_ratio:
+            return self._getPhysicalLayout()
+        else:  # 没有模式被设置
+            pass
+
+    def getBackgroundPixmap(self):
+        if self.group_box.checkedButton() is self.topology_ratio:
+            return None
+        elif self.group_box.checkedButton() is self.physical_ratio:
+            return self.pixmap
+        else:  # 没有模式被设置
+            pass
+
+    # -------------------------------------------------------------------------
+    def _getPhysicalLayout(self) -> dict:
+        graph = self.api['Sim.graph']()
+        layout = {}
+        for node_id in graph:
+            icn_node = self.api['Sim.getNode'](node_id)
+            layout[node_id] = icn_node.pos
+        return layout
+
+    def _getTopologyLayout(self) -> dict:
+        graph = self.api['Sim.graph']()
+        layout = networkx.spring_layout(graph, scale=POS_SCALE, iterations=50)
+        # FIXME spring_layout 中, 利用已有pos迭代, 会出现扭曲 pos= self.topology_layout
+        return layout

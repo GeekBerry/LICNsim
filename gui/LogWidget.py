@@ -20,12 +20,12 @@ class QueryParser(SymbolTable):
         self['Expre'] = self['Time'], Ends, ['+', '-'], Ends, Int  # 只接受时间的加减形式
         Var = self['Expre'] | self['Time'] | Str | Int
         self['InEntry'] = Field, Ends, 'in', Ends, Tuple
-        self['EqEntry'] = Field, Ends, '==', Ends, Var
-        self['CmpEntry'] = sym(Var, Ends, ['<=', '<'], name='LeftCmp') * (0, 1), \
+        self['EqEntry'] = Field, Ends, '=', Ends, Var
+        self['CmpEntry'] = sym(Var, Ends, ['<=', '<'], name='LeftCmp')*(0,1), \
                            Ends, Field, Ends, \
-                           sym(['<=', '<'], Ends, Var, name='RightCmp') * (0, 1)
+                           sym(['<=', '<'], Ends, Var, name='RightCmp')*(0,1)
         Entry = self['EqEntry'] | self['CmpEntry'] | self['InEntry']
-        self['Start'] = sym(Ends, Entry, Ends, sym(',') | None)*(0,...)
+        self['Start'] = sym(Ends, Entry, Ends, [',',None])*(0,...)
 
     def Time(self, match):
         return 'clock.time()'
@@ -53,7 +53,6 @@ class LogWidget(QWidget):
     MAX_SHOW_RECORD_NUM= 100
 
     def __init__(self, parent, announces, api):
-        self.ui.table.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
         self.ui.button.pressed.connect(self.refresh)
         self.ui.edit.editingFinished.connect(self.refresh)
         self.ui.check.stateChanged.connect(self.playSteps)
@@ -66,15 +65,12 @@ class LogWidget(QWidget):
 
         self.__last_query_key = None  # (time, query_str)
 
-    def playSteps(self, *args):
+    def playSteps(self, steps):
         if self.ui.check.checkState():
             self.refresh()
 
     def refresh(self):
-        text = self.ui.edit.text()  # TODO 加一个文本解释器
-        if self.__last_query_key == (clock.time(), text):
-            return  # 检查查询时间和条件，避免重复查询
-
+        text = self.ui.edit.text()
         query_str = self._parser(text)
         if query_str is None:
             return None
@@ -114,5 +110,5 @@ class LogWidget(QWidget):
             records= tops(records, self.MAX_SHOW_RECORD_NUM)  # 先生成列表，才能统计长度
             self.ui.table.setRowCount(len(records))
             for row, record in enumerate(records):
-                self.ui.table.setRow(row, *record.values())
+                self.ui.table.setRow(  row, *map( str, record.values() )  )
 

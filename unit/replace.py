@@ -52,8 +52,8 @@ if __name__ == '__main__':
     unit= ReplaceUnit('FIFO')
 
     from core import Packet, Name
-    p1 = Packet(Name.fromStr('A/1'), 1, Packet.DATA)
-    p2 = Packet(Name.fromStr('A/2'), 1, Packet.DATA)
+    p1 = Packet(Name('A/1'), 1, Packet.DATA)
+    p2 = Packet(Name('A/2'), 1, Packet.DATA)
 
     unit.store(p1)
     clock.step()

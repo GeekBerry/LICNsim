@@ -2,7 +2,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 from gui.MainWindow import MainWindow
-from gui.Plugins import PlayerPlugin, PainterPlugin, InfoDialogPlugin, NameInfoPlugin, LogPlugin
+from gui.Plugins import PlayerPlugin, PainterPlugin, InfoDialogPlugin, NameInfoPlugin, LogPlugin, LayoutPlugin
 from module import MoudleBase
 
 
@@ -15,10 +15,11 @@ class GUIModule(MoudleBase):
         sim.show= self.show  # XXX 是否是奇技淫巧
 
         self.main_window= MainWindow(None, sim.announces, sim.api)
+        self.main_window.addPlugin('PainterPlugin', PainterPlugin)
+        self.main_window.addPlugin('LayoutPlugin', LayoutPlugin)
+        self.main_window.addPlugin('PlayerPlugin', PlayerPlugin)
         self.main_window.addPlugin('NameInfoPlugin', NameInfoPlugin)
         self.main_window.addPlugin('LogPlugin', LogPlugin)
-        self.main_window.addPlugin('PainterPlugin', PainterPlugin)
-        self.main_window.addPlugin('PlayerPlugin', PlayerPlugin)
         self.main_window.addPlugin('InfoDialogPlugin', InfoDialogPlugin)
         self.main_window.show()
 
