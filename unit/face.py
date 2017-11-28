@@ -1,22 +1,24 @@
 from collections import defaultdict
-from core import TimeDictDecorator, clock, Bind, Unit
+from core import TimeSet, clock, Bind, Unit
 
 
 class FaceUnit(Unit):
     class LoopChecker:
         def __init__(self, nonce_life_time):
-            self.info_set = TimeDictDecorator({}, nonce_life_time)  # 当做set来用
+            self.info_set = TimeSet(nonce_life_time)
 
         def isLoop(self, packet):
             info_tuple= (packet.name, packet.type, packet.nonce)
             if info_tuple not in self.info_set:
-                self.info_set.setdefault( info_tuple )
+                self.info_set.add( info_tuple )
                 return False
             else:
                 return True
 
     class RepeatChecker:
         def __init__(self):
+            # XXX 此处不能用 self.info_set= TimeSet(1) 是因为 TimeSet 不能保证在时间片的一开始进行删除检查
+            # XXX 而 RepeatChecker 要求时间一变化, 则立刻清除info_set数据
             self.info_set= set()
             self.record_time= None
 

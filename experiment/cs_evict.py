@@ -1,48 +1,10 @@
 import numpy
-from core import Timer, Bind, Unit
-
-#
-# class CSEvictUnit(Unit):
-#     CONST, FIFO, LRU= 0, 1, 2
-#
-#     def __init__(self, life_time, mode):
-#         self.table= {}  # {Name:Timer, ...}
-#         self.life_time= life_time
-#         self.setMode(mode)
-#
-#     def install(self, announces, api):
-#         super().install(announces, api)
-#         announces['csStore'].append(self.store)
-#         announces['csEvict'].append(self.evict)
-#         announces['csHit'].append(self.hit)
-#         api['Evict.setMode']= self.setMode
-#         self.csDiscard= api['CS.discard']
-#
-#     def setMode(self, mode):
-#         if mode == 'CONST':
-#             self.mode= self.CONST
-#         elif mode == 'FIFO':
-#             self.mode = self.FIFO
-#         elif mode == 'LRU':
-#             self.mode = self.LRU
-#         else:
-#             raise ValueError(f'未知模式{mode}')
-#
-#     def store(self, packet):
-#         timer= self.table.setdefault(  packet.name, Timer( Bind(self.csDiscard, packet.name) )  )
-#         if self.mode != self.CONST:
-#             timer.timing(self.life_time)
-#
-#     def hit(self, packet):
-#         assert packet.name in self.table
-#         if self.mode == self.LRU:
-#             self.table[packet.name].timing(self.life_time)
-#
-#     def evict(self, packet):
-#         del self.table[packet.name]
-
+from core import Timer, Unit
 
 class CSEvictUnit(Unit):
+    """
+    用于监听和实现CSUnit自动驱逐功能，用于虚拟一个包在节点中被替换的工作
+    """
     def __init__(self, life_time, mode):
         self.table= {}  # {Name:Timer, ...}
         self.life_time= life_time
@@ -61,12 +23,12 @@ class CSEvictUnit(Unit):
         self.mode= mode
 
     def store(self, packet):
-        timer= self.table.setdefault(  packet.name, Timer( Bind(self.csDiscard, packet.name) )  )
+        timer= self.table.setdefault( packet.name, Timer(self.csDiscard, packet.name) )
 
         if self.mode in ('FIFO', 'LRU'):
             timer.timing(self.life_time)
         elif self.mode == 'GEOMETRIC':
-            life_time= numpy.random.geometric( 1/self.life_time )  # 几何分布
+            life_time= numpy.random.geometric(1/self.life_time)  # 几何分布
             timer.timing(life_time)
 
     def hit(self, packet):

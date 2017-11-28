@@ -32,7 +32,7 @@ class ExampleNode(NodeBase):
         super().__init__(node_id)
 
         self.install('cs', ContentStore())
-        self.install('replace', ReplaceUnit('FIFO'))
+        self.install('replace', ReplaceUnit())
         self.install('face', FaceUnit())
         self.install('app', ExampleAppUnit())
         self.install('info', InfoUnit())  # 必须安装在ForwardUnit前, info先行处理inPack信号

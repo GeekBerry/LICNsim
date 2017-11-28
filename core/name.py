@@ -298,24 +298,6 @@ class NameTable:
             if pre_node.hasValue():
                 yield pre_node.name()
 
-    # def forebearNames(self, name) -> iter:
-    #     name_node = self.name_tree.longest(name)
-    #     for pre_node in name_node.forebears():
-    #         if pre_node.hasValue():
-    #             yield pre_node.name()
-    #
-    # def forebearValues(self, name) -> iter:
-    #     name_node = self.name_tree.longest(name)
-    #     for pre_node in name_node.forebears():
-    #         if pre_node.hasValue():
-    #             yield pre_node.getValue()
-    #
-    # def forebearItems(self, name) -> iter:
-    #     name_node = self.name_tree.longest(name)
-    #     for pre_node in name_node.forebears():
-    #         if pre_node.hasValue():
-    #             yield pre_node.name(), pre_node.getValue()
-
     def descendant(self, name) -> iter:  # 有效子孙生成器 (先根序)
         name_node = self.name_tree.get(name)
         if name_node is not None:
@@ -324,33 +306,6 @@ class NameTable:
                     yield pre_node.name()
         else:
             raise StopIteration
-
-    # def descendantNames(self, name) -> iter:
-    #     name_node = self.name_tree.get(name)
-    #     if name_node is not None:
-    #         for pre_node in name_node.descendants():
-    #             if pre_node.hasValue():
-    #                 yield pre_node.name()
-    #     else:
-    #         raise StopIteration
-    #
-    # def descendantValues(self, name) -> iter:
-    #     name_node = self.name_tree.get(name)
-    #     if name_node is not None:
-    #         for pre_node in name_node.descendants():
-    #             if pre_node.hasValue():
-    #                 yield pre_node.getValue()
-    #     else:
-    #         raise StopIteration
-    #
-    # def descendantItems(self, name)->iter:
-    #     name_node= self.name_tree.get(name)
-    #     if name_node is not None:
-    #         for pre_node in name_node.descendants():
-    #             if pre_node.hasValue():
-    #                 yield  pre_node.name(), pre_node.getValue()
-    #     else:
-    #         raise StopIteration
 
     def __repr__(self):
         return str(dict(self.items()))

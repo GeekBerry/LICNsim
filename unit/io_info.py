@@ -4,7 +4,7 @@ from core import Packet, Unit
 
 class InfoUnit(Unit):
     def __init__(self):
-        self.pit= defaultdict(set)  # {name:set(face_id), ...}
+        self.pit= defaultdict(set)  # {name:set(face_id,...), ...}
 
     def install(self, announces, api):
         super().install(announces, api)

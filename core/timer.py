@@ -73,8 +73,10 @@ clock= Clock()  # 全局变量
 
 
 class Timer:
-    def __init__(self, func):
+    def __init__(self, func, *args):
         self.func= func
+        self.args= args
+
         self.handle= Handle()
         self.__exe_time= None
 
@@ -87,7 +89,7 @@ class Timer:
 
     def timing(self, delay):
         self.handle.clear()
-        self.handle= clock.timing(delay, self.func)
+        self.handle= clock.timing(delay, self.func, *self.args)
         self.__exe_time= clock.time() + delay
 
     def cancel(self):

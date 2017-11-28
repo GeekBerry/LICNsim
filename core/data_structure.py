@@ -31,6 +31,7 @@ class Bind:
 
 import traceback
 
+
 class CallTable(dict):
     @staticmethod
     def printUnboundWarring(*args, **kwargs):
@@ -51,27 +52,8 @@ class CallTable(dict):
 # if __name__ == '__main__':
 #     t= CallTable()
 #     p= t['1']
-#     t['1']= head
+#     t['1']= print
 #     p(1,2,3)  # 打印:1 2 3
-
-
-# if __name__ == '__main__':
-#     t= CallTable()
-#
-#     def dec(func):
-#         def inner(*args):
-#             head('Start')
-#             ret= func(*args)
-#             head('End')
-#             return ret
-#         return inner
-#
-#     f= t['1']
-#     t['1']= head
-#     f('A')
-#
-#     t['1']= dec(t['1'].func)
-#     f('B')
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -144,12 +126,12 @@ class AnnounceTable(dict):  # 带 Log Debug 版
 # if __name__ == '__main__':
 #     Point= tupleClass('x', 'y')
 #     p= Point(0.1, 0.2)
-#     head(p.x, p.y)
-#     head(p)
+#     print(p.x, p.y)
+#     print(p)
 
 
 # ======================================================================================================================
-def decorator(Type):  # 对象装饰器  FIXME 测试, 用例
+def decorator(Type):  # 对象装饰器
     class Decorator:
         def __init__(self, inner):
             super().__setattr__('_inner', inner)
@@ -160,7 +142,7 @@ def decorator(Type):  # 对象装饰器  FIXME 测试, 用例
             exec(f'''
 def {method_name}(self, *args, **kwargs):
     return self._inner.__class__.{method_name}(self._inner, *args, **kwargs)
-''')  # XXX 利用 __class__ 来调用, 是实现嵌套中, 将部分处理交由上层而不会造成递归的关键; 见(BaseDictDecorator)
+''')  # 注意：利用 __class__ 来调用, 是实现嵌套中, 将部分处理交由上层而不会造成递归的关键
 
         def __getattr__(self, item):
             return getattr(self._inner, item)
@@ -173,185 +155,19 @@ def {method_name}(self, *args, **kwargs):
 # if __name__ == '__main__':
 #     class D( decorator(dict) ):
 #         def __setitem__(self, key, value):
-#             head('D.setitem', key, value)
+#             print('D.setitem', key, value)
 #             super().__setitem__(key, value)
 #
 #     table= {1:100, 2:200}
 #     decortor= D(table)
 #
-#     head(isinstance(decortor, dict))  # False
+#     print( isinstance(decortor, dict) )  # False
 #
-#     decortor[3]= 300  # head: D.setitem 3 300
-#     head(table) # {1: 100, 2: 200, 3: 300} 注意table被修改了
+#     decortor[3]= 300  # 打印: D.setitem 3 300
+#     print(table)  # {1: 100, 2: 200, 3: 300} 注意table被修改了
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-class BaseDictDecorator(decorator(dict)):
-    def __init__(self, table):
-        super().__init__(table)
-
-        assert hasattr(table, '__setitem__') and hasattr(table, '__getitem__') and hasattr(table, '__delitem__')
-        try:  # 链接处理链
-            table.__delitem__ = self.__delitem__  # 内部可能会引起状态变化的量, 交由外部处理
-            table.__setitem__ = self.__setitem__  # 内部可能会引起状态变化的量, 交由外部处理
-            table.__getitem__ = self.__getitem__  # 内部可能会引起状态变化的量, 交由外部处理
-        except AttributeError:
-            pass
-
-    # 约定 get(item) 函数不会引起状态变化
-
-    def setdefault(self, key, default=None):  # 利用链接过的函数实现, 减少状态可变子类的函数重载量
-        try:
-            return self.__getitem__(key)
-        except KeyError:
-            self.__setitem__(key, default)
-            return default
-
-    def pop(self, key):  # 利用链接过的函数实现, 减少状态可变子类的函数重载量
-        value= self.__getitem__(key)
-        self.__delitem__(key)
-        return value
-
-    # 一些不用的, 但会引起 dict 变化的重载
-    def update(self): raise NotImplementedError
-
-    def popitem(self): raise NotImplementedError
-
-
-class SizeDictDecorator(BaseDictDecorator):
-    size_evict_call_back= EMPTY_FUNC
-
-    def __init__(self, table, max_size, set_trigger= True, get_trigger= False):
-        super().__init__(table)
-        self.max_size= max_size
-        self.set_trigger= set_trigger
-        self.get_trigger= get_trigger
-
-        self.key_queue= deque(self.keys())  # deque(key1, ...)  排在前面的先删除
-        self.limit()
-
-    def setMaxSize(self, value):
-        self.max_size= value
-
-    def setSizeEvictCallback(self, func):
-        self.size_evict_call_back= func
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        if key not in self.key_queue:
-            self.key_queue.append(key)
-            self.limit()
-        elif self.set_trigger:  # move to end
-            self.key_queue.remove(key)
-            self.key_queue.append(key)
-
-    def __getitem__(self, key):
-        value= super().__getitem__(key)
-        if self.get_trigger:  # move to end
-            self.key_queue.remove(key)
-            self.key_queue.append(key)
-        return value
-
-    def __delitem__(self, key):
-        super().__delitem__(key)
-        self.key_queue.remove(key)
-
-    def limit(self):
-        while len(self) > self.max_size:
-            key= top(self.key_queue)
-            self.size_evict_call_back(key)
-            self.__delitem__(key)
-
-
-# if __name__ == '__main__':
-#     d = {1: 100, 2:200, 3:300}
-#
-#     t1= SizeDictDecorator(d, 2)
-#     t1.delete_call_back= lambda *args: head('evict', *args)
-#
-#     head(d)  # {2: 200, 3: 300}
-#
-#     t1[4]= 400  # evict 2 200
-#     head(d)  # {3: 300, 4: 400}
-#
-#     del t1[3]  # evict 3 300
-#     head(d)  # {4: 400}
-
-
-class TimeDictDecorator(BaseDictDecorator):
-    time_evict_call_back= EMPTY_FUNC
-
-    def __init__(self, table, life_time, set_trigger= True, get_trigger= False):
-        super().__init__(table)
-        self.life_time= life_time
-        self.set_trigger= set_trigger
-        self.get_trigger= get_trigger
-
-        self.timer= Timer(self.flush)
-        self.info= dict.fromkeys( table.keys(), clock.time() )  # XXX 在 python 3.6 及中, dict是有序的
-        self.timer.timing(self.life_time)
-
-    def setLifeTime(self, value):
-        self.life_time= value
-
-    def setTimeEvictCallback(self, func):
-        self.time_evict_call_back= func
-
-    def __getitem__(self, key):
-        value= super().__getitem__(key)
-        if self.get_trigger:
-            del self.info[key]  # XXX 在 python 3.6 及中, dict是有序的
-            self.info[key]= clock.time() + self.life_time
-        return value
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        if key not in self.info:
-            self.info[key]= clock.time() + self.life_time
-        elif self.set_trigger:
-            del self.info[key]  # XXX 在 python 3.6 及中, dict是有序的
-            self.info[key]= clock.time() + self.life_time
-
-        if not self.timer:
-            self.timer.timing(self.life_time)
-
-    def __delitem__(self, key):
-        super().__delitem__(key)
-        del self.info[key]
-
-    def flush(self):
-        cur_time= clock.time()
-
-        del_keys= []
-        for key, dead_time in self.info.items():
-            if dead_time <= cur_time:
-                del_keys.append(key)
-            else:
-                # self.timer.timing(self.life_time)     # 方案1: 条目最大生存时长而 2*self.life_time-1
-                self.timer.timing(dead_time - cur_time)  # 方案2: 删除更及时, 操作更频繁
-                break
-
-        for key in del_keys:
-            self.time_evict_call_back(key)
-            self.__delitem__(key)
-
-
-if __name__ == '__main__':
-    d = {1: 100, 2:200, 3:300}
-
-    t1= TimeDictDecorator(d, 2)
-    print(d)  # {1: 100, 2: 200, 3: 300}
-
-    clock.step()
-    clock.step()
-    p= t1[3]
-    print(d)  # {1: 100, 2: 200, 3: 300}
-
-    clock.step()
-    print(d)  # {3: 300}
-
-
-class DefaultDictDecorator(BaseDictDecorator):
+class DefaultDictDecorator( decorator(dict) ):
     def __init__(self, table, default_factory):
         super().__init__(table)
         self.default_factory= default_factory
@@ -365,42 +181,53 @@ class DefaultDictDecorator(BaseDictDecorator):
             return default
 
 
-# if __name__ == '__main__':
-#     t= {}
-#     t1= DefaultDictDecorator(t, int)
-#
-#     head(t1['A'])  # 0
-#     head(t)  # {'A': 0}
+class TimeSet:
+    def __init__(self, life_time):
+        self.table= {}  # {key:del_time, ...}
+        self.life_time= life_time
+
+    def __contains__(self, item):
+        return item in self.table
+
+    def add(self, var):
+        self.table[var]= clock.time()
+        clock.timing(self.life_time, self.checkDel, var)
+
+    def discard(self, var):
+        try:
+            del self.table[var]
+        except KeyError:
+            pass
+
+    def checkDel(self, var):
+        add_time= self.table.get(var)
+        if (add_time is not None) and ( add_time+self.life_time <= clock.time() ):
+            del self.table[var]
+
+    def __str__(self):
+        return str(self.table)
+
 
 # if __name__ == '__main__':
-#     d = {1: 100, 2:200, 3:300}
-#     t1= SizeDictDecorator(d, 2)
-#     t2= TimeDictDecorator(t1, 2)
+#     tset = TimeSet(2)
 #
-#     head(clock.time(), d, t1.key_queue, t2.info)  # 0 {2: 200, 3: 300} deque([2, 3]) {2: 0, 3: 0}
-#
+#     tset.add(1)
 #     clock.step()
-#     p= t2[3]
-#     head(clock.time(), d, t1.key_queue, t2.info)  # 1 {2: 200, 3: 300} deque([2, 3]) {2: 0, 3: 3}
 #
+#     tset.add(2)
 #     clock.step()
-#     t2[4]= 400
-#     head(clock.time(), d, t1.key_queue, t2.info)  # 2 {3: 300, 4: 400} deque([3, 4]) {3: 3, 4: 4}
+#
+#     print(tset)  # {1: 0, 2: 1}
+#     tset.add(1)
 #
 #     clock.step()
-#     t2[4]= 4000
-#     head(clock.time(), d, t1.key_queue, t2.info)  # 3 {3: 300, 4: 4000} deque([3, 4]) {3: 3, 4: 5}
+#     print(tset)  # {1:2, 2:1}
 #
 #     clock.step()
-#     clock.step()
-#     head(clock.time(), d, t1.key_queue, t2.info)  # 5 {4: 4000} deque([4]) {4: 5}
+#     print(tset)  # {1:2}
 #
 #     clock.step()
-#     head(clock.time(), d, t1.key_queue, t2.info)  # 6 {} deque([]) {}
-#
-#     clock.step()
-#     t2[1]= 1000
-#     head(clock.time(), d, t1.key_queue, t2.info)  # 7 {1: 1000} deque([1]) {1: 9}
+#     print(tset)  # {}
 
 
 # ---------------------  专用数据结构定义  ----------------------------

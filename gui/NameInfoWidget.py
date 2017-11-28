@@ -6,7 +6,7 @@ from module.name_monitor import NameMonitor
 from debug import showCall
 
 
-class NameInfoWidget(TreeWidget):  # 配合着 NameMonitor 使用
+class NameInfoWidget(TreeWidget):
     def __init__(self, parent, announces, api):
         super().__init__(parent)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑

@@ -15,7 +15,12 @@ class LCPContentStore(ContentStore):
 
 
 class LCDContentStore(ContentStore):
-    def match(self, packet):  # TODO 多项匹配, 条件匹配
+    """
+    Leave Copy Down 实现思路
+    在数据包被 match 时,为数据包添加'store'域;
+    在数据包被储存时如果有'store', 说明数据包第一次被储存, 删除'store'标记后储存,否则不予储存
+    """
+    def match(self, packet):
         data = super().match(packet)
         if data is not None:
             setattr(data, 'store', True)

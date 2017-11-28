@@ -66,7 +66,7 @@ class Simulator:
         :param ChannelFactory:
         :return: {old_node_id: new_node_id, ...}
         """
-        id_map = {}  # {graph.node_id: icn_node}
+        id_map = {}  # {old_id: icn_node}
         # 添加节点
         for old_id in graph.nodes():
             icn_node = self.addNode(NodeFactory)
