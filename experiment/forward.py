@@ -1,9 +1,13 @@
-from unit import ForwardUnit
+from unit import ForwardUnitBase
 
 
-class StoreTrackForwardUnit(ForwardUnit):
+class StoreTrackForwardUnit(ForwardUnitBase):
     def install(self, announces, api):
         super().install(announces, api)
+        self.getPendIds= self.api['Info.getPendIds']
+        self.sends = self.api['Face.sends']
+        self.matchCS= self.api['CS.match']
+        self.storeCS= self.api['CS.store']
 
     def inInterest(self, face_id, packet):
         data = self.matchCS(packet)
@@ -17,5 +21,12 @@ class StoreTrackForwardUnit(ForwardUnit):
                 self.sends([next_id], packet)
             else:
                 self.announces['askMiss'](packet)
-                pass # FIXME path 无效, 或者为空
+                pass # XXX path 无效, 或者为空
 
+    def inData(self, face_id, data):
+        # 所有数据包一律储存
+        self.storeCS(data)  # 必须先调用 storeCS 以便对数据进行处理
+        # 向 pending 接口发送回应
+        pend_ids = self.getPendIds(data)
+        pend_ids.discard(face_id)
+        self.sends(pend_ids, data)

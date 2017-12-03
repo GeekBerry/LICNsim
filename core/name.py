@@ -8,14 +8,6 @@ class Name(tuple):
         else:
             return tuple.__new__(cls, map(str, iterable))
 
-    # @classmethod
-    # def fromArgs(cls, *args):
-    #     return Name(args)
-
-    # @classmethod
-    # def fromStr(cls, string):
-    #     return Name(string.split('/'))
-
     def matchLength(self, other)->int:
         """
         找出共同前缀长度
@@ -36,8 +28,11 @@ class Name(tuple):
     def __str__(self):
         return '/'.join(map(str, self))
 
+    def __repr__(self):
+        return f"Name('{self}')"
 
-if __name__ == '__main__':
+
+if __name__ == '__main__' and 0:
     name1= Name('A/1')
     name2= Name('A/1')
     print(name1.isPrefix(name2), name2.isPrefix(name1))  # True True
@@ -58,12 +53,12 @@ if __name__ == '__main__':
 
 # ----------------------------------------------------------------------------------------------------------------------
 class NameTree:
-    _value_count = 0  # 记录一个 NameTree 节点及所有子节点中, 有效节点数量; 在 'value' 增删时会更新
-
     def __init__(self, parent=None, key=None):
         self._parent = parent
         self.__key = key  # 自己在父节点中的键值
         self._children = dict()
+        self._value_count = 0  # 记录一个 NameTree 节点及所有子节点中, 有效节点数量; 在 'value' 增删时会更新
+        # self.value 在setValue时添加, 被delValue时删除
 
     def __iter__(self):
         return iter(self._children.values())
@@ -144,27 +139,16 @@ class NameTree:
                 each._value_count += 1
         setattr(self, 'value', value)
 
-    def setDefaultValue(self, default=None):
-        if not self.hasValue():
-            self.setValue(default)
-        return self.getValue()
-
-    def getDefaultValue(self, default=None):
-        if self.hasValue():
-            return self.getValue()
-        else:
-            return default
-
     def getValue(self):
         return getattr(self, 'value')
 
-    def delValue(self):
+    def delValue(self):  # 删除一个节点是, 会检查前面value_count为0的节点, 把整个空枝剪下
         delattr(self, 'value')
 
-        cut_node = None
+        cut_node = None  # 标记最前一个 value_count 为 0 的祖先节点
         for each in self.forebears():  # 注: forebears 包含自身
             each._value_count -= 1
-            if each._value_count == 0:  # 找到最前一个 value_count 为 0 的祖先
+            if each._value_count == 0:
                 cut_node = each
 
         if cut_node is not None:
@@ -172,50 +156,10 @@ class NameTree:
             cut_node.clear()
 
     # -------------------------------------------------------------------------
-    def print(self, deep=0):  # DEBUG
+    def print(self, deep=0):  # XXX for DEBUG
         print('\t' * deep, f'{repr(self.key)}:{self.__dict__}')
         for each in self._children.values():
             each.print(deep + 1)
-
-    # def __repr__(self):
-    #     if self.hasValue():
-    #         return f'{self.name()}:{self.value}'
-    #     else:
-    #         return str(self.name())
-
-
-# if __name__ == '__main__':
-#     nt= NameTree()
-#     nt.access( Name('A/a/1') )
-#     nt.access( Name('A/a/2') )
-#     nt.access( Name('A/b') )
-#
-#     p= list( nt.descendants() )
-#     print(p)
-
-# if __name__ == '__main__':
-#     nt= NameTree()
-#
-#     nt.access(Name('A/a/1'))
-#     nt.access(Name(['A','a',2]))
-#     nt.print()
-#
-#     print('--------------------------------')
-#     p= nt.get(Name('A/a'))
-#     print(p, p.name())  # <__main__.NameTree object at 0x000002A32ABE2978> A/a
-#
-#     p= nt.get(Name('A/a/3'))
-#     print(p)  # None
-#
-#     p= nt.longest(Name('A/a/3'))
-#     print(p, p.name())  # <__main__.NameTree object at 0x0000027F9CBF2978> A/a
-#
-#     # print('--------------------------------')
-#     # for each in nt:
-#     #     print(each, f'"{each.name()}"')
-#
-#     nt.discard( Name('A/a') )
-#     nt.print()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -224,18 +168,22 @@ class NameTable:
     依靠 NameTree.hasValue() 判断节点有效性
     """
 
-    def __init__(self):
-        self.name_tree = NameTree()
+    def __init__(self, default_factory=None):
+        self.root = NameTree()
+        self._default_factory= default_factory
 
     def __contains__(self, name):
-        node = self.name_tree.get(name)
+        node = self.root.get(name)
         return (node is not None) and node.hasValue()
 
     def __len__(self):
-        return self.name_tree.valueCount()
+        return self.root.valueCount()
+
+    def __iter__(self):
+        return self.keys()
 
     def keys(self):
-        for node in self.name_tree.descendants():
+        for node in self.root.descendants():
             if node.hasValue():
                 yield node.name()
 
@@ -249,17 +197,23 @@ class NameTable:
 
     # -------------------------------------------------------------------------
     def __getitem__(self, name):
-        node = self.name_tree.get(name)
-        try:
+        if self._default_factory is None:  # 没有默认值函数
+            node = self.root.get(name)
+            if node and node.hasValue():
+                return node.getValue()
+            else:
+                raise KeyError(name)
+        else:  # 有默认值函数
+            node = self.root.access(name)
+            if not node.hasValue():
+                node.setValue( self._default_factory() )
             return node.getValue()
-        except AttributeError:
-            raise KeyError(name)
 
     def __setitem__(self, name, value):
-        self.name_tree.access(name).setValue(value)
+        self.root.access(name).setValue(value)
 
     def __delitem__(self, name):
-        node = self.name_tree.get(name)
+        node = self.root.get(name)
         try:
             node.delValue()
         except AttributeError:
@@ -273,8 +227,10 @@ class NameTable:
             return default
 
     def setdefault(self, name, default=None):
-        node = self.name_tree.access(name)
-        return node.setDefaultValue(default)
+        node = self.root.access(name)
+        if not node.hasValue():
+            node.setValue(default)
+        return node.getValue()
 
     def discard(self, name):
         try:
@@ -292,14 +248,14 @@ class NameTable:
             return value
 
     # -------------------------------------------------------------------------
-    def forebear(self, name) -> iter:  # 有效祖先生成器
-        name_node = self.name_tree.longest(name)
+    def forebear(self, name) -> iter:  # 有效祖先(含自己)生成器
+        name_node = self.root.longest(name)
         for pre_node in name_node.forebears():
             if pre_node.hasValue():
                 yield pre_node.name()
 
-    def descendant(self, name) -> iter:  # 有效子孙生成器 (先根序)
-        name_node = self.name_tree.get(name)
+    def descendant(self, name) -> iter:  # 有效子孙(含自己)生成器 (先根序)
+        name_node = self.root.get(name)
         if name_node is not None:
             for pre_node in name_node.descendants():
                 if pre_node.hasValue():
@@ -310,49 +266,21 @@ class NameTable:
     def __repr__(self):
         return str(dict(self.items()))
 
-# if __name__ == '__main__':
-#     t= NameTable()
-#
-#     t[('A',1)]= 1
-#     p= t.descendantValues( ('A',) )
-#     print( list(p) )
 
+if __name__ == '__main__':
+    table= NameTable()
 
-# if __name__ == '__main__':
-#     t= NameTable()
-#
-#     t[ ('A',) ]= 1
-#     t[ Name('A/1') ]= 10
-#     t[ Name('A/1') ]= 10
-#     print(t)  # {Name('A'): 1, Name('A/1'): 10}
-#     t.name_tree.print()
-#     """
-#      None:{'_parent': None, '_NameTree__key': None, '_children': {'A': 'A'}, 'value_count': 2}
-#          'A':{'_parent': None, '_NameTree__key': 'A', '_children': {'1': '1'}, 'value': 1, 'value_count': 2}
-#              '1':{'_parent': 'A', '_NameTree__key': '1', '_children': {}, 'value': 10, 'value_count': 1}
-#     """
-#
-#     a= t.get( Name('A/2') )
-#     print(a)  # None
-#     t.name_tree.print()
-#     """
-#      None:{'_parent': None, '_NameTree__key': None, '_children': {'A': 'A'}, 'value_count': 2}
-#          'A':{'_parent': None, '_NameTree__key': 'A', '_children': {'1': '1'}, 'value': 1, 'value_count': 2}
-#              '1':{'_parent': 'A', '_NameTree__key': '1', '_children': {}, 'value': 10, 'value_count': 1}
-#     """
-#
-#     print(   list(  t.forebears( Name('A/1') )  )   )  # [10, 1]
-#     print(   list(  t.descendants( Name('A/1') )  )   )  # [10]
-#
-#     del t[ Name(['A']) ]
-#     print(t)  # {Name('A/1'): 10}
-#     t.name_tree.print()
-#     """
-#      None:{'_parent': None, '_NameTree__key': None, '_children': {'A': 'A'}, 'value_count': 1}
-#          'A':{'_parent': None, '_NameTree__key': 'A', '_children': {'1': '1'}, 'value_count': 1}
-#              '1':{'_parent': 'A', '_NameTree__key': '1', '_children': {}, 'value': 10, 'value_count': 1}
-#     """
-#
-#     del t[ Name('A/1') ]
-#     print(t)  # {}
-#     t.name_tree.print()  # None:{'_parent': None, '_NameTree__key': None, '_children': {}, 'value_count': 0}
+    table[Name('A')] = None
+    table[Name('A/a/1')] = None
+    table[Name('A/a/2')] = None
+    table[Name('B')] = None
+    print(table)  # {Name('A'): None, Name('A/a/1'): None, Name('A/a/2'): None, Name('B'): None}
+
+    p= list(  table.descendant( Name('A') )  )
+    print(p)  # [Name('A'), Name('A/a/1'), Name('A/a/2')]
+
+    p= list(  table.descendant( Name() )  )
+    print(p)  # [Name('A'), Name('A/a/1'), Name('A/a/2'), Name('B')]
+
+    del table[Name('A')]
+    print(table)  # {Name('A/a/1'): None, Name('A/a/2'): None, Name('B'): None}

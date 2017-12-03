@@ -59,6 +59,8 @@ class AskMoudle(MoudleBase):
         num = self.num_asker()
         node_ids= self.pos_asker(num)
         for node_id in node_ids:
-            self.sim.getNode(node_id).ask( self.packet.fission() )
+            self.sim.node(node_id).ask( self.packet.fission() )
 
         self.timer.timing(self.delta)
+
+

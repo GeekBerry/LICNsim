@@ -1,5 +1,5 @@
-from module import MoudleBase
 from algorithm.graph_algo import graphNearestPath
+from module import MoudleBase
 
 
 class StoreTrackMoudle(MoudleBase):
@@ -11,7 +11,7 @@ class StoreTrackMoudle(MoudleBase):
         self.node_set= set()
 
     def setup(self, sim):
-        super().setup(sim)
+        self.graph= sim.graph
         sim.loadNodeAnnounce('csStore', self.store)
         sim.loadNodeAnnounce('csEvict', self.evict)
         sim.setNodeAPI('getStorePath', self.getStorePath)
@@ -28,12 +28,7 @@ class StoreTrackMoudle(MoudleBase):
         self.node_set.discard(node_id)
 
     def getStorePath(self, node_id):
-        return graphNearestPath(self.sim.graph, node_id, self.node_set)
-
-
-
-
-
+        return graphNearestPath(self.graph, node_id, self.node_set)
 
 
 

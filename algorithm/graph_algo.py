@@ -4,28 +4,28 @@ import numpy
 from PyQt5.QtCore import QPointF
 
 
-class FixedAsk:
-    def __init__(self, lam):
-        self.lam = lam
-
-    def __call__(self, t):
-        return self.lam
-
-
-class PossionAsk:
-    def __init__(self, lam):
-        self.lam = lam
-
-    def __call__(self, t):
-        return numpy.random.poisson(self.lam)
-
-
-class ExponentAsk:
-    def __init__(self, lam):
-        self.lam = lam
-
-    def __call__(self, t):
-        return 1 if random.random() < numpy.exp(-t * self.lam) else 0
+# class FixedAsk:
+#     def __init__(self, lam):
+#         self.lam = lam
+#
+#     def __call__(self, t):
+#         return self.lam
+#
+#
+# class PossionAsk:
+#     def __init__(self, lam):
+#         self.lam = lam
+#
+#     def __call__(self, t):
+#         return numpy.random.poisson(self.lam)
+#
+#
+# class ExponentAsk:
+#     def __init__(self, lam):
+#         self.lam = lam
+#
+#     def __call__(self, t):
+#         return 1 if random.random() < numpy.exp(-t * self.lam) else 0
 
 
 # =======================================================================================================================
@@ -46,7 +46,7 @@ def graphNearestPath(graph, center, content_nodes):
     :param graph:networkx.DiGraph
     :param center:nodename
     :param content_nodes:set(nodename, ...)
-    :return:[nodename, ...] OR None
+    :return:[nodename, ...] or None
 
     graph:
       3--4--6
@@ -69,7 +69,7 @@ def graphNearestPath(graph, center, content_nodes):
             if tie_node in content_nodes:  # 该路径末尾节点在目标集合中
                 return path
 
-            for node in graph.neighbors(tie_node):
+            for node in graph[tie_node]:
                 if (node not in current) and (node not in inter):
                     outer.add(node)
                     next_paths.append(path + [node])
@@ -78,6 +78,19 @@ def graphNearestPath(graph, center, content_nodes):
         inter, current = current, outer
 
     return None
+
+
+if __name__ == '__main__':
+    graph= {1:{2,3}, 2:{1,4}, 3:{1,4}, 4:{2,3,5,6}, 5:{4}, 6:{4}}
+    path= graphNearestPath(graph, 1, {5, 6})
+    print(path)  # [1, 2, 4, 5]
+
+    path = graphNearestPath(graph, 1, {1})
+    print(path)  # [1]
+
+    path = graphNearestPath(graph, 1, {})
+    print(path)  # None
+
 
 
 def graphNodeAvgDistance(graph, center) -> float:
@@ -92,7 +105,7 @@ def graphApproximateDiameter(graph, sample_num=10):  # 得到graph近似直径
     nodes = random.sample(graph.nodes(), sample_num)  # sample_num: 取样测试偏心率的点数量 如果sample_num>len(graph), 会出现个采样错误
     ecce_dict = networkx.eccentricity(graph, nodes)  # 计算测试点偏心率
     avg_ecce = numpy.mean(list(ecce_dict.values()))
-    return int(avg_ecce * 1.5)  # 近似直径 FIXME 圆面网络是3/2==1.5 但是得出的值总会偏大
+    return int(avg_ecce * 1.5)  # 近似直径 XXX 圆面网络是3/2==1.5 但是得出的值总会偏大
 
 
 # def graphNearest(graph, center, stores):

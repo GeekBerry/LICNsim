@@ -1,5 +1,3 @@
-from PyQt5.QtWidgets import QWidget
-
 from core import INF, Packet
 from gui import *
 
@@ -22,39 +20,61 @@ class Controller(QWidget):
             else:
                 tree_widget[key].setValues(value)
 
+    @showCall
     def refresh(self):
         for widget in self.pair_dict.values():
-            if widget.isVisible():
+            if widget.isVisible() and hasattr(widget, 'refresh'):  # 可见, 且是 BindWidget
                 widget.refresh()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 class NodeController(Controller):
+    class ForwardController(Controller):
+        def __init__(self, parent, forward_unit):
+            super().__init__(parent)
+            self.forward_unit= forward_unit
+
+            self.pair_dict['capacity'] = BindSpinBox(self, forward_unit.bucket, 'capacity', (0, INF))
+            self.pair_dict['size'] = BindLabel(self, forward_unit.bucket, 'size')
+
+            self.pair_dict['rate'] = BindSpinBox(self, forward_unit.bucket, 'rate', (0, INF))
+            # self.pair_dict['rest'] = BindLabel(self, forward_unit.bucket, 'rest')
+
+            self.pair_dict['queue'] = BindTable(self, ('FaceId', 'Packet'), self.getBucketRows )
+
+        def getBucketRows(self):
+            return list(self.forward_unit.bucket)
+            # return [ (face_id, packet) for (face_id, packet) in self.forward_unit]
+
     class ContentStoreController(Controller):
         def __init__(self, parent, cs_unit):
             super().__init__(parent)
-            if hasattr(cs_unit, 'capacity'):
-                self.pair_dict['capacity'] = BindSpinBox(self, (0, 10000), cs_unit, 'capacity',)
+            self.cs_unit = cs_unit
 
-            if hasattr(cs_unit, 'size'):
-                self.pair_dict['size'] = BindLabel(self, cs_unit, 'size')
+            self.pair_dict['capacity'] = BindSpinBox(self, cs_unit, 'capacity', (0, INF))
+            self.pair_dict['size'] = BindLabel(self, cs_unit, 'size')
+            self.pair_dict['table'] = BindTable(self, Packet.HEAD_FIELDS, self.getCSTableRows)
 
-            if hasattr(cs_unit, 'table'):
-                self.pair_dict['table'] = BindTable(self, Packet.HEAD_FIELDS,
-                                                    map(Packet.head, cs_unit.table.values()), )
+        def getCSTableRows(self):
+            return [packet.head() for packet in self.cs_unit.table.values()]
+
+    class EvictController(Controller):
+        @showCall
+        def __init__(self, parent, evict_unit):
+            super().__init__(parent)
+            self.pair_dict['mode'] = BindComboBox(self, evict_unit, 'mode', evict_unit.MODE_TYPES)
+            self.pair_dict['life_time'] = BindSpinBox(self, evict_unit, 'life_time', (0, INF))
 
     class ReplaceController(Controller):
         def __init__(self, parent, replace_unit):
             super().__init__(parent)
-            if hasattr(replace_unit, 'mode'):
-                self.pair_dict['mode'] = BindComboBox(self, replace_unit, 'mode', ('FIFO', 'LRU', 'LFU'))
+            self.replace_unit= replace_unit
 
-            if hasattr(replace_unit, 'db_table'):
-                # assert isinstance(replace_unit.db_table, DataBaseTable)
-                self.pair_dict['table'] = BindTable(self,
-                                                    replace_unit.db_table.getFields(),
-                                                    map(lambda record: record.values(), replace_unit.db_table.query())
-                                                    )
+            self.pair_dict['mode'] = BindComboBox(self, replace_unit, 'mode', replace_unit.MODE_FIELD_MAP.keys())
+            self.pair_dict['table'] = BindTable(self, replace_unit.db_table.getFields(), self.getReplaceTableRows)
+
+        def getReplaceTableRows(self):
+            return [record.values() for record in self.replace_unit.db_table.query()]
 
     class FaceController(Controller):
         class EntryController(Controller):
@@ -68,34 +88,44 @@ class NodeController(Controller):
             for face_id, entry in face_unit.table.items():
                 self.pair_dict[face_id] = self.EntryController(self, entry)
 
+    @showCall
     def __init__(self, parent, icn_node):
         super().__init__(parent)
+        self.pair_dict['node type'] = QLabel(icn_node.__class__.__name__)
 
-        self.pair_dict['node type']= QLabel(icn_node.__class__.__name__)
-        for key, unit in icn_node.units.items():
-            if key == 'cs':  # XXX 依照什么进行类型判断？ key 还是 unit 的类型
-                self.pair_dict[key] = self.ContentStoreController(self, unit)
+        # XXX 以什么作unit判断依据? key 还是 unit 的类型?
+        unit = icn_node.units.get('forward')
+        if unit is not None:
+            self.pair_dict['ForwardUnit'] = self.ForwardController(self, unit)
 
-            if key == 'replace':
-                self.pair_dict[key] = self.ReplaceController(self, unit)
+        unit = icn_node.units.get('cs')
+        if unit is not None:
+            self.pair_dict['ContentStoreUnit'] = self.ContentStoreController(self, unit)
 
-            if key == 'face':
-                self.pair_dict[key] = self.FaceController(self, unit)
+        unit = icn_node.units.get('evict')
+        if unit is not None:
+            self.pair_dict['CSEvictUnit'] = self.EvictController(self, unit)
+
+        unit = icn_node.units.get('replace')
+        if unit is not None:
+            self.pair_dict['ReplaceUnit'] = self.ReplaceController(self, unit)
+
+        unit = icn_node.units.get('face')
+        if unit is not None:
+            self.pair_dict['FaceUnit'] = self.FaceController(self, unit)
 
 
 # ======================================================================================================================
 class EdgeController(Controller):
-    def __init__(self, parent, channel):
+    def __init__(self, parent, icn_edge):
         super().__init__(parent)
+        self.icn_edge = icn_edge
 
-        if hasattr(channel, 'rate'):
-            self.pair_dict['rate'] = BindSpinBox(self, (0, INF), channel, 'rate')
+        self.pair_dict['rate'] = BindSpinBox(self, icn_edge, 'rate', (0, INF))
+        self.pair_dict['delay'] = BindSpinBox(self, icn_edge, 'delay', (0, INF))
+        self.pair_dict['loss'] = BindDoubleSpinBox(self, icn_edge, 'loss', (0.0, 1.0))
+        self.pair_dict['queue'] = BindTable(self, Packet.HEAD_FIELDS, self.getQueueRows)
 
-        if hasattr(channel, 'delay'):
-            self.pair_dict['delay'] = BindSpinBox(self, (0, INF), channel, 'delay')
+    def getQueueRows(self):
+        return [packet.head() for packet in self.icn_edge.queue() ]
 
-        if hasattr(channel, 'loss'):
-            self.pair_dict['loss'] = BindDoubleSpinBox(self, (0.0, 1.0), channel, 'loss')
-
-        if hasattr(channel, 'queue'):
-            self.pair_dict['queue'] = BindTable(self, Packet.HEAD_FIELDS, map(Packet.head, channel.queue))

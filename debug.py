@@ -1,13 +1,18 @@
 from core import Packet, Name
 ip_A = Packet(Name('A'), Packet.INTEREST, 1)
+ip_A1 = Packet(Name('A/1'), Packet.INTEREST, 1)
 dp_A = Packet(Name('A'), Packet.DATA, 500)
 dp_A1 = Packet(Name('A/1'), Packet.DATA, 500)
 
 # ======================================================================================================================
 from core import INF
 from unit.channel import Channel
-def OneStepChannel(src_id, dst_id):
-    return Channel(src_id, dst_id, rate=INF, delay=1, loss=0)
+
+def PerfectChannel():
+    return Channel(rate=INF, delay=0, loss=0)
+
+def OneStepChannel():
+    return Channel(rate=INF, delay=1, loss=0)
 
 
 # ======================================================================================================================

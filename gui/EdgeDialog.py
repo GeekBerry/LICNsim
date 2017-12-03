@@ -16,7 +16,7 @@ class EdgeDialog(QDialog):
         self.setWindowTitle(f'Edge{edge_id}')
         self.ui.tree.setHeads('Attr', 'Detail')
 
-        icn_edge= api['Sim.getEdge'](edge_id)
+        icn_edge= api['Sim.edge'](edge_id)
         self.edge_ctrl= EdgeController(self, icn_edge)
         self.edge_ctrl.setTree(self.ui.tree)
 

@@ -60,8 +60,8 @@ class LogWidget(QWidget):
         self.announces= announces
         self.api= api
         announces['playSteps'].append(self.playSteps)
-        self.head_fields= api['DBMoudle.getFields']
-        self.db_query = api['DBMoudle.query']
+        self.head_fields= api['LogMoudle.getFields']
+        self.db_query = api['LogMoudle.query']
 
         self.__last_query_key = None  # (time, query_str)
 

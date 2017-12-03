@@ -4,7 +4,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPixmap
 
 from config import *
-from core import threshold, normalizeINF, strPercent, Name
+from core import threshold, normalizeINF, strPercent, Name, clock
+from unit.node import ClientNodeBase, RouterNodeBase, ServerNodeBase
 from gui import HotColor, DeepColor
 from debug import showCall
 
@@ -55,12 +56,13 @@ class Painter:
 
 # ======================================================================================================================
 class PropertyPainter(Painter):
+    background_color = QColor(240, 240, 240)
+
     def __init__(self, announces, api):
         super().__init__(announces, api)
-        self.back_ground_color = QColor(240, 240, 240)
 
     def renderNode(self, node_id) -> dict:
-        icn_node = self.api['Sim.getNode'](node_id)
+        icn_node = self.api['Sim.node'](node_id)
         assert icn_node is not None
 
         size= 0.5
@@ -75,11 +77,18 @@ class PropertyPainter(Painter):
             x, y= icn_node.pos
             text += f'位置({round(x, 2)}, {round(y, 2)})\n'
 
-        # TODO 根据 icn_node 类型决定图标
-        pixmap= QPixmap(ROUTE_NDOE_IMAGE)
+        # 根据 icn_node 类型决定图标
+        if isinstance(icn_node, ClientNodeBase):
+            shape = QPixmap(CLIENT_NDOE_IMAGE)
+        elif isinstance(icn_node, RouterNodeBase):
+            shape = QPixmap(ROUTE_NDOE_IMAGE)
+        elif isinstance(icn_node, ServerNodeBase):
+            shape = QPixmap(SERVER_NDOE_IMAGE)
+        else:
+            shape = 'Pie'
 
         return {
-            'shape': pixmap,
+            'shape': shape,
             'color': Qt.white,
             'size': size,
             'text': text,
@@ -87,7 +96,7 @@ class PropertyPainter(Painter):
         }
 
     def renderEdge(self, edge_id):
-        icn_edge = self.api['Sim.getEdge'](edge_id)
+        icn_edge = self.api['Sim.edge'](edge_id)
         assert icn_edge is not None  # DEBUG
 
         color = HotColor(threshold(0.0, icn_edge.delay / 100, 1.0))
@@ -107,7 +116,7 @@ class PropertyPainter(Painter):
 
 # ======================================================================================================================
 class NameStorePainter(Painter):
-    background_color = QColor(255, 240, 240)
+    background_color = QColor(255, 220, 220)
     name_table= None
 
     EMPTY_COLOR = Qt.lightGray
@@ -130,7 +139,7 @@ class NameStorePainter(Painter):
 
     def refresh(self):
         self.name_table = self.api['NameMonitor.table']()
-        if self.name_table is not None:  # 没有安装 NameMonitor ？？？
+        if self.name_table is not None:
             self.prepareColor()
             super().refresh()
         # else 没有安装 NameMonitor ？？？  TODO raise something
@@ -179,7 +188,7 @@ class NameStorePainter(Painter):
 # ======================================================================================================================
 class HitRatioPainter(Painter):
     node_table= None
-    background_color = QColor(240, 255, 240)
+    background_color = QColor(220, 255, 220)
 
     def refresh(self):
         self.node_table = self.api['NodeMonitor.table']()
@@ -189,7 +198,7 @@ class HitRatioPainter(Painter):
 
     def renderNode(self, node_id) -> dict:
         record = self.node_table[node_id]
-        ratio = record.hit_ratio
+        ratio = record.hitRatio()
         color = HotColor(ratio)
         text = f'命中率: {strPercent(ratio)}'
 
@@ -202,4 +211,44 @@ class HitRatioPainter(Painter):
         }
 
 
+# ======================================================================================================================
+class OccupyPainter(Painter):
+    background_color = QColor(220, 220, 255)
 
+    def refresh(self):
+        self.node_table = self.api['NodeMonitor.table']()
+        self.edge_table = self.api['EdgeMonitor.table']()
+        if (self.node_table is not None) and (self.edge_table is not None):
+            super().refresh()
+        # else 没有安装 NodeMonitor 或 EdgeMonitor ？？？ TODO raise something
+
+    def renderNode(self, node_id) -> dict:
+        record = self.node_table[node_id]
+        occupy = record.forwardOccupy()
+
+        if occupy > 1.0 or occupy < 0:
+            print(node_id, occupy)
+
+        color = HotColor(occupy)
+        text = f'占用率: {strPercent(occupy)}'
+
+        return {
+            'shape': 'Rect',
+            'color': color,
+            'size': 0.5,
+            'text': text,
+            'show_text': True
+        }
+
+    def renderEdge(self, edge_id) -> dict:
+        record= self.edge_table[edge_id]
+        occupy = record.sendOccupy()
+        color = HotColor(occupy)
+        text = f'占用率: {strPercent(occupy)}'
+        return {
+            'color': color,
+            'width': 0.5,
+            'show_arrow': True,
+            'text': text,
+            'show_text': False
+        }

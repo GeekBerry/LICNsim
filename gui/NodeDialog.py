@@ -16,7 +16,7 @@ class NodeDialog(QDialog):
         self.setWindowTitle(f'Node({self.node_id})')
         self.ui.tree.setHeads('Attr', 'Detail')
 
-        icn_node= api['Sim.getNode'](self.node_id)
+        icn_node= api['Sim.node'](self.node_id)
         self.node_ctrl= NodeController(self, icn_node)
         self.node_ctrl.setTree(self.ui.tree)
 

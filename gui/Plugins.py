@@ -82,7 +82,7 @@ class PlayerPlugin(MainWindowPlugin):
 
 
 # ======================================================================================================================
-from gui.Painters import PropertyPainter, NameStorePainter, HitRatioPainter
+from gui.Painters import PropertyPainter, NameStorePainter, HitRatioPainter, OccupyPainter
 
 
 class PainterPlugin(MainWindowPlugin):
@@ -90,6 +90,7 @@ class PainterPlugin(MainWindowPlugin):
         ('性能图', PROPERTY_ACTION_IMAGE, PropertyPainter),
         ('缓存图', STORE_ACTION_IMAGE, NameStorePainter),
         ('命中率图', HIT_ACTION_IMAGE, HitRatioPainter),
+        ('占用率图', OCCUPY_ACTION_IMAGE, OccupyPainter)
     )
 
     def __init__(self, main_window, announces, api):
@@ -126,34 +127,6 @@ class PainterPlugin(MainWindowPlugin):
 
         if self.current_painter is not None:
             self.current_painter.pickUp()
-
-
-# ======================================================================================================================
-# from gui.RealTimeView import FlowRTV
-#
-# REAL_TIME_VIEW_INFOS = [
-#     {
-#         'type': FlowRTV,
-#         'title': '传输量曲线',
-#     },
-# ]
-#
-#
-# class RealTimeViewBox(QToolBox):
-#     def __init__(self, parent):
-#         super().__init__(parent)
-#         self.currentChanged.connect(self._currentChangedSlot)
-#
-#         for info in REAL_TIME_VIEW_INFOS:
-#             self.addItem(info['type'](self), info['title'])
-#
-#     def install(self, announces, api):
-#         for index in range(0, self.count()):
-#             self.widget(index).install(announces, api)
-#
-#     def _currentChangedSlot(self, index):
-#         self.widget(index).refresh()  # TODO 不要直接调用 refresh
-
 
 
 # ======================================================================================================================
@@ -278,7 +251,7 @@ class LayoutPlugin(MainWindowPlugin):
         if self.group_box.checkedButton() is self.topology_ratio:
             self.topology_layout[node_id] = pos  # 拓扑图模式下修改缓存的位置信息
         elif self.group_box.checkedButton() is self.physical_ratio:
-            icn_node = self.api['Sim.getNode'](node_id)
+            icn_node = self.api['Sim.node'](node_id)
             icn_node.pos = pos  # 物理图模式下修改节点实际位置
             self.announces['playSteps'](0)
         else:  # 没有模式被设置
@@ -306,12 +279,12 @@ class LayoutPlugin(MainWindowPlugin):
         graph = self.api['Sim.graph']()
         layout = {}
         for node_id in graph:
-            icn_node = self.api['Sim.getNode'](node_id)
-            layout[node_id] = icn_node.pos
+            icn_node = self.api['Sim.node'](node_id)
+            layout[node_id] = getattr(icn_node, 'pos', (0,0))
         return layout
 
     def _getTopologyLayout(self) -> dict:
         graph = self.api['Sim.graph']()
-        layout = networkx.spring_layout(graph, scale=POS_SCALE, iterations=50)
+        layout = networkx.spring_layout(graph, scale=500, iterations=50)  # scale 单位pix
         # FIXME spring_layout 中, 利用已有pos迭代, 会出现扭曲 pos= self.topology_layout
         return layout

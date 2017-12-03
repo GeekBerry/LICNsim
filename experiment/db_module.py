@@ -7,7 +7,7 @@ class DBMoudle(MoudleBase):
         self.db_table = DataBaseTable().create('name', 'time',
                                                store_num=0, evict_num=0,
                                                ask_num=0, respond_num=0,
-                                               dist_count=0, ask_hit=0,
+                                               dist_count=0,
                                                send_i_num=0, send_d_num=0,
                                                )
 
@@ -42,12 +42,12 @@ class DBMoudle(MoudleBase):
         record = self.db_table[packet.name, clock.time()]
         record['respond_num'] += 1
 
-    def send(self, src_id, dst_id, packet):
+    def send(self, edge_id, packet):
         record = self.db_table[packet.name, clock.time()]
 
-        if packet.type == Packet.INTEREST:
+        if packet.type is Packet.INTEREST:
             record['send_i_num'] += 1
-        elif packet.type == Packet.DATA:
+        elif packet.type is Packet.DATA:
             record['send_d_num'] += 1
         else:
             pass

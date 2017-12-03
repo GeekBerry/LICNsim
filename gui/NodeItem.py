@@ -2,12 +2,17 @@ from PyQt5.QtCore import QRectF, Qt, QPointF
 from PyQt5.QtGui import QPainterPath, QPixmap
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem
 
-from core import CallTable, threshold
+from core import threshold, EMPTY_FUNC
 from debug import showCall
 
 
 class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
     MIN_SIZE, MAX_SIZE = 20, 80
+
+    press_callback= EMPTY_FUNC
+    release_callback= EMPTY_FUNC
+    double_click_callback= EMPTY_FUNC
+    move_callback= EMPTY_FUNC
 
     def __init__(self, node_id):
         super().__init__()
@@ -24,7 +29,7 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
         self.cached_size = None
         self.bounding_rect = QRectF()  # XXX 在重绘时会被更新，重绘前可能会节点可能会被覆盖显示
 
-        self.call_backs = CallTable()
+        # self.call_backs = CallTable()
         self.text_item = QGraphicsSimpleTextItem(self)
         self.text_item.setZValue(3)
 
@@ -83,19 +88,19 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionHasChanged:
             self.style['pos']= self.pos()  # 更新位置变化
-            self.call_backs['ItemPositionHasChanged'](self.node_id)
+            self.move_callback(self.node_id)
         return super().itemChange(change, value)
 
     def mousePressEvent(self, event):
-        self.call_backs['mousePressEvent'](self.node_id)
+        self.press_callback(self.node_id)
         return super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        self.call_backs['mouseReleaseEvent'](self.node_id)
+        self.release_callback(self.node_id)
         return super().mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event):
-        self.call_backs['mouseDoubleClickEvent'](self.node_id)
+        self.double_click_callback(self.node_id)
         return super().mouseDoubleClickEvent(event)
 
     def hoverEnterEvent(self, event):

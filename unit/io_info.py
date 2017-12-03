@@ -10,18 +10,23 @@ class InfoUnit(Unit):
         super().install(announces, api)
         announces['inPacket'].append(self.inPacket)
         announces['outPacket'].append(self.outPacket)
-
         self.api['Info.getPendIds']= self.getPindIds
 
+    def uninstall(self, announces, api):
+        del api['Info.getPendIds']
+        announces['outPacket'].discard(self.outPacket)
+        announces['inPacket'].discard(self.inPacket)
+        super().uninstall(announces, api)
+
     def inPacket(self, face_id, packet):
-        if packet.type == Packet.INTEREST:
+        if packet.type is Packet.INTEREST:
             self.pit[packet.name].add(face_id)
 
     def outPacket(self, face_id, packet):
-        if packet.type == Packet.DATA:
+        if packet.type is Packet.DATA:
             self.pit[packet.name].discard(face_id)
 
-    def getPindIds(self, packet):
+    def getPindIds(self, packet)->set:
         # 必须新构造set, 以免Forwarder查表过程中对表进行操作，出现 RuntimeError"Set changed size during iteration"
         return set( self.pit[packet.name] )
 

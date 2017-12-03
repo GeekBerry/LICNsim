@@ -27,8 +27,8 @@ class NameInfoWidget(TreeWidget):
             return  # 没有安装 NameMonitor ？？？
 
         self.setHeads('Name', 'PendNum', 'StoreNum', 'TransINum', 'TransDNum')
-        # self.clearSelection()
-        self.showNameTree(self, name_table.name_tree)
+        # self.clearSelection() XXX 是否需要清空
+        self.showNameTree(self, name_table.root)
 
     def showNameTree(self, tree_item, name_tree):
         for name_node in name_tree:

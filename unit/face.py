@@ -62,14 +62,14 @@ class FaceUnit(Unit):
     # -------------------------------------------------------------------------
     def setInChannel(self, face_id, channel):
         entry= self.table[face_id]
-        assert entry.in_channel is None
+        assert entry.in_channel is None  # 不允许重复设置
         entry.receivable= True
         entry.in_channel= channel
         entry.in_channel.receiver = Bind(self.receive, face_id)
 
     def setOutChannel(self, face_id, channel):
         entry= self.table[face_id]
-        assert entry.out_channel is None
+        assert entry.out_channel is None  # 不允许重复设置
         entry.sendable = True
         entry.out_channel= channel
 

@@ -47,7 +47,7 @@ def strPercent(value):
 
 
 def normalizeINF(value):
-    return 1 - math.exp( -7e-4 * value )  # FIXME
+    return 1 - math.exp( -7e-4 * value )
 
 
 # -----------------------------------------------------------

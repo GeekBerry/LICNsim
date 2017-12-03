@@ -26,17 +26,21 @@ class ContentStore(Unit):
         api['CS.discard'] = self.discard
         self.replace_iter = api['Replace.replaceIter']
 
-    def store(self, packet):
+    def store(self, data):
         """
-        :param packet: 数据包
+        :param data: 数据包
         :return:
         """
-        assert packet.size <= self._capacity
-        if packet.name not in self.table:
-            self.limit(self._capacity - packet.size)  # 腾出足够空间
-            self.insert(packet)  # 插入
-        else:  # 重复
-            pass
+
+        if data.size > self._capacity:
+            return False  # 包过大, 不能插入
+
+        if data.name in self.table:
+            return False  # 重名包, 不再插入或覆盖  TODO 交给用户选择覆盖还是丢弃
+
+        self.limit(self._capacity - data.size)  # 腾出足够空间
+        data= data.fission()  # XXX 是否需要构造一个新的包
+        self.insert(data)  # 插入
 
     def match(self, packet):  # TODO 多项匹配, 条件匹配
         """
@@ -45,7 +49,7 @@ class ContentStore(Unit):
         """
         data = self.table.get(packet.name)  # 完全匹配法
         if data is not None:
-            data = Packet.fission(data)  # 构造一个新的包
+            # data = data.fission()  XXX 是否需要构造一个新的包
             self.announces['csHit'](data)
             return data
         else:

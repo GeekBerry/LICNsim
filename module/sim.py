@@ -1,5 +1,5 @@
-import itertools
 import networkx
+from core import CallTable, AnnounceTable
 
 
 class Simulator:
@@ -7,132 +7,74 @@ class Simulator:
 
     def __init__(self):
         self.graph = networkx.DiGraph()
-        self.node_id_iter = itertools.count(start=0, step=1)
         self.modules= {}
+        self.api= CallTable()
+        self.announces= AnnounceTable()
+
+        self.api['Sim.graph']= lambda: self.graph
+        self.api['Sim.node']= self.node
+        self.api['Sim.edge'] = self.edge
+        self.api['Sim.nodes']= self.nodes
+        self.api['Sim.edges']= self.edges
 
     def install(self, module_key, module):
         module.setup(self)
         self.modules[module_key]= module
 
     # -------------------------------------------------------------------------
-    def getNode(self, node_id):
-        assert node_id in self.graph
+    def node(self, node_id):
         return self.graph.node[node_id][self.ICN_FIELD]
 
-    def getEdge(self, edge_id):
+    def edge(self, edge_id):
         src_id, dst_id= edge_id
         return self.graph[src_id][dst_id][self.ICN_FIELD]
 
     def nodes(self):
-        return iter(self.graph)
+        return self.graph.nodes()
 
     def edges(self):
         return self.graph.edges()
 
     # -------------------------------------------------------------------------
-    def addNode(self, NodeFactory):
-        node_id = next(self.node_id_iter)
+    def addICNNode(self, node_id, icn_node):
         assert node_id not in self.graph
         self.graph.add_node(node_id)
-
-        icn_node= NodeFactory(node_id)
         self.graph.node[node_id][self.ICN_FIELD] = icn_node
-        return icn_node
+        self.announces['addICNNode'](node_id)
 
-    def addEdge(self, src_node, dst_node, ChannelFactory):
-        """
-        :param src_node: ICNNode
-        :param dst_node: ICNNode
-        :param ChannelFactory:
-        :return: Channel
-        """
-        channel = ChannelFactory(src_node.node_id, dst_node.node_id)
+    def addICNEdge(self, src_id, dst_id, icn_edge):
+        assert (src_id,dst_id) not in self.edges()
 
-        self.graph.add_edge(src_node.node_id, dst_node.node_id)
-        self.graph[src_node.node_id][dst_node.node_id][self.ICN_FIELD] = channel
+        self.graph.add_edge(src_id, dst_id)
+        self.graph[src_id][dst_id][self.ICN_FIELD] = icn_edge
 
-        src_node.setOutChannel(dst_node.node_id, channel)
-        dst_node.setInChannel(src_node.node_id, channel)
-        return channel
+        self.node(src_id).api['Face.setOutChannel'](dst_id, icn_edge)
+        self.node(dst_id).api['Face.setInChannel'](src_id, icn_edge)
 
-    def addBiEdge(self, src_node, dst_node, ChannelFactory):
-        self.addEdge(src_node, dst_node, ChannelFactory)
-        self.addEdge(dst_node, src_node, ChannelFactory)
-
-    def addGraph(self, graph, NodeFactory, ChannelFactory)->dict:
-        """
-        :param graph: nexworkx.Graph
-        :param NodeFactory:
-        :param ChannelFactory:
-        :return: {old_node_id: new_node_id, ...}
-        """
-        id_map = {}  # {old_id: icn_node}
-        # 添加节点
-        for old_id in graph.nodes():
-            icn_node = self.addNode(NodeFactory)
-            id_map[old_id] = icn_node
-        # 添加边
-        for src_id, dst_id in graph.edges():
-            self.addEdge(id_map[src_id], id_map[dst_id], ChannelFactory)
-            self.addEdge(id_map[dst_id], id_map[src_id], ChannelFactory)
-        return id_map
-
-
-from core import Bind, CallTable, AnnounceTable
-from collections import defaultdict
-
-
-class SuperSimulator(Simulator):
-    def __init__(self):
-        super().__init__()
-        self.api= CallTable()
-        self.announces= AnnounceTable()
-
-        self.api['Sim.graph']= lambda: self.graph
-        self.api['Sim.nodes']= self.nodes
-        self.api['Sim.edges']= self.edges
-        self.api['Sim.getNode']= self.getNode
-        self.api['Sim.getEdge'] = self.getEdge
-
-        self.node_anno= defaultdict(set)  # {anno_name:{func,...}, ...}
-        self.edge_anno= defaultdict(set)  # {anno_name:{func,...}, ...}
-        self.node_api= defaultdict(set)  # {api_name:[func,...], ...}
-
-    def loadNodeAnnounce(self, anno_name, func):
-        self.node_anno[anno_name].add(func)
-        # XXX 是否要加载现有节点？
-        # for node_id in self.nodes():
-        #     node= self.getNode(node_id)
-        #     node.announces[anno_name].append(Bind(func, node_id))
-
-    def loadEdgeAnnounce(self, anno_name, func):
-        self.edge_anno[anno_name].add(func)
-        # XXX 是否要加载现有节点？
-
-    def setNodeAPI(self, api_name, func):
-        self.node_api[api_name]= func
-        # XXX 是否要加载现有节点？
+        self.announces['addICNEdge']( (src_id, dst_id,) )
 
     # -------------------------------------------------------------------------
-    def addNode(self, NodeFactory):
-        icn_node= super().addNode(NodeFactory)
-        # 设置 Announce
-        for anno_name, funcs in self.node_anno.items():
-            for func in funcs:
-                icn_node.announces[anno_name].append( Bind(func, icn_node.node_id) )
-        # 设置 API
-        for api_name, func in self.node_api.items():
-            icn_node.api[api_name] = Bind(func, icn_node.node_id)
+    def createGraph(self, graph, NodeType, ChannelType):
+        for node_id in graph:
+            self.createNode(node_id, NodeType)
+            for neibor_id in graph[node_id]:
+                self.createNode(neibor_id, NodeType)
+                self.createEdge(node_id, neibor_id, ChannelType)
+                self.createEdge(neibor_id, node_id, ChannelType)
 
-        self.announces['addICNNode'](icn_node.node_id)
-        return icn_node
+    def createNode(self, node_id, NodeType)->bool:
+        if node_id not in self.nodes():
+            icn_node = NodeType()  # XXX 是否需要 NodeType(node_id)
+            self.addICNNode(node_id, icn_node)
+            return True
+        else:
+            return False
 
-    def addEdge(self, src_node, dst_node, ChannelFactory):
-        channel= super().addEdge(src_node, dst_node, ChannelFactory)
-        # 设置 Announce
-        for anno_name, funcs in self.edge_anno.items():
-            for func in funcs:
-                channel.announces[anno_name].append( Bind(func, *channel.edge_id) )
-
-        self.announces['addICNChannel'](channel.edge_id)
+    def createEdge(self, src_id, dst_id, ChannelType)->bool:
+        if (src_id, dst_id) not in self.edges():
+            icn_edge = ChannelType()  # XXX 是否需要 ChannelType(src_id, dst_id)
+            self.addICNEdge(src_id, dst_id, icn_edge)
+            return True
+        else:
+            return False
 

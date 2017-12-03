@@ -1,8 +1,8 @@
 from core import Packet
-from unit import ExampleAppUnit
+from unit import AppUnit
 
 
-class StoreTrackAppUnit(ExampleAppUnit):
+class StoreTrackAppUnit(AppUnit):
     def install(self, announces, api):
         super().install(announces, api)
 

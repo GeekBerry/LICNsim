@@ -1,4 +1,4 @@
-from core import NameTable, DefaultDictDecorator, Packet
+from core import NameTable, Packet
 from module import MoudleBase
 
 
@@ -10,15 +10,16 @@ class NameMonitor(MoudleBase):
     PENDING |respond|       |store
     STORED  |evict  |       |
     """
+
     class Record:  # 一个名字下的记录
         def __init__(self):
-            self.store= set()  # set(node_id, ...)
-            self.pending= set()  # set(node_id, ...)
-            self.trans_i= set()  # set(edge_id, ...)  传输兴趣包的边
-            self.trans_d= set()  # set(edge_id, ...)  传输数据包的边
+            self.store = set()  # set(node_id, ...)
+            self.pending = set()  # set(node_id, ...)
+            self.trans_i = set()  # set(edge_id, ...)  传输兴趣包的边
+            self.trans_d = set()  # set(edge_id, ...)  传输数据包的边
 
     def __init__(self):
-        self.name_table= DefaultDictDecorator(NameTable(), self.Record)
+        self.name_table = NameTable(default_factory=self.Record)
 
     def setup(self, sim):
         sim.loadNodeAnnounce('ask', self._askEvent)
@@ -30,10 +31,10 @@ class NameMonitor(MoudleBase):
         sim.loadEdgeAnnounce('loss', self._finishEvent)
         sim.loadEdgeAnnounce('arrive', self._finishEvent)
 
-        sim.api['NameMonitor.table']= lambda :self.name_table
+        sim.api['NameMonitor.table'] = lambda: self.name_table
 
     def _askEvent(self, node_id, packet):
-        record= self.name_table[packet.name]
+        record = self.name_table[packet.name]
         if (node_id not in record.store) and (node_id not in record.pending):
             record.pending.add(node_id)
 
@@ -50,22 +51,20 @@ class NameMonitor(MoudleBase):
         record = self.name_table[packet.name]
         record.store.discard(node_id)
 
-    def _sendEvent(self, src_id, dst_id, packet):
-        record= self.name_table[packet.name]
-        if packet.type == Packet.INTEREST:
-            record.trans_i.add( (src_id,dst_id,) )
-        elif packet.type == Packet.DATA:
-            record.trans_d.add( (src_id,dst_id,) )
+    def _sendEvent(self, edge_id, packet):
+        record = self.name_table[packet.name]
+        if packet.type is Packet.INTEREST:
+            record.trans_i.add(edge_id)
+        elif packet.type is Packet.DATA:
+            record.trans_d.add(edge_id)
         else:
             pass
 
-    def _finishEvent(self, src_id, dst_id, packet):
-        record= self.name_table[packet.name]
-        if packet.type == Packet.INTEREST:
-            record.trans_i.discard( (src_id,dst_id,) )
+    def _finishEvent(self, edge_id, packet):
+        record = self.name_table[packet.name]
+        if packet.type is Packet.INTEREST:
+            record.trans_i.discard(edge_id)
         elif packet.type == Packet.DATA:
-            record.trans_d.discard( (src_id,dst_id,) )
+            record.trans_d.discard(edge_id)
         else:
             pass
-
-

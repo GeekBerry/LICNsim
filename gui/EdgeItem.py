@@ -3,7 +3,7 @@ from PyQt5.QtCore import QPointF, QRectF, Qt
 from PyQt5.QtGui import QPainterPath, QPen, QPolygonF
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsSimpleTextItem
 
-from core import CallTable, Timer, threshold
+from core import threshold, EMPTY_FUNC
 from debug import showCall
 
 
@@ -29,6 +29,7 @@ class EdgeItem(QGraphicsItem):
     OFFSET = 8  # 方向线偏离中心线的距离
     MIN_ARROW_WIDTH, MAX_ARROW_WIDTH = 1, 8
 
+    double_click_callback= EMPTY_FUNC
     def __init__(self, edge_id):
         super().__init__()
         self.setZValue(1)
@@ -36,7 +37,6 @@ class EdgeItem(QGraphicsItem):
         self.setAcceptHoverEvents(True)
 
         self.edge_id = edge_id
-        self.call_backs = CallTable()
         self.text_item = QGraphicsSimpleTextItem('', self)
         self.text_item.setZValue(4)
 
@@ -119,7 +119,7 @@ class EdgeItem(QGraphicsItem):
 
     # -------------------------------------------------------------------------
     def mouseDoubleClickEvent(self, event):
-        self.call_backs['mouseDoubleClickEvent'](self.edge_id)
+        self.double_click_callback(self.edge_id)
         super().mouseDoubleClickEvent(event)
 
     def hoverEnterEvent(self, event):

@@ -19,8 +19,6 @@ class RouteNode(Hardware):
         self.install('info', InfoUnit())  # 必须安装在ForwardUnit前, info先行处理inPack信号
         self.install('forward', StoreTrackForwardUnit())
 
-        self.api['Node.getId']= self.getId
-
         self.insert = self.api['CS.insert']
         self.ask = self.api['App.ask']
         self.setInChannel = self.api['Face.setInChannel']
@@ -47,8 +45,6 @@ class OuterNode(Hardware):
         self.install('app', StoreTrackAppUnit())
         self.install('info', InfoUnit())  # 必须安装在ForwardUnit前, info先行处理inPack信号
         self.install('forward', StoreTrackForwardUnit())
-
-        self.api['Node.getId']= self.getId
 
         self.insert = self.api['CS.insert']
         self.ask = self.api['App.ask']

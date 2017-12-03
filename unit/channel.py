@@ -1,63 +1,42 @@
 import random
 from collections import deque
-from core import Timer, clock, AnnounceTable, top
+from core import Timer, clock, AnnounceTable, top, DEBUG_FUNC, LeakBucket, INF
 
 
-class Channel:
+class ChannelBase:
+    receiver = DEBUG_FUNC  # 链接接受者
+
+    def send(self, packet):
+        raise NotImplementedError()
+
+
+class Channel(ChannelBase):
     """
     Announces:
         send -> transfer -> loss/receive
     """
-    receiver= None  # 回调接受者
+    def __init__(self, rate: int, delay: int, loss: float):
+        self.bucket= LeakBucket(rate, INF)
+        self.bucket.pop = self.transfer
 
-    class Sender:
-        def __init__(self, rate, call_back):
-            self.rate = rate
-            self.call_back = call_back
-            self.timer = Timer(self.finish)  # 当前发送定时器
-            self.queue = deque()
-
-        def send(self, packet):
-            self.queue.append(packet)
-            self.checkSend()
-
-        def checkSend(self):
-            if not self.timer and self.queue:
-                packet = top(self.queue)
-                consuming = packet.size//self.rate
-                clock.timing(consuming, self.finish)
-
-        def finish(self):
-            packet= self.queue.popleft()
-            self.call_back(packet)
-            self.checkSend()
-
-    def __init__(self, src_id, dst_id, rate: int, delay: int, loss: float):
-        self._edge_id= src_id, dst_id
-        self.sender= self.Sender(rate, self.transfer)
-        self.delay= delay
-        self.loss= loss
+        self.delay = delay
+        self.loss = loss
         self.announces = AnnounceTable()
 
     @property
-    def edge_id(self):
-        return self._edge_id
-
-    @property
     def rate(self):
-        return self.sender.rate
+        return self.bucket.rate
 
     @rate.setter
     def rate(self, value):
-        self.sender.rate= value
+        self.bucket.rate = value
 
-    @property
     def queue(self):
-        return list(self.sender.queue)
+        return iter(self.bucket)
 
     def send(self, packet):
         self.announces['send'](packet)
-        self.sender.send(packet)
+        self.bucket.append(packet, size=packet.size)
 
     def transfer(self, packet):
         self.announces['transfer'](packet)

@@ -1,34 +1,22 @@
-#!/usr/bin/python3
-#coding=utf-8
-
-import sys
-import traceback
-
 from collections import defaultdict, deque
-NoneFunc= lambda:None
 
 
 class Handle:
-    def __init__(self, func=NoneFunc, *args, **kwargs):
+    def __init__(self, func=None, *args, **kwargs):
         self.func= func
         self.args= args
         self.kwargs= kwargs
 
     def __bool__(self):
-        return self.func is not NoneFunc
+        return self.func is not None
 
     def execute(self)->None:
-        try:
-            self.func(*self.args, **self.kwargs)
-        except Exception:
-            traceback.print_exc()
-            print(self.__dict__, file=sys.stderr)
-            exit(1)
-
-        self.clear()
+        func, args, kwargs= self.func, self.args, self.kwargs
+        self.clear()  # XXX 要在func执行前清理, 以便执行中判断bool(handle)为False
+        func(*args, **kwargs)
 
     def clear(self):
-        self.func= NoneFunc
+        self.func= None
         self.args= ()
         self.kwargs= {}
 
@@ -59,10 +47,8 @@ class Clock:
 
     #--------------------------------------------------------------------------
     def timing(self, delay, func, *args, **kwargs):
-        if not isinstance(delay, int):
-            raise TypeError("delay 必须int型")
-        if delay < 0:
-            raise KeyError("delay 设置必须大于等于0")
+        assert isinstance(delay, int)  # delay 必须int型
+        assert delay >= 0  # delay 设置必须大于等于0
 
         handle= Handle(func, *args, **kwargs)
         self._todo[self._time+delay].append(handle)
@@ -73,30 +59,28 @@ clock= Clock()  # 全局变量
 
 
 class Timer:
-    def __init__(self, func, *args):
+    def __init__(self, func):
         self.func= func
-        self.args= args
-
         self.handle= Handle()
-        self.__exe_time= None
+        self._exe_time= None
 
     def __bool__(self):
         return bool(self.handle)
 
     @property
     def exe_time(self):
-        return self.__exe_time
+        return self._exe_time
 
-    def timing(self, delay):
+    def timing(self, delay, *args):
         self.handle.clear()
-        self.handle= clock.timing(delay, self.func, *self.args)
+        self.handle= clock.timing(delay, self.func, *args)
         self.__exe_time= clock.time() + delay
 
     def cancel(self):
         self.handle.clear()
 
     def __repr__(self):
-        return f'Timer({self.__exe_time}: {self.func})'
+        return f'Timer({self._exe_time}: {self.func})'
 
 
 # if __name__ == '__main__':

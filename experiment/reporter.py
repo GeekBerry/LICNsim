@@ -64,7 +64,6 @@ class ReporterModule(MoudleBase):
         head_str= '\t'.join( self.REPORT_FIELD )
 
         print(head_str)
-
         if self.file:
             self.file.write(head_str)
             self.file.write('\n')

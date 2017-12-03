@@ -1,4 +1,3 @@
-
 # import networkx
 #
 # graph= networkx.random_regular_graph(3,10)
@@ -11,10 +10,14 @@
 #
 # print(graph.nodes[0])
 
+# from core import clock, LeakBucket
 
-from core import clock
+class A:
+    def __init__(self, d):
+        self.d= d
 
+d= {}
+d.__setitem__= print
 
-
-
+d[1]= 100
 

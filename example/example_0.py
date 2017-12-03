@@ -1,31 +1,32 @@
+import networkx
+
+from core import *
 from unit.node import *
 from unit.channel import *
+from module import *
 from debug import *
 
+sim = Simulator()
+sim.install('hub', HubModule())
+sim.loadNodeAnnounce('inPacket', Bind(print, 'inPacket') )
+sim.loadNodeAnnounce('outPacket', Bind(print, 'outPacket') )
+sim.loadNodeAnnounce('csStore', Bind(print, 'csStore') )
+sim.loadNodeAnnounce('csEvict', Bind(print, 'csEvict') )
 
-node1 = ExampleNode()
-node2 = ExampleNode()
-channel12= Channel(None, None, rate= 100_000, delay= 1, loss= 0)
-channel21= Channel(None, None, rate= 100_000, delay= 1, loss= 0)
+# -----------------------------------------------------------------------------
+node_d= ExampleNode()
+node_i= ExampleNode()
 
-node1.setOutChannel(2, channel12)
-node1.setInChannel(2, channel21)
+sim.addICNNode('A', node_d)
+sim.addICNNode('B', node_i)
 
-node2.setOutChannel(1, channel21)
-node2.setInChannel(1, channel12)
+sim.addICNEdge('A', 'B', OneStepChannel())
+sim.addICNEdge('B', 'A', OneStepChannel())
 
-print('---------------------')
-node1.store(dp_A)
-node2.ask(ip_A)
+node_d.store(dp_A)
+node_i.ask(ip_A)
 
-print('---------------------')
-clock.step()
+for i in range(5):
+    print('Time:', i)
+    clock.step()
 
-print('---------------------')
-clock.step()
-
-print('---------------------')
-clock.step()
-
-print('---------------------')
-clock.step()

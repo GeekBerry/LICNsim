@@ -68,7 +68,7 @@ class DataBaseTable:
         :param value_dict: 其他域字典
         :return: self
 
-        >>> db_t= DataBaseTable().create('k1', 'k2', v1=0) # 不带默认值的为主键;  k1, k2 为主键
+        >>> db_t= DataBaseTable().create('k1', 'k2', v1=0)  # 不带默认值的为主键;  k1, k2 为主键
         """
         self.dblite.create(*primary_keys, *list(value_dict.items()), mode= self.mode)
         self.dblite.create_index(*primary_keys)
@@ -108,9 +108,9 @@ class DataBaseTable:
         if keys in self.key_table:
             rcd_id= self.key_table[keys]
             record= self.dblite[rcd_id]
-            self.__update(record, field_dict)
+            self._update(record, field_dict)
         else:
-            rcd_id= self.__insert(keys, field_dict)
+            rcd_id= self._insert(keys, field_dict)
             self.key_table[keys]= rcd_id  # 注册key_table
 
     def __getitem__(self, keys):
@@ -131,7 +131,7 @@ class DataBaseTable:
         if keys in self.key_table:
             rcd_id= self.key_table[keys]
         else:
-            rcd_id= self.__insert(keys, {})
+            rcd_id= self._insert(keys, {})
             self.key_table[keys]= rcd_id  # 注册key_table
 
         return self.Record(self.dblite[rcd_id], data_base=self)
@@ -142,7 +142,7 @@ class DataBaseTable:
         del self.dblite[rcd_id]
 
     # -------------------------------------------------------------------------
-    def __insert(self, keys, field_dict:dict):
+    def _insert(self, keys, field_dict:dict):
         if len(self.primary_keys) == 0:
             raise KeyError('没有主键, 不能索引')
         elif len(self.primary_keys) == 1:  # 主键只有一个, key 即主键
@@ -153,7 +153,7 @@ class DataBaseTable:
         field_dict.update(key_dict)   # 注意更新 field_dict 以保证主键来自 key
         return self.dblite.insert(**field_dict)
 
-    def __update(self, record, field_dict):
+    def _update(self, record, field_dict):
         if set(self.primary_keys) & field_dict.keys():
             p_k= ','.join( set(self.primary_keys) & field_dict.keys() )
             raise ValueError(f'{p_k} 是主键, 不能修改')
@@ -191,13 +191,6 @@ class DataBaseTable:
 
         >>> list(  db_table.query(age= lambda age: 25<age, score= lambda num: 60<num) )  )
         []
-
-        已知Bug: 返回值Bug
-        lst= []
-        for i in range(...):
-            records= self.query(与 i 有关的查询)  # 返回值是一个生成器
-            lst.append(records)
-        此时 lst 所有成员都是最后一次的查询结果
         """
         # 对有索引的项, 进行集合析取
         index_fields = condition_dict.keys() & set(self.dblite.indices.keys())
@@ -214,7 +207,6 @@ class DataBaseTable:
         for record in map(self.dblite.records.__getitem__, find_ids):
             if self.Record.isMatch(record, **ordinary_conditions):
                 yield self.Record(record, self)
-        # FIXME 见 __doc__ 中已知bug
 
     def _matchedIndexedIds(self, condition_dict):
         """
@@ -274,7 +266,7 @@ class DataBaseTable:
             raise NotImplementedError('没有实现对非索引项的遍历')
 
 
-if __name__ == '__main__' and 0:
+if __name__ == '__main__':
     db_table= DataBaseTable().create('name', 'age', score=0, city='') # 不带默认值的为主键;  k1, k2 为主键
 
     db_table['A', 23]= {'score':100, 'city':'BJ'}
@@ -298,7 +290,6 @@ if __name__ == '__main__' and 0:
     p= list( db_table.query() )
     print(p)
     # [Record({'name': 'A', 'age': 23, 'score': 100, 'city': 'BJ', '__id__': 0, '__version__': 0}), Record({'name': 'B', 'age': 17, 'score': 90, 'city': 'SH', '__id__': 1, '__version__': 0}), Record({'name': 'C', 'age': 20, 'score': 59, 'city': 'SH', '__id__': 2, '__version__': 0}), Record({'name': 'D', 'age': 28, 'score': 40, 'city': 'BJ', '__id__': 3, '__version__': 0})]
-
 
 
 

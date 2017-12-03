@@ -8,13 +8,16 @@ from module import MoudleBase
 
 class GUIModule(MoudleBase):
     def __init__(self):
-        self.app = QApplication(sys.argv)  # 必须放在 MainWindow 构造前
+        self.app = QApplication(sys.argv)
 
     def setup(self, sim):
-        super().setup(sim)
-        sim.show= self.show  # XXX 是否是奇技淫巧
+        self.announces= sim.announces
+        self.api= sim.api
+        self.start()
+        sim.show= self.show
 
-        self.main_window= MainWindow(None, sim.announces, sim.api)
+    def start(self):
+        self.main_window= MainWindow(None, self.announces, self.api)
         self.main_window.addPlugin('PainterPlugin', PainterPlugin)
         self.main_window.addPlugin('LayoutPlugin', LayoutPlugin)
         self.main_window.addPlugin('PlayerPlugin', PlayerPlugin)
@@ -24,5 +27,5 @@ class GUIModule(MoudleBase):
         self.main_window.show()
 
     def show(self):
-        self.sim.announces['playSteps'](0)  # 在此发布 playSteps，以初始化各个窗口部件
+        self.announces['playSteps'](0)  # 在此发布 playSteps，以初始化各个窗口部件
         self.app.exec_()

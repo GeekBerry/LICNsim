@@ -42,14 +42,14 @@ for cs_time in (20,40,60,80,100):
     NodeType= NodeFactor(cs_type= cs_type, p=0.5, cs_time=cs_time * SECOND, evict_mode= evict_mode)
     file_name = f'result/C. {GRAPH_NAME} 直径{DIAMETER} lam{lam} {evict_mode}{cs_time} {cs_type} {DATE}.txt'
 
-    sim = SuperSimulator()
+    sim = Simulator()
     sim.install('cs_track', StoreTrackMoudle(ip_A.name))
     sim.install('db', LogMoudle())
     sim.install('reporter', ReporterModule(sim.modules['db'].db_table, SECOND, file_name))
 
     node_map = sim.addGraph(graph, NodeType, OneStepChannel)
-    sim.getNode(node_map[DATA_NODE]).setEvictMode('CONST')
-    sim.getNode(node_map[DATA_NODE]).insert(dp_A)
+    sim.node(node_map[DATA_NODE]).setEvictMode('CONST')
+    sim.node(node_map[DATA_NODE]).insert(dp_A)
 
     sim.install('asker', AskMoudle(ip_A, PossionAsk(1), UniformDistribute(sim.nodes()), delta=DIAMETER))  # DEBUG 版本， 期望能动态配置
 

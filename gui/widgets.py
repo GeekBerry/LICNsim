@@ -77,7 +77,8 @@ class TreeWidget(QTreeWidget):
 class TableWidget(QTableWidget):
     def __init__(self, parent):
         super().__init__(parent)
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         self.setAlternatingRowColors(True)  # 隔行显示颜色
 
@@ -165,7 +166,7 @@ class BindLineEdit(QLineEdit):
 
 
 class BindSpinBox(QSpinBox):
-    def __init__(self, parent, range, obj, attr):
+    def __init__(self, parent, obj, attr, range):
         super().__init__(parent)
         self.setRange(*range)
         self.editingFinished.connect(self.editingFinishedSlot)
@@ -186,7 +187,7 @@ class BindDoubleSpinBox(QDoubleSpinBox):
     refresh = BindSpinBox.refresh
     wheelEvent = BindSpinBox.wheelEvent
 
-    def __init__(self, parent, range, obj, attr):
+    def __init__(self, parent, obj, attr, range):
         super().__init__(parent)
         self.setRange(*range)
         self.editingFinished.connect(self.editingFinishedSlot)
@@ -220,18 +221,21 @@ class BindComboBox(QComboBox):
 
 
 class BindTable(TableWidget):
-    def __init__(self, parent, heads, row_iter):
+    def __init__(self, parent, heads, get_rows):
         super().__init__(parent)
-        self.row_iter = row_iter
+        self.getRows = get_rows
 
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)  # 设置不可编辑
         self.setHeads(*heads)
         self.refresh()
 
     def refresh(self):
-        rows = list(self.row_iter)  # 先生成列表才能统计行数
+        self.clearContents()
+
+        rows = self.getRows() # 先生成列表才能统计行数
         self.setRowCount(len(rows))
         for row, values in enumerate(rows):
             self.setRow(row, *values)
+
 
 
