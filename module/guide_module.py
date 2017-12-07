@@ -1,16 +1,15 @@
 from collections import defaultdict
 
 from algorithm.graph_algo import graphNearestPath
-from module import MoudleBase
+from module import ModuleBase
 
 
-class GuideMoudle(MoudleBase):
+class GuideModule(ModuleBase):
     """
     该模块效率低下, 仅适合小规模网络或调试使用
     """
     def __init__(self):
         self.table= defaultdict(set)  # {name:set(node_id), ...}
-        pass
 
     def setup(self, sim):
         self.graph= sim.graph

@@ -1,8 +1,8 @@
 from core import NameTable, Packet
-from module import MoudleBase
+from module import ModuleBase
 
 
-class NameMonitor(MoudleBase):
+class NameMonitor(ModuleBase):
     """ 状态转换图
             |EMPTY  |PENGIND|STORED
     --------|-------|-------|-------
@@ -51,6 +51,7 @@ class NameMonitor(MoudleBase):
         record = self.name_table[packet.name]
         record.store.discard(node_id)
 
+    # -------------------------------------------------------------------------
     def _sendEvent(self, edge_id, packet):
         record = self.name_table[packet.name]
         if packet.type is Packet.INTEREST:

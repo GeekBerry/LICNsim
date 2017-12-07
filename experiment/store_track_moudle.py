@@ -1,8 +1,8 @@
 from algorithm.graph_algo import graphNearestPath
-from module import MoudleBase
+from module import ModuleBase
 
 
-class StoreTrackMoudle(MoudleBase):
+class StoreTrackModule(ModuleBase):
     """
     记录某一名字在网络中的缓存情况，并能计算任一节点到最近缓存节点的路径
     """

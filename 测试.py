@@ -1,23 +1,12 @@
-# import networkx
-#
-# graph= networkx.random_regular_graph(3,10)
-#
-# n= graph.nodes[0]
-# print(type(n))
-#
-# graph.nodes[0]['age']= 10
-#
-#
-# print(graph.nodes[0])
 
-# from core import clock, LeakBucket
 
-class A:
-    def __init__(self, d):
-        self.d= d
+import math
 
-d= {}
-d.__setitem__= print
+from itertools import count
 
-d[1]= 100
+def expNum():
+    for i in count():
+        yield math.exp(-i/1000)
 
+for i, v in zip(range(1000), expNum()):
+    print(i,v)

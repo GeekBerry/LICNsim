@@ -246,16 +246,14 @@ def {method_name}(self, *args, **kwargs):
 #             return default
 
 # ======================================================================================================================
-class Process:
-    def __init__(self, func, *args, delta=1):
-        self.timer = Timer(self.step)
+class Loop:
+    def __init__(self, func, *args, delta=1, delay=0):
+        self.timer = Timer(self.__step)
         self.bind = Bind(func, *args)
         self.delta = delta
-
-    def start(self, delay=0):
         self.timer.timing(delay)
 
-    def step(self):
+    def __step(self):
         self.bind()
         self.timer.timing(self.delta)
 

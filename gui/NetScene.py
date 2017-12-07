@@ -112,4 +112,4 @@ class NetScene(QGraphicsScene):
         node_item = self.node_table[node_id]
         pos = node_item.pos()
         pos = pos.x(), pos.y()
-        self.announces['moveNode'](node_id, pos)
+        self.announces['sceneNodeMoved'](node_id, pos)

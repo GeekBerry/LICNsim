@@ -56,6 +56,7 @@ class Painter:
 
 # ======================================================================================================================
 class PropertyPainter(Painter):
+    RED_DELAY= 25  # 当icn_edg 为 RED_DELAY 时, 边为红色
     background_color = QColor(240, 240, 240)
 
     def __init__(self, announces, api):
@@ -99,8 +100,8 @@ class PropertyPainter(Painter):
         icn_edge = self.api['Sim.edge'](edge_id)
         assert icn_edge is not None  # DEBUG
 
-        color = HotColor(threshold(0.0, icn_edge.delay / 100, 1.0))
-        color = DeepColor(0.1 + 0.9 * (1 - icn_edge.loss), color)  # 0.1+0.9*loss 避免loss为0 时无颜色显示
+        color = HotColor(threshold(0.0, icn_edge.delay/self.RED_DELAY, 1.0))
+        color = DeepColor(1-icn_edge.loss, color)
 
         width = normalizeINF(icn_edge.rate)
 
@@ -137,6 +138,7 @@ class NameStorePainter(Painter):
             if self.visible:
                 self.refresh()
 
+    @showCall
     def refresh(self):
         self.name_table = self.api['NameMonitor.table']()
         if self.name_table is not None:

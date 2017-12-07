@@ -230,24 +230,24 @@ class LayoutPlugin(MainWindowPlugin):
         self.last_clicked_ratio = None
         self.pixmap = QPixmap(BACKGROUND_MAP_IMAGE)
         announces['playSteps'].append(self.playSteps)
-        announces['moveNode'].append(self.moveNode)
+        announces['sceneNodeMoved'].append(self.sceneNodeMoved)
 
     def playSteps(self, steps):
         if self.group_box.checkedButton() is None:  # 设置默认模式
             self.topology_layout = self._getTopologyLayout()
-            self.topology_ratio.click()
+            self.topology_ratio.click()  # 导致 self.buttonClickedSlot(self.topology_ratio)
+        elif self.group_box.checkedButton() is self.physical_ratio:  # 物理位置图
+            self.buttonClickedSlot(self.physical_ratio)  # 重新加载位置图, 以更新位置信息
 
     def buttonClickedSlot(self, ratio):
-        # 多次点击能实现位置再计算
         if (ratio is self.topology_ratio) and (ratio is self.last_clicked_ratio):
-            self.topology_layout = self._getTopologyLayout()
+            self.topology_layout = self._getTopologyLayout()  # 多次点击, 重新计算位置
 
         self.api['Scene.setBackgroundPixmap'](self.getBackgroundPixmap())
         self.api['Scene.setLayout'](self.getLayout())
-
         self.last_clicked_ratio = ratio
 
-    def moveNode(self, node_id, pos):
+    def sceneNodeMoved(self, node_id, pos):
         if self.group_box.checkedButton() is self.topology_ratio:
             self.topology_layout[node_id] = pos  # 拓扑图模式下修改缓存的位置信息
         elif self.group_box.checkedButton() is self.physical_ratio:

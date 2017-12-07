@@ -18,16 +18,14 @@ class Packet:
         self.type= type  # 包类型
         self.size= size  # 包大小
         self.nonce= self.randomNonce()
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        # for k, v in kwargs.items():
+        #     setattr(self, k, v)
 
     def head(self):  # 文件头部, 能区别两个包
         return self.name, self.type, self.size, self.nonce
 
     def fission(self):  # 分裂成另一个包, 除了nonce域外全都一样
-        new_pcaket= copy.deepcopy(self)
-        new_pcaket.nonce = Packet.randomNonce()
-        return new_pcaket
+        return Packet(self.name, self.type, self.size)
 
     def __hash__(self):
         return self.nonce

@@ -1,9 +1,9 @@
 from collections import defaultdict
 from core import Bind
-from module import MoudleBase
+from module import ModuleBase
 
 
-class HubModule(MoudleBase):
+class HubModule(ModuleBase):
     def __init__(self):
         self.node_anno= defaultdict(set)  # {anno_name:{func,...}, ...}
         self.edge_anno= defaultdict(set)  # {anno_name:{func,...}, ...}

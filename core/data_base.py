@@ -3,32 +3,14 @@ from core import decorator
 
 
 class DataBaseTable:
-    class Record( decorator(dict) ):
+    class Record(decorator(dict)):
         def __init__(self, record, data_base):
             super().__init__(record)
-            self.__data_base= data_base
+            self.__data_base = data_base
 
         def __setitem__(self, key, value):
             # XXX 调用'_inner', 使得只更新内核,以免循环调用
             self.__data_base._setitem(self._inner, key, value)
-
-        def isMatch(self, **kwargs)->bool:
-            """
-            返回该条记录是否符合检查条件,(且)的关系
-            :param kwargs:dict{field:value, ...} 匹配条件
-
-            >>> record= Record( {'name':'Tom', 'age':20, 'score':100} )
-            >>> record.isMatch( age= lambda num: 18<=num, score=100 )
-            True
-            """
-            for field, condition in kwargs.items():
-                if callable(condition):
-                    if not condition(self[field]):
-                        return False
-                else:
-                    if self[field] != condition:
-                        return False
-            return True
 
     """
     records 数据结构:
@@ -47,6 +29,7 @@ class DataBaseTable:
         ...
     }
     """
+
     def __init__(self, path=':memory:', mode='override'):
         """
         创建一个数据库表
@@ -56,10 +39,10 @@ class DataBaseTable:
         - if mode = 'open' : open the existing base, ignore the fields
         - if mode = 'override' : erase the existing base and create a
         """
-        self.dblite= PyDataBase(path=path)
-        self.mode= mode
-        self.primary_keys= []  # [filed_name, ...]
-        self.key_table= {}  # {primary_key:id}
+        self.dblite = PyDataBase(path=path)
+        self.mode = mode
+        self.primary_keys = []  # [filed_name, ...]
+        self.key_table = {}  # {primary_key:id}
 
     def create(self, *primary_keys, **value_dict):
         """
@@ -70,9 +53,9 @@ class DataBaseTable:
 
         >>> db_t= DataBaseTable().create('k1', 'k2', v1=0)  # 不带默认值的为主键;  k1, k2 为主键
         """
-        self.dblite.create(*primary_keys, *list(value_dict.items()), mode= self.mode)
+        self.dblite.create(*primary_keys, *list(value_dict.items()), mode=self.mode)
         self.dblite.create_index(*primary_keys)
-        self.primary_keys= primary_keys
+        self.primary_keys = primary_keys
         return self
 
     def createIndexs(self, *fields):
@@ -83,10 +66,13 @@ class DataBaseTable:
 
     def addFields(self, **value_dict):
         for field, default in value_dict.items():
-            self.dblite.add_field(field, default= default)
+            self.dblite.add_field(field, default=default)
 
     # -------------------------------------------------------------------------
-    def __setitem__(self, keys, field_dict:dict):
+    def __contains__(self, keys):
+        return keys in self.key_table
+
+    def __setitem__(self, keys, field_dict: dict):
         """
         插入或更新一个项
         :param key: tuple 或 Var 主键
@@ -105,13 +91,13 @@ class DataBaseTable:
         """
         assert isinstance(field_dict, dict)
 
+        if set(self.primary_keys) & field_dict.keys():
+            raise ValueError(field_dict, '不能修改主键')
+
         if keys in self.key_table:
-            rcd_id= self.key_table[keys]
-            record= self.dblite[rcd_id]
-            self._update(record, field_dict)
+            self._update(keys, field_dict)
         else:
-            rcd_id= self._insert(keys, field_dict)
-            self.key_table[keys]= rcd_id  # 注册key_table
+            self._insert(keys, field_dict)
 
     def __getitem__(self, keys):
         """
@@ -129,34 +115,35 @@ class DataBaseTable:
         {0: {'name': 'Jerry', 'age': 12, 'score': 1, 'addr': '', '__id__': 0, '__version__': 0}}
         """
         if keys in self.key_table:
-            rcd_id= self.key_table[keys]
+            rcd_id = self.key_table[keys]
         else:
-            rcd_id= self._insert(keys, {})
-            self.key_table[keys]= rcd_id  # 注册key_table
+            rcd_id = self._insert(keys, {})
 
         return self.Record(self.dblite[rcd_id], data_base=self)
 
     def __delitem__(self, keys):
         assert keys in self.key_table  # 没在主键索引表中的一定不在数据库中
-        rcd_id= self.key_table.pop(keys)
+        rcd_id = self.key_table.pop(keys)
         del self.dblite[rcd_id]
 
     # -------------------------------------------------------------------------
-    def _insert(self, keys, field_dict:dict):
+    def _insert(self, keys, field_dict: dict)->int:
         if len(self.primary_keys) == 0:
             raise KeyError('没有主键, 不能索引')
         elif len(self.primary_keys) == 1:  # 主键只有一个, key 即主键
-            key_dict= {self.primary_keys[0]:keys}
+            key_dict = {self.primary_keys[0]: keys}
         else:  # 主键有多个, key 是主键tuple, 需要将其展开
-            key_dict= dict(zip(self.primary_keys, keys))
+            key_dict = dict(zip(self.primary_keys, keys))
 
-        field_dict.update(key_dict)   # 注意更新 field_dict 以保证主键来自 key
-        return self.dblite.insert(**field_dict)
+        field_dict.update(key_dict)  # 注意更新的是 field_dict ,以保证主键来自 keys
 
-    def _update(self, record, field_dict):
-        if set(self.primary_keys) & field_dict.keys():
-            p_k= ','.join( set(self.primary_keys) & field_dict.keys() )
-            raise ValueError(f'{p_k} 是主键, 不能修改')
+        rcd_id= self.dblite.insert(**field_dict)
+        self.key_table[keys] = rcd_id  # 注册key_table
+        return rcd_id
+
+    def _update(self, keys, field_dict)->None:
+        rcd_id = self.key_table[keys]
+        record = self.dblite[rcd_id]
         self.dblite.update(record, **field_dict)
 
     def _setitem(self, record, key, value):  # 设置 record 的一个属性值
@@ -164,9 +151,9 @@ class DataBaseTable:
             raise ValueError(f'{key} 是主键, 不能修改')
 
         if key in self.dblite.indices:
-            self.dblite.update(record, **{key:value})
+            self.dblite.update(record, **{key: value})
         else:  # XXX 优化项目: 非索引项, 直接修改
-            record[key]= value
+            record[key] = value
             # record["__version__"] += 1 XXX 需要吗 ???
 
     # -------------------------------------------------------------------------
@@ -194,18 +181,18 @@ class DataBaseTable:
         """
         # 对有索引的项, 进行集合析取
         index_fields = condition_dict.keys() & set(self.dblite.indices.keys())
-        indexed_conditions= {field:condition_dict[field] for field in index_fields}
+        indexed_conditions = {field: condition_dict[field] for field in index_fields}
 
-        find_ids= self._matchedIndexedIds(indexed_conditions)
+        find_ids = self._matchedIndexedIds(indexed_conditions)
         if find_ids is None:
-            find_ids= self.dblite.records.keys()
+            find_ids = self.dblite.records.keys()
 
         # 对无索引的项, 进行遍历过滤
-        ordinary_fields= condition_dict.keys() - index_fields
-        ordinary_conditions= {field:condition_dict[field] for field in ordinary_fields}
+        ordinary_fields = condition_dict.keys() - index_fields
+        ordinary_conditions = {field: condition_dict[field] for field in ordinary_fields}
 
         for record in map(self.dblite.records.__getitem__, find_ids):
-            if self.Record.isMatch(record, **ordinary_conditions):
+            if self.isMatch(record, **ordinary_conditions):
                 yield self.Record(record, self)
 
     def _matchedIndexedIds(self, condition_dict):
@@ -214,16 +201,17 @@ class DataBaseTable:
         :param condition_dict: {indexed_filed_name:condition}
         :return: set(ids) or None
         """
-        ids= None
+        ids = None
         for field, condition in condition_dict.items():
             if ids is None:  # 用于生成第一个id 的 set()
-                ids= self._filterIndexedIds(field, condition)
+                ids = self._filterIndexedIds(field, condition)
             elif len(ids) > 0:
                 ids &= self._filterIndexedIds(field, condition)
-            else: break  # ids 是空集合, 不再向下比较
+            else:
+                break  # ids 是空集合, 不再向下比较
         return ids
 
-    def _filterIndexedIds(self, field, condition)->set:
+    def _filterIndexedIds(self, field, condition) -> set:
         """
         找到 field 符合 condition 的所有 r_id
         :param field:str 域名
@@ -246,74 +234,70 @@ class DataBaseTable:
         >>> self._filterIndexedIds('k1', lambda k:k<50)
         {Id_11, Id_12, Id_21, Id_22,}
         """
-        if callable(condition):
-            find_ids= set()
+        find_ids = set()
+        if callable(condition):  # condition 是一个筛选函数
             for var, ids in self.dblite.indices[field].items():
                 if condition(var):
                     find_ids.update(ids)
-            return find_ids
-        else:  # condition 是一个值, 直接查找对应ids, 并转化为set
-            return set(self.dblite.indices[field].get(condition, set()))
+        else:  # condition 是一个值, 直接查找对应ids
+            ids = self.dblite.indices[field].get(condition)
+            if ids:
+                find_ids.update(ids)
+        return find_ids
+
+    def isMatch(self, record, **kwargs) -> bool:
+        """
+        返回该条记录是否符合检查条件,(且)的关系
+        :param kwargs:dict{field:value, ...} 匹配条件
+
+        >>> record= self.Record( {'name':'Tom', 'age':20, 'score':100} )
+        >>> self.isMatch(record, age= lambda num: 18<=num, score=100 )
+        True
+        """
+        for field, condition in kwargs.items():
+            if callable(condition):
+                if not condition(record[field]):
+                    return False
+            else:
+                if record[field] != condition:
+                    return False
+        return True
 
     # -------------------------------------------------------------------------
     def minIter(self, field):
-        if field in self.dblite.indices:
-            var_keys = self.dblite.indices[field]
-            for var in sorted( var_keys.keys() ):
-                for rcd_id in var_keys[var]:
-                    yield self.Record(self.dblite[rcd_id], data_base=self)
-        else:
+        if field not in self.dblite.indices:
             raise NotImplementedError('没有实现对非索引项的遍历')
+
+        var_keys = self.dblite.indices[field]
+        for var in sorted(var_keys.keys()):
+            for rcd_id in var_keys[var]:
+                yield self.Record(self.dblite[rcd_id], data_base=self)
 
 
 if __name__ == '__main__':
-    db_table= DataBaseTable().create('name', 'age', score=0, city='') # 不带默认值的为主键;  k1, k2 为主键
+    db_table = DataBaseTable().create('name', 'age', score=0, city='')  # 不带默认值的为主键;  k1, k2 为主键
 
-    db_table['A', 23]= {'score':100, 'city':'BJ'}
-    db_table['B', 17]= {'score':90, 'city':'SH'}
-    db_table['C', 20]= {'score':59, 'city':'SH'}
-    db_table['D', 28]= {'score':40, 'city':'BJ'}
+    db_table['A', 23] = {'score': 100, 'city': 'BJ'}
+    db_table['B', 17] = {'score': 90, 'city': 'SH'}
+    db_table['C', 20] = {'score': 59, 'city': 'SH'}
+    db_table['D', 28] = {'score': 40, 'city': 'BJ'}
 
-    p= list( db_table.query(city= 'BJ') )
+    p = list(db_table.query(city='BJ'))
     print(p)
     # [Record({'name': 'A', 'age': 23, 'score': 100, 'city': 'BJ', '__id__': 0, '__version__': 0}),
     # Record({'name': 'D', 'age': 15, 'score': 40, 'city': 'BJ', '__id__': 3, '__version__': 0})]
 
-    p= list( db_table.query(age= lambda age: 18<=age<25, city='SH') )
+    p = list(db_table.query(age=lambda age: 18 <= age < 25, city='SH'))
     print(p)
     # [Record({'name': 'C', 'age': 20, 'score': 59, 'city': 'SH', '__id__': 2, '__version__': 0})]
 
-    p= list( db_table.query(age= lambda age: 25<age, score= lambda num: 60<num) )
+    p = list(db_table.query(age=lambda age: 25 < age, score=lambda num: 60 < num))
     print(p)
     # []
 
-    p= list( db_table.query() )
+    p = list(db_table.query())
     print(p)
     # [Record({'name': 'A', 'age': 23, 'score': 100, 'city': 'BJ', '__id__': 0, '__version__': 0}), Record({'name': 'B', 'age': 17, 'score': 90, 'city': 'SH', '__id__': 1, '__version__': 0}), Record({'name': 'C', 'age': 20, 'score': 59, 'city': 'SH', '__id__': 2, '__version__': 0}), Record({'name': 'D', 'age': 28, 'score': 40, 'city': 'BJ', '__id__': 3, '__version__': 0})]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

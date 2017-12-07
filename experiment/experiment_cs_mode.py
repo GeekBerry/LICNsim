@@ -43,8 +43,8 @@ for cs_time in (20,40,60,80,100):
     file_name = f'result/C. {GRAPH_NAME} 直径{DIAMETER} lam{lam} {evict_mode}{cs_time} {cs_type} {DATE}.txt'
 
     sim = Simulator()
-    sim.install('cs_track', StoreTrackMoudle(ip_A.name))
-    sim.install('db', LogMoudle())
+    sim.install('cs_track', StoreTrackModule(ip_A.name))
+    sim.install('db', LogModule())
     sim.install('reporter', ReporterModule(sim.modules['db'].db_table, SECOND, file_name))
 
     node_map = sim.addGraph(graph, NodeType, OneStepChannel)

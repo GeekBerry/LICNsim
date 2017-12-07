@@ -77,8 +77,8 @@ class TreeWidget(QTreeWidget):
 class TableWidget(QTableWidget):
     def __init__(self, parent):
         super().__init__(parent)
-        # self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        # self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         self.setAlternatingRowColors(True)  # 隔行显示颜色
 

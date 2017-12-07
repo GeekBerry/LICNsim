@@ -53,12 +53,15 @@ if __name__ == '__main__' and 0:
 
 # ----------------------------------------------------------------------------------------------------------------------
 class NameTree:
+    __name= None
+
     def __init__(self, parent=None, key=None):
         self._parent = parent
         self.__key = key  # 自己在父节点中的键值
         self._children = dict()
         self._value_count = 0  # 记录一个 NameTree 节点及所有子节点中, 有效节点数量; 在 'value' 增删时会更新
-        # self.value 在setValue时添加, 被delValue时删除
+        # self.name 在 getter name 时添加, 在 cutDown 时删除
+        # self.value 在setValue时添加, 在delValue时删除
 
     def __iter__(self):
         return iter(self._children.values())
@@ -79,10 +82,13 @@ class NameTree:
     def key(self):
         return self.__key
 
+    @property
     def name(self):
-        forebear_list = list(self.forebears())
-        forebear_list.pop(-1)  # 不包含根节点
-        return Name(  [ name_node.key for name_node in reversed(forebear_list) ]  )
+        if self.__name is None:
+            forebear_list = list(self.forebears())
+            forebear_list.pop(-1)  # 不包含根节点
+            self.__name= Name(  [ name_node.key for name_node in reversed(forebear_list) ]  )
+        return self.__name
 
     # -------------------------------------------------------------------------
     def access(self, name):
@@ -118,13 +124,11 @@ class NameTree:
     # -------------------------------------------------------------------------
     def cutDown(self):  # 将节点从树上剪下
         if self._parent:
-            del self._parent._children[self.key]
+            del self._parent._children[self.__key]
+            self._parent= None
+            self.__key = None
+            self.__name = None
         return self
-
-    def clear(self):
-        self._parent = None
-        self.__key = None
-        self._children = {}
 
     # -------------------------------------------------------------------------
     def valueCount(self):
@@ -153,7 +157,6 @@ class NameTree:
 
         if cut_node is not None:
             cut_node.cutDown()
-            cut_node.clear()
 
     # -------------------------------------------------------------------------
     def print(self, deep=0):  # XXX for DEBUG
@@ -185,7 +188,7 @@ class NameTable:
     def keys(self):
         for node in self.root.descendants():
             if node.hasValue():
-                yield node.name()
+                yield node.name
 
     def values(self):
         for name in self.keys():
@@ -252,14 +255,14 @@ class NameTable:
         name_node = self.root.longest(name)
         for pre_node in name_node.forebears():
             if pre_node.hasValue():
-                yield pre_node.name()
+                yield pre_node.name
 
     def descendant(self, name) -> iter:  # 有效子孙(含自己)生成器 (先根序)
         name_node = self.root.get(name)
         if name_node is not None:
             for pre_node in name_node.descendants():
                 if pre_node.hasValue():
-                    yield pre_node.name()
+                    yield pre_node.name
         else:
             raise StopIteration
 

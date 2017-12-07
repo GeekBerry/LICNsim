@@ -13,7 +13,7 @@ class ChannelBase:
 class Channel(ChannelBase):
     """
     Announces:
-        send -> transfer -> loss/receive
+        send -> transfer -> loss/arrive
     """
     def __init__(self, rate: int, delay: int, loss: float):
         self.bucket= LeakBucket(rate, INF)

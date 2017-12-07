@@ -3,6 +3,8 @@ logging.basicConfig(level=logging.INFO)
 
 import math
 import random
+from collections import defaultdict
+
 
 # import sys
 # INF= sys.maxsize  # 无穷大
@@ -55,11 +57,8 @@ def outer_join(d1:dict, d2:dict)->dict:
     """
     >>> d1= {1:100, 2:200}
     >>> d2= {1:100, 3:300}
-    >>> d= outer_join(d1, d2)
-    >>> print(d)
-    :param d1:
-    :param d2:
-    :return:
+    >>> outer_join(d1, d2)
+    {1: (100, 100), 2: (200, None), 3: (None, 300)}
     """
     d= {}
 
@@ -70,19 +69,6 @@ def outer_join(d1:dict, d2:dict)->dict:
         d[key]= d1.get(key), d2.get(key)
 
     return d
-
-
-if __name__ == '__main__':
-    d1= {1:100, 2:200}
-    d2= {1:100, 3:300}
-    d= outer_join(d1, d2)
-    print(d)  # {1: (100, 100), 2: (200, None), 3: (None, 300)}
-
-
-
-
-
-
 
 
 

@@ -1,8 +1,8 @@
 from core import DataBaseTable, clock, Packet
-from module import MoudleBase
+from module import ModuleBase
 
 
-class DBMoudle(MoudleBase):
+class DBModule(ModuleBase):
     def __init__(self):
         self.db_table = DataBaseTable().create('name', 'time',
                                                store_num=0, evict_num=0,

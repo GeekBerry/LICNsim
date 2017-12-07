@@ -1,6 +1,6 @@
 import numpy, random
 from core import Timer
-from module import MoudleBase
+from module import ModuleBase
 
 
 class FixedAsk:
@@ -45,7 +45,7 @@ class UniformDistribute:
         return random.sample(self.node_ids, num)
 
 
-class AskMoudle(MoudleBase):
+class AskModule(ModuleBase):
     def __init__(self, packet, num_asker, pos_asker, delta=1, delay=0):
         self.timer = Timer(self._ask)
         self.timer.timing(delay)

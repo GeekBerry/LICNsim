@@ -10,7 +10,7 @@ sim = Simulator()
 sim.install('hub', HubModule())
 sim.install('name_monitor', NameMonitor())
 sim.install('node_monitor', NodeMonitor())
-sim.install('log', LogMoudle())
+sim.install('log', LogModule())
 sim.install('gui', GUIModule())
 
 
@@ -30,4 +30,4 @@ node_i= sim.node('a1')
 node_d.store(dp_A)
 node_i.ask(ip_A)
 
-sim.show()
+sim.showGUI()

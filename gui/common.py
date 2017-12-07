@@ -10,7 +10,7 @@ def HotColor(value):
 
 def DeepColor(value, color=QColor(Qt.red)):  # h:0.0为红色
     h, s, v, a = color.getHsvF()
-    return QColor.fromHsvF(h, value, v, a)
+    return QColor.fromHsvF(h, s, v, value)
 
 
 # ================================================================================

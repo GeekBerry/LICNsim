@@ -1,8 +1,8 @@
 from core import clock, Timer
-from module import MoudleBase
+from module import ModuleBase
 
 
-class ReporterModule(MoudleBase):
+class ReporterModule(ModuleBase):
     REPORT_FIELD= ['Time', 'CSNum', 'Store', 'Evict', 'AskNum', 'StepDist', 'AllDist']
 
     def __init__(self, db_table, delta, file_name=None):

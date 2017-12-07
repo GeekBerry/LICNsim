@@ -16,6 +16,15 @@ def OneStepChannel():
 
 
 # ======================================================================================================================
+import cProfile, pstats
+
+def prcfile(code):
+    cProfile.run(code, 'cProfile.result')
+    p = pstats.Stats('cProfile.result')
+    p.strip_dirs().sort_stats('tottime').print_stats(20)  # cumulative, tottime, cumtime
+
+
+# ======================================================================================================================
 import itertools
 import traceback
 import types
