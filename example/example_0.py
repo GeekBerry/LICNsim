@@ -20,8 +20,8 @@ node_i= ExampleNode()
 sim.addICNNode('A', node_d)
 sim.addICNNode('B', node_i)
 
-sim.addICNEdge('A', 'B', OneStepChannel())
-sim.addICNEdge('B', 'A', OneStepChannel())
+sim.addICNEdge('A', 'B', Channel(INF, 1, 0.0))
+sim.addICNEdge('B', 'A', Channel(INF, 1, 0.0))
 
 node_d.store(dp_A)
 node_i.ask(ip_A)

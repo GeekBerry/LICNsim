@@ -1,41 +1,53 @@
+import numpy
 from core import Hardware
 from unit import *
 
 
 class NodeBase(Hardware):
     def __init__(self):
-        """
-        :param pos: 位置 (x,y)
-        """
         super().__init__()
-        # self.pos = (0,0)
+        self.node_type = 'router'
+        self.pos = (0,0)
 
 
-class ExampleNode(NodeBase):
-    def __init__(self):
-        super().__init__()
-        self.install('face', FaceUnit(nonce_life_time=100_000))
-        self.install('app', AppUnit())  # 必须安装在FaceUnit后, 才能建立APPChannel
+def nodeFactory(
+        node_type='router',
+        nonce_life_time=100_000,
+        cs_capacity=None,
+        replace_mode= 'FIFO',
+        evict_mode=None,
+        evict_life_time=None,
+        ForwardType=ForwardUnitBase,
+        forward_rate=1,
+        forward_capacity=INF,
+):
+    def factor():
+        node = NodeBase()
+        assert node_type in ('server', 'router', 'client')
+        node.node_type = node_type
 
-        self.install('cs', ContentStore(capacity=10_000))
-        self.install('replace', ReplaceUnit(mode='FIFO'))
-        self.install('evict', CSEvictUnit(life_time=100, mode='FIFO'))
+        node.pos= numpy.random.rand(2) * 1000  # 给出一个 (0~1000, 0~1000) 的随机位置信息
 
-        self.install('info', InfoUnit())  # 安装在 ForwardUnit 前, InfoUnit 才能先行处理 inPack 信号
-        self.install('forward', GuidedForwardUnit(rate=1, capacity=INF))
+        node.install('face', FaceUnit(nonce_life_time=nonce_life_time))
+        node.install('app', AppUnit())  # 必须安装在FaceUnit后, 才能建立APPChannel
 
-        self.store = self.api['CS.store']
-        self.ask = self.api['App.ask']
+        if cs_capacity is not None:
+            node.install('cs', ContentStore(capacity=cs_capacity))
+            node.install('replace', ReplaceUnit(mode=replace_mode))
+
+        if evict_mode is not None:
+            assert evict_mode in CSEvictUnit.MODE_TYPES
+            assert evict_life_time is not None
+            node.install('evict', CSEvictUnit(life_time=evict_life_time, mode=evict_mode))
+
+        node.install('info', InfoUnit())  # 安装在 ForwardUnit 前, InfoUnit 才能先行处理 inPack 信号
+        node.install('forward', ForwardType(rate=forward_rate, capacity=forward_capacity))
+
+        node.store = node.api['CS.store']
+        node.ask = node.api['App.ask']
+        return node
+
+    return factor
 
 
 
-class ClientNodeBase(ExampleNode):
-    pass
-
-
-class RouterNodeBase(ExampleNode):
-    pass
-
-
-class ServerNodeBase(ExampleNode):
-    pass

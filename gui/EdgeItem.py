@@ -29,7 +29,8 @@ class EdgeItem(QGraphicsItem):
     OFFSET = 8  # 方向线偏离中心线的距离
     MIN_ARROW_WIDTH, MAX_ARROW_WIDTH = 1, 8
 
-    double_click_callback= EMPTY_FUNC
+    double_click_callback = EMPTY_FUNC
+
     def __init__(self, edge_id):
         super().__init__()
         self.setZValue(1)
@@ -44,13 +45,14 @@ class EdgeItem(QGraphicsItem):
             'name': f'Edge{edge_id}',
             'color': Qt.black,
             'width': 0.5,  # 0~1 的中间值
+            'line': Qt.SolidLine,
             'show_arrow': False,
 
             'text': '',
             'text_color': Qt.black,
             'show_text': False,
         }
-        self.hover= False
+        self.hover = False
 
     def type(self):
         return QGraphicsItem.UserType + abs(hash(EdgeItem))
@@ -101,8 +103,7 @@ class EdgeItem(QGraphicsItem):
         if self.style['show_arrow'] or self.hover:
             width = threshold(0.0, self.style['width'], 1.0)
             width = width * (self.MAX_ARROW_WIDTH - self.MIN_ARROW_WIDTH) + self.MIN_ARROW_WIDTH
-
-            painter.setPen(QPen(self.style['color'], width))
+            painter.setPen(QPen(self.style['color'], width, self.style['line']))
             painter.setBrush(self.style['color'])
             painter.drawPolygon(self.arrow_polygon)
         else:
@@ -123,12 +124,12 @@ class EdgeItem(QGraphicsItem):
         super().mouseDoubleClickEvent(event)
 
     def hoverEnterEvent(self, event):
-        self.hover= True
+        self.hover = True
         self.update()
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
-        self.hover= False
+        self.hover = False
         self.update()
         super().hoverLeaveEvent(event)
 

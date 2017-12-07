@@ -1,12 +1,7 @@
 
 
-import math
+import numpy
 
-from itertools import count
 
-def expNum():
-    for i in count():
-        yield math.exp(-i/1000)
-
-for i, v in zip(range(1000), expNum()):
-    print(i,v)
+a= numpy.random.rand(2)
+print(a)

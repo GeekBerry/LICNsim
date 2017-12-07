@@ -4,15 +4,17 @@ from core import *
 from unit.node import *
 from unit.channel import *
 from module import *
+from module.loss_module import LossMonitor
 from debug import *
 
 sim = Simulator()
 sim.install('hub', HubModule())
+sim.install('loss', LossMonitor())
+
 sim.install('name_monitor', NameMonitor())
 sim.install('node_monitor', NodeMonitor())
 sim.install('log', LogModule())
 sim.install('gui', GUIModule())
-
 
 # from experiment.test_bed_graph import test_bed_graph
 # graph = networkx.random_regular_graph(3, 20)
@@ -20,14 +22,20 @@ sim.install('gui', GUIModule())
 # graph= test_bed_graph
 
 
-sim.createGraph({'A':['B']}, RouterNodeBase, OneStepChannel)
-sim.createGraph({'A':['a1', 'a2']}, ServerNodeBase, OneStepChannel)
-sim.createGraph({'B':['b1', 'b2']}, ClientNodeBase, OneStepChannel)
+sim.createGraph({'A':['B']}, nodeFactory(node_type='router', cs_capacity= 1000), channelFactor(channel_type='wired'))
+sim.createGraph({'A':['s1', 's2']}, nodeFactory(node_type='server', cs_capacity= 1000), channelFactor(channel_type='wired'))
+sim.createGraph({'B':['c1', 'c2']}, nodeFactory(node_type='client'), channelFactor(channel_type='wireless'))
 
-node_d= sim.node('b1')
-node_i= sim.node('a1')
+sim.node('A').pos= (0, 0)
+sim.node('B').pos= (500, 0)
 
-node_d.store(dp_A)
-node_i.ask(ip_A)
+sim.node('s1').pos= (0, 500)
+sim.node('s2').pos= (0, -500)
+
+sim.node('c1').pos= (500, 500)
+sim.node('c2').pos= (500, -500)
+
+sim.node('s1').store(dp_A)
+sim.node('c1').ask(ip_A)
 
 sim.showGUI()

@@ -4,10 +4,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPixmap
 
 from config import *
-from core import threshold, normalizeINF, strPercent, Name, clock
-from unit.node import ClientNodeBase, RouterNodeBase, ServerNodeBase
+from core import threshold, normalizeINF, strPercent, Name
 from gui import HotColor, DeepColor
-from debug import showCall
 
 
 class Painter:
@@ -33,14 +31,14 @@ class Painter:
             self.drawEdge(edge_id)
 
     def drawNode(self, node_id):
-        style= self.renderNode(node_id)
+        style = self.renderNode(node_id)
         self.api['Scene.renderNode'](node_id, style)
 
     def renderNode(self, node_id) -> dict:
         raise NotImplementedError
 
     def drawEdge(self, edge_id):
-        style= self.renderEdge(edge_id)
+        style = self.renderEdge(edge_id)
         self.api['Scene.renderEdge'](edge_id, style)
 
     def renderEdge(self, edge_id) -> dict:
@@ -48,6 +46,7 @@ class Painter:
         return {
             'color': Qt.lightGray,
             'width': 0.5,
+            'line': Qt.SolidLine,
             'show_arrow': False,
             'text': '',
             'show_text': False
@@ -56,18 +55,29 @@ class Painter:
 
 # ======================================================================================================================
 class PropertyPainter(Painter):
-    RED_DELAY= 25  # 当icn_edg 为 RED_DELAY 时, 边为红色
+    RED_DELAY = 25  # 当icn_edg 为 RED_DELAY 时, 边为红色
     background_color = QColor(240, 240, 240)
 
     def __init__(self, announces, api):
         super().__init__(announces, api)
+        self.NODE_PIXMPA_TABLE = {
+            'client': QPixmap(CLIENT_NDOE_IMAGE),
+            'router': QPixmap(ROUTE_NDOE_IMAGE),
+            'server': QPixmap(SERVER_NDOE_IMAGE),
+        }
+
+        self.LINE_STYLE_TABLE = {
+            'wired': Qt.SolidLine,
+            'wireless': Qt.DotLine,
+        }
 
     def renderNode(self, node_id) -> dict:
         icn_node = self.api['Sim.node'](node_id)
         assert icn_node is not None
 
-        size= 0.5
-        text= ''
+        size = 0.5
+        text = ''
+        shape = 'Pie'
 
         cs_unit = icn_node.units.get('cs', None)
         if cs_unit is not None:
@@ -75,18 +85,11 @@ class PropertyPainter(Painter):
             text += f'CS 容量{cs_unit.capacity}\n'
 
         if hasattr(icn_node, 'pos'):
-            x, y= icn_node.pos
+            x, y = icn_node.pos
             text += f'位置({round(x, 2)}, {round(y, 2)})\n'
 
-        # 根据 icn_node 类型决定图标
-        if isinstance(icn_node, ClientNodeBase):
-            shape = QPixmap(CLIENT_NDOE_IMAGE)
-        elif isinstance(icn_node, RouterNodeBase):
-            shape = QPixmap(ROUTE_NDOE_IMAGE)
-        elif isinstance(icn_node, ServerNodeBase):
-            shape = QPixmap(SERVER_NDOE_IMAGE)
-        else:
-            shape = 'Pie'
+        if hasattr(icn_node, 'node_type'):  # 根据 icn_node 类型决定图标
+            shape = self.NODE_PIXMPA_TABLE[icn_node.node_type]
 
         return {
             'shape': shape,
@@ -100,16 +103,21 @@ class PropertyPainter(Painter):
         icn_edge = self.api['Sim.edge'](edge_id)
         assert icn_edge is not None  # DEBUG
 
-        color = HotColor(threshold(0.0, icn_edge.delay/self.RED_DELAY, 1.0))
-        color = DeepColor(1-icn_edge.loss, color)
+        color = HotColor(threshold(0.0, icn_edge.delay / self.RED_DELAY, 1.0))
+        color = DeepColor(1 - icn_edge.loss, color)
 
         width = normalizeINF(icn_edge.rate)
+
+        line = Qt.SolidLine
+        if hasattr(icn_edge, 'channel_type'):  # 根据 icn_edge 类型决定线段类型
+            line = self.LINE_STYLE_TABLE[icn_edge.channel_type]
 
         text = f'速率 {icn_edge.rate}\n延迟 {icn_edge.delay}\n丢包率 {strPercent(icn_edge.loss)}'
         return {
             'color': color,
             'width': width,
             'show_arrow': True,
+            'line': line,
             'text': text,
             'show_text': False
         }
@@ -118,7 +126,7 @@ class PropertyPainter(Painter):
 # ======================================================================================================================
 class NameStorePainter(Painter):
     background_color = QColor(255, 220, 220)
-    name_table= None
+    name_table = None
 
     EMPTY_COLOR = Qt.lightGray
     STORE_COLOR = TRANS_D_COLOR = QColor(255, 0, 0)
@@ -138,13 +146,12 @@ class NameStorePainter(Painter):
             if self.visible:
                 self.refresh()
 
-    @showCall
     def refresh(self):
         self.name_table = self.api['NameMonitor.table']()
         if self.name_table is not None:
             self.prepareColor()
             super().refresh()
-        # else 没有安装 NameMonitor ？？？  TODO raise something
+            # else 没有安装 NameMonitor ？？？  TODO raise something
 
     def prepareColor(self):
         self.nodes_color = defaultdict(lambda: self.EMPTY_COLOR)  # {node_id:color, ...}
@@ -156,7 +163,8 @@ class NameStorePainter(Painter):
                 self.nodes_color[node_id] = self.PEND_COLOR if (sub_name == self.show_name) else self.WEAK_PEND_COLOR
 
             for edge_id in record.trans_i:
-                self.edges_color[edge_id] = self.TRANS_I_COLOR if (sub_name == self.show_name) else self.WEAK_TRANS_I_COLOR
+                self.edges_color[edge_id] = self.TRANS_I_COLOR if (
+                sub_name == self.show_name) else self.WEAK_TRANS_I_COLOR
         # 后描绘数据情况，以覆盖同请求相交的部分
         for sub_name in self.name_table.descendant(self.show_name):  # 对于数据包，查找后缀
             record = self.name_table[sub_name]
@@ -164,7 +172,8 @@ class NameStorePainter(Painter):
                 self.nodes_color[node_id] = self.STORE_COLOR if (sub_name == self.show_name) else self.WEAK_STORE_COLOR
 
             for edge_id in record.trans_d:
-                self.edges_color[edge_id] = self.TRANS_D_COLOR if (sub_name == self.show_name) else self.WEAK_TRANS_D_COLOR
+                self.edges_color[edge_id] = self.TRANS_D_COLOR if (
+                sub_name == self.show_name) else self.WEAK_TRANS_D_COLOR
         return True
 
     def renderNode(self, node_id) -> dict:
@@ -189,14 +198,14 @@ class NameStorePainter(Painter):
 
 # ======================================================================================================================
 class HitRatioPainter(Painter):
-    node_table= None
+    node_table = None
     background_color = QColor(220, 255, 220)
 
     def refresh(self):
         self.node_table = self.api['NodeMonitor.table']()
         if self.node_table is not None:
             super().refresh()
-        # else 没有安装 NodeMonitor ？？？ TODO raise something
+            # else 没有安装 NodeMonitor ？？？ TODO raise something
 
     def renderNode(self, node_id) -> dict:
         record = self.node_table[node_id]
@@ -222,7 +231,7 @@ class OccupyPainter(Painter):
         self.edge_table = self.api['EdgeMonitor.table']()
         if (self.node_table is not None) and (self.edge_table is not None):
             super().refresh()
-        # else 没有安装 NodeMonitor 或 EdgeMonitor ？？？ TODO raise something
+            # else 没有安装 NodeMonitor 或 EdgeMonitor ？？？ TODO raise something
 
     def renderNode(self, node_id) -> dict:
         record = self.node_table[node_id]
@@ -243,7 +252,7 @@ class OccupyPainter(Painter):
         }
 
     def renderEdge(self, edge_id) -> dict:
-        record= self.edge_table[edge_id]
+        record = self.edge_table[edge_id]
         occupy = record.sendOccupy()
         color = HotColor(occupy)
         text = f'占用率: {strPercent(occupy)}'

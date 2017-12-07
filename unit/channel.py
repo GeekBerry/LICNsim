@@ -15,8 +15,9 @@ class Channel(ChannelBase):
     Announces:
         send -> transfer -> loss/arrive
     """
+
     def __init__(self, rate: int, delay: int, loss: float):
-        self.bucket= LeakBucket(rate, INF)
+        self.bucket = LeakBucket(rate, INF)
         self.bucket.pop = self.transfer
 
         self.delay = delay
@@ -48,3 +49,13 @@ class Channel(ChannelBase):
         else:
             self.announces['arrive'](packet)
             self.receiver(packet)
+
+
+def channelFactor(channel_type='wired', rate=INF, delay=0.0, loss=0.0):
+    def factor():
+        channel = Channel(rate, delay, loss)
+        assert channel_type in ('wired', 'wireless')
+        channel.channel_type = channel_type
+        return channel
+
+    return factor

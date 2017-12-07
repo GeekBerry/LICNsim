@@ -4,13 +4,13 @@ from core import Packet, Unit
 
 class InfoUnit(Unit):
     def __init__(self):
-        self.pit= defaultdict(set)  # {name:set(face_id,...), ...}
+        self.pit = defaultdict(set)  # {name:set(face_id,...), ...}
 
     def install(self, announces, api):
         super().install(announces, api)
         announces['inPacket'].append(self.inPacket)
         announces['outPacket'].append(self.outPacket)
-        self.api['Info.getPendIds']= self.getPindIds
+        self.api['Info.getPendIds'] = self.getPindIds
 
     def uninstall(self, announces, api):
         del api['Info.getPendIds']
@@ -26,22 +26,6 @@ class InfoUnit(Unit):
         if packet.type is Packet.DATA:
             self.pit[packet.name].discard(face_id)
 
-    def getPindIds(self, packet)->set:
+    def getPindIds(self, packet) -> set:
         # 必须新构造set, 以免Forwarder查表过程中对表进行操作，出现 RuntimeError"Set changed size during iteration"
-        return set( self.pit[packet.name] )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        return set(self.pit[packet.name])
