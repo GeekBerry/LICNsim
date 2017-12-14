@@ -113,7 +113,7 @@ class Symbol:
 
     def __mul__(self, arg):
         if type(arg) is tuple:
-            assert len(arg) == 2
+            assert len(arg) == 2  # 两个数值，起始到结束
             return SymbolRepeat(self, *arg)
 
         if type(arg) is int:

@@ -20,7 +20,6 @@ class Controller(QWidget):
             else:
                 tree_widget[key].setValues(value)
 
-    @showCall
     def refresh(self):
         for widget in self.pair_dict.values():
             if widget.isVisible() and hasattr(widget, 'refresh'):  # 可见, 且是 BindWidget
@@ -59,7 +58,6 @@ class NodeController(Controller):
             return [packet.head() for packet in self.cs_unit.table.values()]
 
     class EvictController(Controller):
-        @showCall
         def __init__(self, parent, evict_unit):
             super().__init__(parent)
             self.pair_dict['mode'] = BindComboBox(self, evict_unit, 'mode', evict_unit.MODE_TYPES)
@@ -94,11 +92,9 @@ class NodeController(Controller):
             self.io_info_unit= io_info_unit
             self.pair_dict['pit'] = BindTable(self, ('Name','FaceIds'), self.getPITRows)
 
-        @showCall
         def getPITRows(self):
             return list(self.io_info_unit.pit.items())
 
-    @showCall
     def __init__(self, parent, icn_node):
         super().__init__(parent)
         self.pair_dict['node type'] = QLabel(icn_node.__class__.__name__)

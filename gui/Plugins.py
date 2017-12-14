@@ -45,6 +45,7 @@ class PlayerPlugin(MainWindowPlugin):
         # 安装单步按钮
         action_step = QAction('步进', self.tool_bar)
         icon = QIcon()
+
         icon.addPixmap(QPixmap(STEP_ACTION_IMAGE), QIcon.Normal, QIcon.Off)
         action_step.setIcon(icon)
         action_step.triggered.connect(self.playStep)

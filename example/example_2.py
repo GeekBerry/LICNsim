@@ -23,7 +23,7 @@ sim.install('edge_monitor', EdgeMonitor())
 sim.install('gui', GUIModule())
 
 sim.install('db', DBModule(10))
-# sim.install('statistics', StatisticsModule())
+sim.install('statistics', StatisticsModule())
 
 
 graph = networkx.grid_2d_graph(9, 9)
@@ -44,7 +44,7 @@ def uniformAsk(node_ids, packet):
     # node_id = random.choice(node_ids)
     # sim.node(node_id).ask(packet.fission())
 
-    if random.random() < 1:
+    if random.random() < 0.1:
         node_id = random.choice(node_ids)
         sim.node(node_id).ask(packet.fission())
 
@@ -56,9 +56,17 @@ def uniformAsk(node_ids, packet):
 Loop(uniformAsk, list(sim.nodes()), ip_A)
 Loop(uniformAsk, list(sim.nodes()), ip_B)
 
-if __name__ == '__main__' and 0:
+if __name__ == '__main__' and 1:
     sim.showGUI()
     # prcfile('sim.showGUI()')
+
+if __name__ == '__main__' and 0:
+    for i in range(10_000):
+        clock.step()
+
+    sim.plotNames(ip_A.name, ip_B.name)
+    # sim.plotNodes( (0,0), (4,4) )
+    sim.showPlot()
 
 if __name__ == '__main__' and 0:
     import time
@@ -69,6 +77,5 @@ if __name__ == '__main__' and 0:
     end= time.clock()
     print(end-start, clock.debug_count_event)
 
-    # sim.plotNames(ip_A.name, ip_B.name)
-    # sim.plotNodes((0,0), (4,4))
-    # sim.showPlot()
+
+
