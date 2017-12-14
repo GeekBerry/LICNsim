@@ -20,7 +20,7 @@ class NodeMonitor(ModuleBase):
 
         def forwardOccupy(self):
             try:
-                occupy= self.forward_size / (clock.time() * self.forward_rate)  # XXX 不能应对rate变化的情况
+                occupy= self.forward_size / (clock.time * self.forward_rate)  # XXX 不能应对rate变化的情况
             except ZeroDivisionError:
                 return 0.0
             else:

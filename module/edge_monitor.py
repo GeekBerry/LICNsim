@@ -12,7 +12,7 @@ class EdgeMonitor(ModuleBase):
 
         def sendOccupy(self):
             try:
-                occupy = self.send_size / (self.send_rate * clock.time())  # XXX 不能应对rate变化的情况
+                occupy = self.send_size / (self.send_rate * clock.time)  # XXX 不能应对rate变化的情况
             except ZeroDivisionError:
                 return 0.0
             else:

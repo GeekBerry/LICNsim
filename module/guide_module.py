@@ -15,7 +15,7 @@ class GuideModule(ModuleBase):
         self.graph= sim.graph
         sim.loadNodeAnnounce('csStore', self._storeEvent)
         sim.loadNodeAnnounce('csEvict', self._evictEvent)
-        sim.setNodeAPI('getNextNode', self.getNextNode)
+        sim.setNodeAPI('Guide.getForwardFace', self.getForwardFace)
 
     def _storeEvent(self, node_id, packet):
         self.table[packet.name].add(node_id)
@@ -25,7 +25,7 @@ class GuideModule(ModuleBase):
         if len(self.table[packet.name]) == 0:
             del self.table[packet.name]
 
-    def getNextNode(self, node_id, packet):
+    def getForwardFace(self, node_id, packet):
         """
         根据节点和兴趣包,给出通往数据包的下一跳节点
         :param node_id: 节点ID

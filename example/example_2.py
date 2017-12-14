@@ -12,17 +12,18 @@ from debug import prcfile
 
 sim = Simulator()
 sim.install('hub', HubModule())
+
 sim.install('guide', GuideModule())
-sim.install('loss', LossMonitor())
+# sim.install('loss', LossMonitor())
+sim.install('log', LogModule())
 
 sim.install('name_monitor', NameMonitor())
 sim.install('node_monitor', NodeMonitor())
 sim.install('edge_monitor', EdgeMonitor())
-sim.install('log', LogModule())
 sim.install('gui', GUIModule())
 
 sim.install('db', DBModule(10))
-sim.install('statistics', StatisticsModule())
+# sim.install('statistics', StatisticsModule())
 
 
 graph = networkx.grid_2d_graph(9, 9)
@@ -34,29 +35,40 @@ for node_id in sim.nodes():
     sim.node(node_id).pos = x * 100, y * 100
 
 sim.node((4, 4)).store(dp_A)
-sim.node((0, 0)).store(dp_A1)
+sim.node((4, 4)).store(dp_B)
 
 
 import math
 def uniformAsk(node_ids, packet):
-    if random.random() < math.exp(-clock.time()/1000):
+    # node_ids=(0,0), (8,8), (0,8), (8,0)
+    # node_id = random.choice(node_ids)
+    # sim.node(node_id).ask(packet.fission())
+
+    if random.random() < 1:
         node_id = random.choice(node_ids)
         sim.node(node_id).ask(packet.fission())
 
+    # if random.random() < math.exp(-clock.time/1000):
+    #     node_id = random.choice(node_ids)
+    #     sim.node(node_id).ask(packet.fission())
+
 
 Loop(uniformAsk, list(sim.nodes()), ip_A)
-Loop(uniformAsk, list(sim.nodes()), ip_A1)
+Loop(uniformAsk, list(sim.nodes()), ip_B)
 
+if __name__ == '__main__' and 0:
+    sim.showGUI()
+    # prcfile('sim.showGUI()')
 
-# sim.showGUI()
+if __name__ == '__main__' and 0:
+    import time
 
-# prcfile('sim.show()')
+    start= time.clock()
+    for i in range(2_000):
+        clock.step()
+    end= time.clock()
+    print(end-start, clock.debug_count_event)
 
-for i in range(1_000):
-    clock.step()
-sim.plotNames(ip_A.name, ip_A1.name)
-sim.plotNodes((4,3), (4,4))
-sim.showPlot()
-
-
-
+    # sim.plotNames(ip_A.name, ip_B.name)
+    # sim.plotNodes((0,0), (4,4))
+    # sim.showPlot()

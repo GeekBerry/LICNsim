@@ -18,7 +18,7 @@ NodePlotEntry = TupleClass('pos', 'title', 'field')
 NODE_PLOT_ENTRYS = [
     NodePlotEntry((2, 2, 1), 'Receive Number', 'receives'),
     NodePlotEntry((2, 2, 2), 'Send Packets Number', 'sends'),
-    NodePlotEntry((2, 2, 3), 'EvictNumber', 'evict'),
+    NodePlotEntry((2, 2, 3), 'Used Ratio', 'used_ratio'),
     NodePlotEntry((2, 2, 4), 'Hit Ratio', 'hit_ratio'),
 ]
 
@@ -42,6 +42,7 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
 
     def frameName(self, name):
         table = self.selectWhere(name=name)
+        assert len(table) > 0  # 否则就是名字查找失败  TODO 抛出 KeyError
         frame = DataFrame(table)
         frame = frame.groupby('time').sum()
         frame['sends'] = frame['out_interest'] + frame['out_data']
@@ -58,7 +59,7 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
             plt.title(entry.title)  # 设置图说明
 
             for name, frame in frame_table.items():  # 逐条绘制 name 比较曲线
-                plt.plot(frame.index, frame[entry.field], label=str(name))
+                plt.plot(frame.index, frame[entry.field], label=str(name), )
 
             plt.grid(True)  # 添加网格
             plt.legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)  # 添加图例
@@ -66,10 +67,12 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
     # -------------------------------------------------------------------------
     def frameNode(self, node_id):
         table = self.selectWhere(node_id=node_id)
+        assert len(table) > 0  # 否则就是节点查找失败  TODO 抛出 KeyError
         frame = DataFrame(table)
         frame = frame.groupby('time').sum()
         frame['receives'] = frame['in_interest'] + frame['in_data']
         frame['sends'] = frame['out_interest'] + frame['out_data']
+        frame['used_ratio'] = frame['hit'].cumsum() / frame['evict'].cumsum()
         frame['hit_ratio'] = frame['hit'].cumsum() / (frame['hit'] + frame['miss']).cumsum()
         return frame
 

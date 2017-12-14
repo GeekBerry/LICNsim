@@ -1,8 +1,8 @@
 from collections import defaultdict
-from core import Packet, Unit
+from core import Packet, Unit, clock
 
 
-class InfoUnit(Unit):
+class IOInfoUnit(Unit):
     def __init__(self):
         self.pit = defaultdict(set)  # {name:set(face_id,...), ...}
 
@@ -25,7 +25,12 @@ class InfoUnit(Unit):
     def outPacket(self, face_id, packet):
         if packet.type is Packet.DATA:
             self.pit[packet.name].discard(face_id)
+            if not self.pit[packet.name]:
+                del self.pit[packet.name]
 
     def getPindIds(self, packet) -> set:
-        # 必须新构造set, 以免Forwarder查表过程中对表进行操作，出现 RuntimeError"Set changed size during iteration"
-        return set(self.pit[packet.name])
+        if packet.name in self.pit:
+            # 必须新构造set, 以免Forwarder查表过程中对表进行操作，出现 RuntimeError"Set changed size during iteration"
+            return set(self.pit[packet.name])
+        else:
+            return set()

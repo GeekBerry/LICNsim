@@ -9,7 +9,6 @@ class LossMonitor(ModuleBase):
         sim.announces['playSteps'].append(self.playSteps)
         self.api = sim.api
 
-    @showCall
     def playSteps(self, steps):
         self.graph = self.api['Sim.graph']()
 
@@ -18,11 +17,11 @@ class LossMonitor(ModuleBase):
 
             if icn_edge.channel_type == 'wireless':  # 对无线信道进行变化
                 distance = self.getEuclideanDistance(*edge_id)
-                icn_edge.delay = self.getDelay(distance, speed= 100)  # 单位 1/step FIXME speed 不要写死
+                icn_edge.delay = self.getDelay(distance, speed= 10)  # 单位 1/step FIXME speed 不要写死
                 icn_edge.loss = self.getLossRata(distance, half_life= 1000)  # 单位 step FIXME half_life 不要写死
             elif icn_edge.channel_type == 'wired':  # 对有线信道的变化
                 distance = self.getManhattanDistance(*edge_id)
-                icn_edge.delay = self.getDelay(distance, speed= 1000)  # 单位 1/step FIXME speed 不要写死
+                icn_edge.delay = self.getDelay(distance, speed= 100)  # 单位 1/step FIXME speed 不要写死
                 icn_edge.loss = self.getLossRata(distance, half_life= 10000)  # 单位 step FIXME half_life 不要写死
 
     def getDelay(self, distance, speed)->int:

@@ -30,7 +30,7 @@ class DBModule(ModuleBase):
         sim.api['DBModule.getFields']= self.db_table.getFields
 
     def timeIndex(self):
-        return (clock.time() // self.delta) * self.delta
+        return (clock.time // self.delta) * self.delta
 
     def _askEvent(self, node_id, packet):
         self.db_table[self.timeIndex(), packet.name, node_id]['ask'] += 1

@@ -29,3 +29,4 @@ class GUIModule(ModuleBase):
         self.main_window.show()
         self.announces['playSteps'](0)  # 在此发布 playSteps，以初始化各个窗口部件
         self.app.exec_()
+

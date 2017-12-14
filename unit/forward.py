@@ -56,6 +56,6 @@ class ForwardUnitBase(Unit):
 
 class GuidedForwardUnit(ForwardUnitBase):
     def missEvent(self, face_id, packet):
-        fwd_id = self.api['getNextNode'](packet)
+        fwd_id = self.api['Guide.getForwardFace'](packet)
         if fwd_id is not None:
             self.api['Face.sends']([fwd_id], packet)

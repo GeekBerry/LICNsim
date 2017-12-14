@@ -58,16 +58,15 @@ class PlayerPlugin(MainWindowPlugin):
         self.tool_bar.addWidget(self.steps_spin)
 
         # TODO 进度条
-        self.lable = QLabel(f'current_time: {clock.time()}')
+        self.lable = QLabel(f'current_time: {clock.time}')
         main_window.statusBar().addPermanentWidget(self.lable)  # addWidget 或者 addPermanentWidget
 
     def playStep(self, is_triggered=False):
         # TODO 锁住仪表盘
         steps = self.steps_spin.value()
-
         for i in range(0, steps):
             clock.step()
-        self.lable.setText(f'current_time: {clock.time()}')
+        self.lable.setText(f'current_time: {clock.time}')
         self.announces['playSteps'](steps)
 
     def playSteps(self):

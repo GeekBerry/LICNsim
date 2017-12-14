@@ -2,11 +2,11 @@ from core import DataBaseTable, Unit, clock
 
 
 class ReplaceUnit(Unit):
-    MODE_FIELD_MAP = {'FIFO': 'c_time', 'LRU': 'a_time', 'LFU': 'hit_count'}
+    MODE_FIELD_MAP = {'FIFO': 'c_time', 'LRU': 'a_time', 'LFU': 'a_count'}
 
     def __init__(self, mode='FIFO'):
-        self.db_table= DataBaseTable().create('name', c_time= None, a_time= None, hit_count=0)
-        self.db_table.createIndexs('c_time', 'a_time', 'hit_count')
+        self.db_table= DataBaseTable().create('name', c_time= None, a_time= None, a_count=0)
+        self.db_table.createIndexs('c_time', 'a_time', 'a_count')
         self._mode = mode
 
     def install(self, announces, api):
@@ -19,12 +19,12 @@ class ReplaceUnit(Unit):
         api['Replace.setMode']= lambda value: setattr(self, 'mode', value)
 
     def store(self, packet):
-        cur_time= clock.time()
-        self.db_table[packet.name]= {'c_time':cur_time, 'a_time':cur_time, 'hit_count':1}
+        cur_time= clock.time
+        self.db_table[packet.name]= {'c_time':cur_time, 'a_time':cur_time, 'a_count':1}
 
     def hit(self, packet):
-        self.db_table[packet.name]['a_time']= clock.time()
-        self.db_table[packet.name]['hit_count'] += 1
+        self.db_table[packet.name]['a_time']= clock.time
+        self.db_table[packet.name]['a_count'] += 1
 
     def miss(self, packet):
         pass

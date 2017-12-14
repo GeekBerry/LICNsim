@@ -48,12 +48,12 @@ class CSEvictUnit(Unit):
 
 if __name__ == '__main__':
     from core import clock, AnnounceTable, CallTable
-    from unit import ContentStore
+    from unit import ContentStoreUnit
     from debug import *
 
     anno, api = AnnounceTable(), CallTable()
 
-    cs = ContentStore()
+    cs = ContentStoreUnit()
     cs.install(anno, api)
 
     evict = CSEvictUnit(6, 'FIFO')
@@ -62,12 +62,12 @@ if __name__ == '__main__':
     cs.store(dp_A)
 
     for i in range(5):
-        print(clock.time(), cs.table)
+        print(clock.time, cs.table)
         clock.step()
 
     data = cs.match(ip_A)
     print(ip_A, data)
 
     for i in range(10):
-        print(clock.time(), cs.table)
+        print(clock.time, cs.table)
         clock.step()

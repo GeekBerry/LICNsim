@@ -267,7 +267,7 @@ class TimeSet:
         return item in self.table
 
     def add(self, var):
-        self.table[var] = clock.time()
+        self.table[var] = clock.time
         clock.timing(self.life_time, self.checkDel, var)
 
     def discard(self, var):
@@ -278,7 +278,7 @@ class TimeSet:
 
     def checkDel(self, var):
         add_time = self.table.get(var)
-        if (add_time is not None) and (add_time + self.life_time <= clock.time()):
+        if (add_time is not None) and (add_time + self.life_time <= clock.time):
             del self.table[var]
 
     def __str__(self):
@@ -343,8 +343,8 @@ class Buffer:
             self.check()
 
     def check(self):
-        if self.last_check_time != clock.time():
-            self.last_check_time = clock.time()
+        if self.last_check_time != clock.time:
+            self.last_check_time = clock.time
             self._rest = self.rate  # 复位剩余处理
 
         while self.queue:
@@ -427,14 +427,14 @@ class LeakBucket:
                 break
 
     def reset(self):
-        if self._last_reset_time != clock.time():
-            if self._last_reset_time == clock.time() - 1:
+        if self._last_reset_time != clock.time:
+            if self._last_reset_time == clock.time - 1:
                 self._occupy = self.rate - self._rest
             else:
                 self._occupy = 0
 
             self._rest = self.rate
-            self._last_reset_time = clock.time()
+            self._last_reset_time = clock.time
 
 
 # if __name__ == '__main__':
@@ -446,7 +446,7 @@ class LeakBucket:
 #     lb.append('B', size=0.7)
 #
 #     for i in range(11):
-#         print('Time:', clock.time())
+#         print('Time:', clock.time)
 #         clock.step()
 
 # if __name__ == '__main__':
@@ -454,17 +454,17 @@ class LeakBucket:
 #     lb.pop = lambda value: print('pop', value)
 #     lb.overflow = lambda value: print('overflow', value)
 #
-#     print('Time:', clock.time())
+#     print('Time:', clock.time)
 #     lb.append('A', size=1)
 #     lb.append('B', size=2)
 #     lb.append('C', size=1)
 #     lb.append('D', size=3)
 #     clock.step()
 #
-#     print('Time:', clock.time())
+#     print('Time:', clock.time)
 #     clock.step()
 #
-#     print('Time:', clock.time())
+#     print('Time:', clock.time)
 #     clock.step()
 
 # ---------------------  专用数据结构定义  ----------------------------

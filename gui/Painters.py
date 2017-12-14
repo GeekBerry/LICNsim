@@ -55,7 +55,7 @@ class Painter:
 
 # ======================================================================================================================
 class PropertyPainter(Painter):
-    RED_DELAY = 25  # 当icn_edg 为 RED_DELAY 时, 边为红色
+    RED_DELAY = 100  # 当icn_edg 为 RED_DELAY 时, 边为红色
     background_color = QColor(240, 240, 240)
 
     def __init__(self, announces, api):
@@ -236,10 +236,6 @@ class OccupyPainter(Painter):
     def renderNode(self, node_id) -> dict:
         record = self.node_table[node_id]
         occupy = record.forwardOccupy()
-
-        if occupy > 1.0 or occupy < 0:
-            print(node_id, occupy)
-
         color = HotColor(occupy)
         text = f'占用率: {strPercent(occupy)}'
 

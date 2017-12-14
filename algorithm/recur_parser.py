@@ -40,12 +40,12 @@ class Stream:
     def parser(self, symbol):
         #  TODO 可以在此函数做 cache: { (index, symbol):result, ...}
         index = self.index
+
         match = symbol.match(self)
-        if match is None:
+        result= None if match is None else symbol.func(match)  # XXX match 为 None 则不再调用归约函数
+
+        if result is None:
             self.index = index
-            result = None
-        else:
-            result = symbol.func(match)
         return result
 
 

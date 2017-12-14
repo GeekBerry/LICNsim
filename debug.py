@@ -2,8 +2,10 @@ from core import Packet, Name
 
 ip_A = Packet(Name('A'), Packet.INTEREST, 1)
 ip_A1 = Packet(Name('A/1'), Packet.INTEREST, 1)
+ip_B = Packet(Name('B'), Packet.INTEREST, 1)
 dp_A = Packet(Name('A'), Packet.DATA, 500)
 dp_A1 = Packet(Name('A/1'), Packet.DATA, 500)
+dp_B = Packet(Name('B'), Packet.DATA, 500)
 
 from unit.channel import *
 
@@ -17,7 +19,7 @@ ExampleNode = nodeFactory(
     replace_mode='FIFO',
     evict_mode='FIFO',
     evict_life_time=100,
-    ForwardType=GuidedForwardUnit
+    ForwardType= GuidedForwardUnit
 )
 # ======================================================================================================================
 import cProfile, pstats

@@ -23,9 +23,9 @@ class FaceUnit(Unit):
             self.record_time= None
 
         def isRepeat(self, face_id, packet):
-            if self.record_time != clock.time():
+            if self.record_time != clock.time:
                 self.info_set.clear()
-                self.record_time= clock.time()
+                self.record_time= clock.time
 
             info_tuple= (face_id, packet.name, packet.type)
             if info_tuple not in self.info_set:  # 重复包
@@ -35,7 +35,7 @@ class FaceUnit(Unit):
                 return True
 
     # -------------------------------------------------------------------------
-    class Entry:
+    class Face:
         def __init__(self):
             self.receivable= False
             self.in_channel = None
@@ -44,7 +44,7 @@ class FaceUnit(Unit):
             self.out_channel = None
 
     def __init__(self, nonce_life_time= 100_000):
-        self.table= defaultdict(self.Entry)
+        self.table= defaultdict(self.Face)
 
         self.loop_checker= self.LoopChecker(nonce_life_time)
         self.repeat_checker= self.RepeatChecker()

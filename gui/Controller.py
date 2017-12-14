@@ -88,12 +88,26 @@ class NodeController(Controller):
             for face_id, entry in face_unit.table.items():
                 self.pair_dict[face_id] = self.EntryController(self, entry)
 
+    class IOInfoContorller(Controller):
+        def __init__(self, parent, io_info_unit):
+            super().__init__(parent)
+            self.io_info_unit= io_info_unit
+            self.pair_dict['pit'] = BindTable(self, ('Name','FaceIds'), self.getPITRows)
+
+        @showCall
+        def getPITRows(self):
+            return list(self.io_info_unit.pit.items())
+
     @showCall
     def __init__(self, parent, icn_node):
         super().__init__(parent)
         self.pair_dict['node type'] = QLabel(icn_node.__class__.__name__)
 
         # XXX 以什么作unit判断依据? key 还是 unit 的类型?
+        unit = icn_node.units.get('info')
+        if unit is not None:
+            self.pair_dict['IOInfoUnit'] = self.IOInfoContorller(self, unit)
+
         unit = icn_node.units.get('forward')
         if unit is not None:
             self.pair_dict['ForwardUnit'] = self.ForwardController(self, unit)

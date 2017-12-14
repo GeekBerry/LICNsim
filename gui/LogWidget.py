@@ -28,7 +28,7 @@ class QueryParser(SymbolTable):
         self['Start'] = sym(Ends, Entry, Ends, [',',None])*(0,...)
 
     def Time(self, match):
-        return 'clock.time()'
+        return 'clock.time'
 
     def Expre(self, match):
         return ''.join(match)
@@ -46,6 +46,17 @@ class QueryParser(SymbolTable):
 
     def Start(self, match):
         return ','.join([each[1] for each in match])
+
+
+if __name__ == '__main__':
+    import sys
+    from algorithm.recur_parser import DebugStream
+
+    parser= QueryParser()
+    s = DebugStream("action in ('in','out')", log_stream=sys.stdout)
+    p = s.parser(parser['Start'])
+    print(p, s.eof())
+
 
 
 @UIFrom(Ui_log_widget)
@@ -80,7 +91,7 @@ class LogWidget(QWidget):
             return  # 没有 LogMoudle ？？？
 
         self._draw(records)
-        self.__last_query_key = (clock.time(), text)
+        self.__last_query_key = (clock.time, text)
 
     def _parser(self, text):
         # 查询操作
