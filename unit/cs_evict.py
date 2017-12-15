@@ -40,7 +40,7 @@ class CSEvictUnit(Unit):
     def hit(self, packet):
         assert packet.name in self.table
         if self.mode == 'LRU':
-            self.table[packet.name].timing(self.life_time)
+            self.table[packet.name].timing(self.life_time, packet.name)
 
     def evict(self, packet):
         del self.table[packet.name]

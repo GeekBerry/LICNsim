@@ -11,9 +11,10 @@ class Event:
         return self.func is not None
 
     def execute(self)->None:
-        func, args, kwargs= self.func, self.args, self.kwargs
-        self.clear()  # XXX 要在func执行前清理, 以便执行中判断bool(event)为False
-        func(*args, **kwargs)
+        if self:
+            func, args, kwargs= self.func, self.args, self.kwargs
+            self.clear()  # XXX 要在func执行前清理, 以便执行中判断bool(event)为False
+            func(*args, **kwargs)
 
     def clear(self):
         self.func= None
@@ -31,7 +32,6 @@ class Clock:
 
     def __init__(self):
         self._time= 0  # int 当前时间
-        self.debug_count_event = 0
         self._todo= defaultdict(deque)  # { time:deque( event,...), } 要被执行的事件列表
 
     @property
@@ -43,7 +43,6 @@ class Clock:
             queue= self._todo[self._time]
             while queue:  # 特别的, 能在遍历时添加
                 queue.popleft().execute()
-                self.debug_count_event += 1
             del self._todo[self._time]
         self._time += 1
 

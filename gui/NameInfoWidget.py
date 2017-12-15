@@ -13,7 +13,11 @@ class NameInfoWidget(TreeWidget):
 
         self.announces= announces
         self.api= api
+
+        self.selected_name= Name()
+
         announces['playSteps'].append(self.playSteps)
+        api['NameInfo.selectedName']= lambda :self.selected_name
 
         self.itemClicked.connect(self.itemClickedSlot)
 
@@ -42,8 +46,8 @@ class NameInfoWidget(TreeWidget):
             self.showNameTree(tree_item[name_node.key], name_node)
 
     def itemClickedSlot(self, tree_item, col):
-        name= Name(tree_item.getPath())
-        self.announces['selectedName'](name)
+        self.selected_name= Name(tree_item.getPath())
+        self.announces['selectedName'](self.selected_name)
 
 
 

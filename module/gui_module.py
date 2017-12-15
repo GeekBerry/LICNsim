@@ -2,7 +2,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 from gui.MainWindow import MainWindow
-from gui.Plugins import PlayerPlugin, PainterPlugin, InfoDialogPlugin, NameInfoPlugin, LogPlugin, LayoutPlugin
+from gui.Plugins import PlayerPlugin, PainterPlugin, InfoDialogPlugin, NameInfoPlugin, LogPlugin, LayoutPlugin, StatisticsPlugin
 from module import ModuleBase
 
 
@@ -24,6 +24,7 @@ class GUIModule(ModuleBase):
         self.main_window.addPlugin('NameInfoPlugin', NameInfoPlugin)
         self.main_window.addPlugin('LogPlugin', LogPlugin)
         self.main_window.addPlugin('InfoDialogPlugin', InfoDialogPlugin)
+        self.main_window.addPlugin('StatisticsPlugin', StatisticsPlugin)
 
     def show(self):
         self.main_window.show()

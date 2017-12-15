@@ -27,6 +27,7 @@ class DBModule(ModuleBase):
         sim.loadNodeAnnounce('outPacket', self._outPacketEvent)
 
         sim.api['DBModule.query']= self.db_table.query
+        sim.api['DBModule.getDelta']= lambda :self.delta
         sim.api['DBModule.getFields']= self.db_table.getFields
 
     def timeIndex(self):

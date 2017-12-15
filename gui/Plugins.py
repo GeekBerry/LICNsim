@@ -27,12 +27,12 @@ class PlayerPlugin(MainWindowPlugin):
         self.step_timer.timeout.connect(self.playSteps)
         self.step_timer.setInterval(self.FRAME_DELAY)
 
-        self.tool_bar = QToolBar(main_window)
-        self.tool_bar.setWindowTitle('Play工具栏')
-        main_window.addToolBar(Qt.TopToolBarArea, self.tool_bar)
+        tool_bar = QToolBar(main_window)
+        tool_bar.setWindowTitle('Play工具栏')
+        main_window.addToolBar(Qt.TopToolBarArea, tool_bar)
 
         # 添加播放按钮
-        action_play = QAction('播放/暂停', self.tool_bar)
+        action_play = QAction('播放/暂停', tool_bar)
         action_play.setCheckable(True)
 
         icon = QIcon()
@@ -40,23 +40,23 @@ class PlayerPlugin(MainWindowPlugin):
         icon.addPixmap(QPixmap(PAUSE_ACTION_IMAGE), QIcon.Normal, QIcon.On)
         action_play.setIcon(icon)
         action_play.toggled.connect(self._playSlot)
-        self.tool_bar.addAction(action_play)
+        tool_bar.addAction(action_play)
 
         # 安装单步按钮
-        action_step = QAction('步进', self.tool_bar)
+        action_step = QAction('步进', tool_bar)
         icon = QIcon()
 
         icon.addPixmap(QPixmap(STEP_ACTION_IMAGE), QIcon.Normal, QIcon.Off)
         action_step.setIcon(icon)
         action_step.triggered.connect(self.playStep)
-        self.tool_bar.addAction(action_step)
+        tool_bar.addAction(action_step)
 
         # 安装步数显示器
-        self.steps_spin = QSpinBox(self.tool_bar)
+        self.steps_spin = QSpinBox(tool_bar)
         self.steps_spin.setRange(1, 1_000)
         self.steps_spin.setValue(self.DEFAULT_STEP_SIZE)
         self.steps_spin.setSingleStep(100)
-        self.tool_bar.addWidget(self.steps_spin)
+        tool_bar.addWidget(self.steps_spin)
 
         # TODO 进度条
         self.lable = QLabel(f'current_time: {clock.time}')
@@ -289,3 +289,68 @@ class LayoutPlugin(MainWindowPlugin):
         layout = networkx.spring_layout(graph, scale=500, iterations=50)  # scale 单位pix
         # FIXME spring_layout 中, 利用已有pos迭代, 会出现扭曲 pos= self.topology_layout
         return layout
+
+
+class StatisticsPlugin(MainWindowPlugin):
+    def __init__(self, main_window, announces, api):
+        super().__init__(main_window, announces, api)
+
+        tool_bar = QToolBar(main_window)
+        tool_bar.setWindowTitle('数据分析工具栏')
+        main_window.addToolBar(Qt.TopToolBarArea, tool_bar)
+
+        # 添加按钮
+        action_play = QAction('数据分析', tool_bar)
+        icon = QIcon()
+        # icon.addPixmap(QPixmap(STEP_ACTION_IMAGE), QIcon.Normal, QIcon.Off)
+        action_play.setIcon(icon)
+        action_play.triggered.connect(self._playSlot)
+        tool_bar.addAction(action_play)
+
+        self.api= api
+
+    @showCall
+    def _playSlot(self, is_triggered=False):
+        name= self.api['NameInfo.selectedName']()
+        self.api['Statistics.plotNames'](name)
+        self.api['Statistics.show']()
+        #
+        # from matplotlib.figure import Figure
+        # figure= Figure()
+        # axes= figure.add_subplot(1,1,1)
+        # axes.plot((0,1),(1,1))
+        # pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

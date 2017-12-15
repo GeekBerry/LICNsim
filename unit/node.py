@@ -7,17 +7,17 @@ class NodeBase(Hardware):
     def __init__(self):
         super().__init__()
         self.node_type = 'router'
-        self.pos = (0,0)
+        self.pos = (0, 0)
 
 
 def nodeFactory(
         node_type='router',
         nonce_life_time=100_000,
         cs_capacity=None,
-        replace_mode= 'FIFO',
+        replace_mode='FIFO',
         evict_mode=None,
         evict_life_time=None,
-        ForwardType= ForwardUnitBase,
+        ForwardType=ForwardUnitBase,
         forward_rate=1,
         forward_capacity=INF,
 ):
@@ -26,7 +26,7 @@ def nodeFactory(
         assert node_type in ('server', 'router', 'client')
         node.node_type = node_type
 
-        node.pos= numpy.random.rand(2) * 1000  # 给出一个 (0~1000, 0~1000) 的随机位置信息
+        node.pos = numpy.random.rand(2) * 1000  # 给出一个 (0~1000, 0~1000) 的随机位置信息
         # 安装接口模块和应用层模块
         node.install('face', FaceUnit(nonce_life_time=nonce_life_time))
         node.install('app', AppUnit())  # 必须安装在FaceUnit后, 才能建立APPChannel
@@ -48,6 +48,3 @@ def nodeFactory(
         return node
 
     return factor
-
-
-
