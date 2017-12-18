@@ -51,7 +51,7 @@ class Channel(ChannelBase):
             self.receiver(packet)
 
 
-def channelFactor(channel_type='wired', rate=INF, delay=0.0, loss=0.0):
+def channelFactor(channel_type='wired', rate=INF, delay=0, loss=0.0):
     def factor():
         channel = Channel(rate, delay, loss)
         assert channel_type in ('wired', 'wireless')

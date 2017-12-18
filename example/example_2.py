@@ -67,16 +67,16 @@ def uniformAsk(node_ids, packet):
 Loop(uniformAsk, list(sim.nodes()), ip_A)
 Loop(uniformAsk, list(sim.nodes()), ip_B)
 
-if __name__ == '__main__' and 0:
+if __name__ == '__main__' and 1:
     sim.showGUI()
     # prcfile('sim.showGUI()')
 
-if __name__ == '__main__' and 1:
+if __name__ == '__main__' and 0:
     for i in range(1_000):
         clock.step()
 
     sim.plotNames(ip_A.name, ip_B.name)
-    # sim.plotNodes((0, 0), (2, 2))
+    sim.plotNodes((0, 0), (2, 2))
     sim.showPlot()
 
 if __name__ == '__main__' and 0:

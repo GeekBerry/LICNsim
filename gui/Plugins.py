@@ -145,6 +145,13 @@ class InfoDialogPlugin(MainWindowPlugin):
         self.announces['doubleClickEdge'].append(self.showEdgeDialog)
         self.announces['closeEdgeDialog'].append(self.closeEdgeDialog)
 
+        self.lable = QLabel(f'selected_node: None')
+        main_window.statusBar().addPermanentWidget(self.lable)  # addWidget 或者 addPermanentWidget
+        announces['selectedNode'].append(self._selectedNode)
+
+    def _selectedNode(self, node_id):
+        self.lable.setText(f'selected_node: "{node_id}"')
+
     def showNodeDialog(self, node_id):
         dialog = self.node_dialog_table.get(node_id)
         if dialog is None:
@@ -281,7 +288,7 @@ class LayoutPlugin(MainWindowPlugin):
         layout = {}
         for node_id in graph:
             icn_node = self.api['Sim.node'](node_id)
-            layout[node_id] = getattr(icn_node, 'pos', (0,0))
+            layout[node_id] = getattr(icn_node, 'pos', (0, 0))
         return layout
 
     def _getTopologyLayout(self) -> dict:
@@ -294,63 +301,31 @@ class LayoutPlugin(MainWindowPlugin):
 class StatisticsPlugin(MainWindowPlugin):
     def __init__(self, main_window, announces, api):
         super().__init__(main_window, announces, api)
+        self.api = api
 
         tool_bar = QToolBar(main_window)
         tool_bar.setWindowTitle('数据分析工具栏')
         main_window.addToolBar(Qt.TopToolBarArea, tool_bar)
-
         # 添加按钮
-        action_play = QAction('数据分析', tool_bar)
-        icon = QIcon()
-        # icon.addPixmap(QPixmap(STEP_ACTION_IMAGE), QIcon.Normal, QIcon.Off)
-        action_play.setIcon(icon)
-        action_play.triggered.connect(self._playSlot)
-        tool_bar.addAction(action_play)
+        names_plot = QAction('名字分析', tool_bar)
+        names_plot.triggered.connect(self._plotNames)
+        tool_bar.addAction(names_plot)
 
-        self.api= api
+        nodes_plot = QAction('节点分析', tool_bar)
+        nodes_plot.triggered.connect(self._plotNodes)
+        tool_bar.addAction(nodes_plot)
 
     @showCall
-    def _playSlot(self, is_triggered=False):
-        name= self.api['NameInfo.selectedName']()
-        self.api['Statistics.plotNames'](name)
+    def _plotNames(self, is_triggered=False):
+        figure = self.api['Statistics.accessNamesFigure']('名字数据分析图')
+        name = self.api['NameInfo.selectedName']()
+        self.api['Statistics.drawName'](figure, name)
         self.api['Statistics.show']()
-        #
-        # from matplotlib.figure import Figure
-        # figure= Figure()
-        # axes= figure.add_subplot(1,1,1)
-        # axes.plot((0,1),(1,1))
-        # pass
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    @showCall
+    def _plotNodes(self, is_triggered=False):
+        figure = self.api['Statistics.accessNodesFigure']('节点数据分析图')
+        node_id= self.api['Scene.selectedNode']()
+        self.api['Statistics.drawNode'](figure, node_id)
+        self.api['Statistics.show']()
 

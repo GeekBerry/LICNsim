@@ -11,6 +11,19 @@ class NetScene(QGraphicsScene):
 
     def __init__(self, parent, announces, api):
         super().__init__(parent)
+        self.announces = announces
+        self.api = api
+
+        api['Scene.setBackgroundColor'] = self.setBackgroundBrush
+        api['Scene.setBackgroundPixmap'] = self.setBackgroundPixmap
+        api['Scene.setLayout'] = self.setLayout
+        api['Scene.renderNode'] = self.renderNode
+        api['Scene.renderEdge'] = self.renderEdge
+        api['Scene.selectedNode'] = lambda: self.selected_node
+
+        announces['addICNNode'].append(self.addICNNode)
+        announces['addICNEdge'].append(self.addICNEdge)
+
         self.node_table = {}  # { node_id:node_item, ... }
         self.edge_table = {}  # { edge_id:edge_item, ... }
 
@@ -18,17 +31,7 @@ class NetScene(QGraphicsScene):
         self.background_item = QGraphicsPixmapItem()
         self.addItem(self.background_item)
 
-        api['Scene.setBackgroundColor'] = self.setBackgroundBrush
-        api['Scene.setBackgroundPixmap'] = self.setBackgroundPixmap
-        api['Scene.setLayout'] = self.setLayout
-        api['Scene.renderNode'] = self.renderNode
-        api['Scene.renderEdge'] = self.renderEdge
-
-        announces['addICNNode'].append(self.addICNNode)
-        announces['addICNEdge'].append(self.addICNEdge)
-
-        self.announces = announces
-        self.api = api
+        self.selected_node = None
 
     def setLayout(self, layout):
         """
@@ -42,7 +45,7 @@ class NetScene(QGraphicsScene):
 
     def addICNNode(self, node_id):
         node_item = NodeItem(node_id)
-        node_item.press_callback = self.announces['selectedNode']
+        node_item.press_callback = self.pressNode
         node_item.release_callback = self.releaseNode
         node_item.double_click_callback = self.announces['doubleClickNode']
         node_item.move_callback = self.moveNode
@@ -95,6 +98,10 @@ class NetScene(QGraphicsScene):
         self.update()
 
     # ------------------------------------------------------------------------------------------------------------------
+    def pressNode(self, node_id):
+        self.selected_node= node_id
+        self.announces['selectedNode'](self.selected_node)
+
     def moveNode(self, src_id):
         """
         当一个节点位置变化时，调整与该节点链接的边
