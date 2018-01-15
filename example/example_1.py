@@ -1,15 +1,14 @@
-
+from debug import *
+from debug import channelFactor
 from module import *
 from module.loss_module import LossMonitor
-from debug import *
 
 sim = Simulator()
 sim.install('hub', HubModule())
 
 sim.install('loss', LossMonitor())
 
-sim.install('name_monitor', NameMonitor())
-sim.install('node_monitor', NodeMonitor())
+sim.install('monitor', MonitorModule())
 sim.install('log', LogModule())
 sim.install('gui', GUIModule())
 

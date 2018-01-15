@@ -147,7 +147,7 @@ class NameStorePainter(Painter):
                 self.refresh()
 
     def refresh(self):
-        self.name_table = self.api['NameMonitor.table']()
+        self.name_table = self.api['Monitor.getNameTable']()
         if self.name_table is not None:
             self.prepareColor()
             super().refresh()
@@ -202,7 +202,7 @@ class HitRatioPainter(Painter):
     background_color = QColor(220, 255, 220)
 
     def refresh(self):
-        self.node_table = self.api['NodeMonitor.table']()
+        self.node_table = self.api['Monitor.getNodeTable']()
         if self.node_table is not None:
             super().refresh()
             # else 没有安装 NodeMonitor ？？？ TODO raise something
@@ -227,8 +227,8 @@ class OccupyPainter(Painter):
     background_color = QColor(220, 220, 255)
 
     def refresh(self):
-        self.node_table = self.api['NodeMonitor.table']()
-        self.edge_table = self.api['EdgeMonitor.table']()
+        self.node_table = self.api['Monitor.getNodeTable']()
+        self.edge_table = self.api['Monitor.getEdgeTable']()
         if (self.node_table is not None) and (self.edge_table is not None):
             super().refresh()
             # else 没有安装 NodeMonitor 或 EdgeMonitor ？？？ TODO raise something

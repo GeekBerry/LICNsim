@@ -3,25 +3,28 @@ from unit import APP_LAYER_FACE_ID
 
 
 class ForwardUnitBase(Unit):
+    """
+                                                      / hitEvent
+                +--------+                / inInterest
+    inPacket -> | Bucket | -> switchPacket            \ missEvent
+                +--------+                \ inData
+    """
     def __init__(self, rate=1, capacity=INF):
         self.bucket = LeakBucket(rate, capacity)
 
     def install(self, announces, api):
         super().install(announces, api)
-        api['Forward.getRate']= self.getRate
+        api['Forward.getRate'] = lambda: self.bucket.rate
         announces['inPacket'].append(self.inPacket)
         self.bucket.pop = self.switchPacket
         self.bucket.overflow = announces['overflow']  # 溢出信号
 
-    def getRate(self):
-        return self.bucket.rate
-
     def inPacket(self, face_id, packet):
-        args= face_id, packet
+        args = face_id, packet
         self.bucket.append(args, size=1)
 
     def switchPacket(self, args):
-        face_id, packet= args
+        face_id, packet = args
         if packet.type is Packet.INTEREST:
             self.inInterest(face_id, packet)
         elif packet.type is Packet.DATA:
@@ -41,10 +44,9 @@ class ForwardUnitBase(Unit):
         pend_ids.add(face_id)
         self.api['Face.sends'](pend_ids, data)
 
-    def missEvent(self, face_id, packet):  # 洪泛
-        out_ids = self.api['Face.getOutFaceIds']()  # 所有可以发送 face_id
-        out_ids.discard(face_id)
-        self.api['Face.sends'](out_ids, packet)
+    @NotImplementedError
+    def missEvent(self, face_id, packet):
+        pass
 
     def inData(self, face_id, data):
         pend_ids = self.api['Info.getPendIds'](data)
@@ -54,8 +56,25 @@ class ForwardUnitBase(Unit):
             self.api['CS.store'](data)
 
 
+class FloodForwardUnit(ForwardUnitBase):
+    def missEvent(self, face_id, packet):
+        out_ids = self.api['Face.getOutFaceIds']()  # 所有可以发送 face_id
+        out_ids.discard(face_id)
+        self.api['Face.sends'](out_ids, packet)
+
+
+class ShortestForwardUnit(ForwardUnitBase):
+    def missEvent(self, face_id, packet):
+        fwd_id = self.api['Track.getForwardFace'](packet.name)
+        if fwd_id is not None:
+            self.api['Face.sends']([fwd_id], packet)
+
+
 class GuidedForwardUnit(ForwardUnitBase):
     def missEvent(self, face_id, packet):
-        fwd_id = self.api['Guide.getForwardFace'](packet)
-        if fwd_id is not None:
+        try:
+            fwd_id = packet.path.pop(0)
+        except IndexError:  # 没找到目标点，但 path 为空
+            pass  # 直接丢弃
+        else:
             self.api['Face.sends']([fwd_id], packet)

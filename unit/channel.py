@@ -1,6 +1,6 @@
 import random
-from collections import deque
-from core import Timer, clock, AnnounceTable, top, DEBUG_FUNC, LeakBucket, INF
+
+from core import clock, AnnounceTable, DEBUG_FUNC, LeakBucket, INF
 
 
 class ChannelBase:
@@ -51,11 +51,3 @@ class Channel(ChannelBase):
             self.receiver(packet)
 
 
-def channelFactor(channel_type='wired', rate=INF, delay=0, loss=0.0):
-    def factor():
-        channel = Channel(rate, delay, loss)
-        assert channel_type in ('wired', 'wireless')
-        channel.channel_type = channel_type
-        return channel
-
-    return factor

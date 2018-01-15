@@ -1,4 +1,3 @@
-
 class Name(tuple):
     def __new__(cls, iterable=None):
         if iterable is None:
@@ -8,7 +7,7 @@ class Name(tuple):
         else:
             return tuple.__new__(cls, map(str, iterable))
 
-    def matchLength(self, other)->int:
+    def matchLength(self, other) -> int:
         """
         找出共同前缀长度
         :param other:Name
@@ -33,27 +32,26 @@ class Name(tuple):
 
 
 if __name__ == '__main__' and 0:
-    name1= Name('A/1')
-    name2= Name('A/1')
+    name1 = Name('A/1')
+    name2 = Name('A/1')
     print(name1.isPrefix(name2), name2.isPrefix(name1))  # True True
 
-    name1= Name('A/1')
-    name2= Name('A')
+    name1 = Name('A/1')
+    name2 = Name('A')
     print(name1.isPrefix(name2), name2.isPrefix(name1))  # False True
 
-    name1= Name('A/1')
-    name2= Name('B')
+    name1 = Name('A/1')
+    name2 = Name('B')
     print(name1.isPrefix(name2), name2.isPrefix(name1))  # False False
 
-    name1= Name('')
-    name2= Name('A')
+    name1 = Name('')
+    name2 = Name('A')
     print(name1.isPrefix(name2), name2.isPrefix(name1))  # False False
-
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 class NameTree:
-    __name= None
+    __name = None
 
     def __init__(self, parent=None, key=None):
         self._parent = parent
@@ -87,7 +85,7 @@ class NameTree:
         if self.__name is None:
             forebear_list = list(self.forebears())
             forebear_list.pop(-1)  # 不包含根节点
-            self.__name= Name(  [ name_node.key for name_node in reversed(forebear_list) ]  )
+            self.__name = Name([name_node.key for name_node in reversed(forebear_list)])
         return self.__name
 
     # -------------------------------------------------------------------------
@@ -125,7 +123,7 @@ class NameTree:
     def cutDown(self):  # 将节点从树上剪下
         if self._parent:
             del self._parent._children[self.__key]
-            self._parent= None
+            self._parent = None
             self.__key = None
             self.__name = None
         return self
@@ -173,7 +171,7 @@ class NameTable:
 
     def __init__(self, default_factory=None):
         self.root = NameTree()
-        self._default_factory= default_factory
+        self._default_factory = default_factory
 
     def __contains__(self, name):
         node = self.root.get(name)
@@ -209,7 +207,7 @@ class NameTable:
         else:  # 有默认值函数
             node = self.root.access(name)
             if not node.hasValue():
-                node.setValue( self._default_factory() )
+                node.setValue(self._default_factory())
             return node.getValue()
 
     def __setitem__(self, name, value):
@@ -271,7 +269,7 @@ class NameTable:
 
 
 if __name__ == '__main__':
-    table= NameTable()
+    table = NameTable()
 
     table[Name('A')] = None
     table[Name('A/a/1')] = None
@@ -279,10 +277,10 @@ if __name__ == '__main__':
     table[Name('B')] = None
     print(table)  # {Name('A'): None, Name('A/a/1'): None, Name('A/a/2'): None, Name('B'): None}
 
-    p= list(  table.descendant( Name('A') )  )
+    p = list(table.descendant(Name('A')))
     print(p)  # [Name('A'), Name('A/a/1'), Name('A/a/2')]
 
-    p= list(  table.descendant( Name() )  )
+    p = list(table.descendant(Name()))
     print(p)  # [Name('A'), Name('A/a/1'), Name('A/a/2'), Name('B')]
 
     del table[Name('A')]

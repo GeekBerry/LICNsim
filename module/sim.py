@@ -55,6 +55,24 @@ class Simulator:
 
     # -------------------------------------------------------------------------
     def createGraph(self, graph, NodeType, ChannelType):
+        """
+        将 graph 创建合并入当前图， 有重名部分忽略不计
+
+        s1       c1
+          \     /
+           A - B
+          /     \
+        s2       c2
+        >>> sim= Simulator()
+        >>> sim.createGraph({'A':['B']}, RouterNodeType, WiredChannelType)
+        >>> sim.createGraph({'A':['s1', 's2']}, ServerNodeType, WiredChannelType)
+        >>> sim.createGraph({'B':['c1', 'c2']}, ClientNodeType, WirelessChannelType)
+
+        :param graph: 要合并的图
+        :param NodeType: 新增节点类型
+        :param ChannelType: 新增信道类型
+        :return: None
+        """
         for node_id in graph:
             self.createNode(node_id, NodeType)
             for neibor_id in graph[node_id]:

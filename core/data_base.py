@@ -274,6 +274,8 @@ class DataBaseTable:
                 yield self.Record(self.dblite[rcd_id], data_base=self)
 
 
+
+
 if __name__ == '__main__':
     db_table = DataBaseTable().create('name', 'age', score=0, city='')  # 不带默认值的为主键;  k1, k2 为主键
 

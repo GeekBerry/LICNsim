@@ -7,7 +7,7 @@ from debug import showCall
 
 
 class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
-    MIN_SIZE, MAX_SIZE = 20, 80
+    MIN_SIZE, MAX_SIZE = 10, 40
 
     press_callback= EMPTY_FUNC
     release_callback= EMPTY_FUNC

@@ -13,20 +13,10 @@
 
 # print(17878 // 3.7262336222814616)
 
-i = 0
+# l = [] #[1,2,3]
+#
+# p= l.pop(0)
+#
+# print(p, l)
+#
 
-
-def get():
-    global i
-    i += 1
-    return i
-
-
-def func(num=get()):
-    print(num)
-
-
-func(100)
-func()
-func(200)
-func()

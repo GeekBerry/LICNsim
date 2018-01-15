@@ -45,7 +45,6 @@ class PlayerPlugin(MainWindowPlugin):
         # 安装单步按钮
         action_step = QAction('步进', tool_bar)
         icon = QIcon()
-
         icon.addPixmap(QPixmap(STEP_ACTION_IMAGE), QIcon.Normal, QIcon.Off)
         action_step.setIcon(icon)
         action_step.triggered.connect(self.playStep)
@@ -308,10 +307,16 @@ class StatisticsPlugin(MainWindowPlugin):
         main_window.addToolBar(Qt.TopToolBarArea, tool_bar)
         # 添加按钮
         names_plot = QAction('名字分析', tool_bar)
+        # icon = QIcon()
+        # icon.addPixmap(QPixmap(NAMES_PLOT_IMAGE), QIcon.Normal, QIcon.Off)
+        # names_plot.setIcon(icon)
         names_plot.triggered.connect(self._plotNames)
         tool_bar.addAction(names_plot)
 
         nodes_plot = QAction('节点分析', tool_bar)
+        # icon = QIcon()
+        # icon.addPixmap(QPixmap(NODES_PLOT_IMAGE), QIcon.Normal, QIcon.Off)
+        # nodes_plot.setIcon(icon)
         nodes_plot.triggered.connect(self._plotNodes)
         tool_bar.addAction(nodes_plot)
 

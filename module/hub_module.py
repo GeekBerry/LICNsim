@@ -5,6 +5,10 @@ from module import ModuleBase
 
 class HubModule(ModuleBase):
     def __init__(self):
+        """
+        安装该模块后，模拟器具有监听网络中节点和信道的新增消息，
+        并为节点和行到绑定经过 loadNodeAnnounce， loadEdgeAnnounce，setNodeAPI 等函数加载的 Announce 或 API
+        """
         self.node_anno= defaultdict(set)  # {anno_name:{func,...}, ...}
         self.edge_anno= defaultdict(set)  # {anno_name:{func,...}, ...}
         self.node_api= defaultdict(set)  # {api_name:[func,...], ...}
