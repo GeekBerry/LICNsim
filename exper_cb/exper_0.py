@@ -1,9 +1,10 @@
 from core import *
-from module import *
 from debug import *
 from exper_cb.test_bed_graph import test_bed_graph
-
+from module import *
+from unit import *
 # -----------------------------------------------------------------------------
+from unit.channel import OneStepChannel
 
 sim = Simulator()
 sim.install('hub', HubModule())
@@ -18,19 +19,12 @@ sim.install('statistics', StatisticsModule())
 
 # -----------------------------------------------------------------------------
 
-CenterNodeType = nodeFactory(
-    cs_capacity=500,
-    replace_mode='FIFO',
-    # evict_mode='GEOMETRIC',
-    # evict_life_time=100,
-    ForwardType=GuidedForwardUnit,
-)
+ExperNode = nodeFactory(
+    cs_capacity=100,
+    evict_mode='FIFO',
+    evict_life_time=1000,
 
-MarginNodeType = nodeFactory(
-    cs_capacity=500,
-    replace_mode='FIFO',
-    # evict_mode='GEOMETRIC',
-    # evict_life_time=100,
+    AppType=GuidedAppUnit,
     ForwardType=GuidedForwardUnit,
 )
 
@@ -41,11 +35,11 @@ d_packet = Packet(Name('P'), Packet.DATA, 100)
 
 STORE_NODE = 'BUPT'
 
-sim.createGraph(test_bed_graph, CenterNodeType, OneStepChannel)
+sim.createGraph(test_bed_graph, ExperNode, OneStepChannel)
 
 for node_id in test_bed_graph:
     sub_node_ids = [f'{node_id}_{i}' for i in range(4)]
-    sim.createGraph({node_id: sub_node_ids}, MarginNodeType, OneStepChannel)
+    sim.createGraph({node_id: sub_node_ids}, ExperNode, OneStepChannel)
 
 # -----------------------------------------------------------------------------
 
@@ -65,4 +59,4 @@ if __name__ == '__main__':
     # for i in range(1000):
     #     clock.step()
 
-    print( sim.modules['db'].selectWhere() )
+    print(sim.modules['db'].selectWhere())

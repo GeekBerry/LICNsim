@@ -4,7 +4,7 @@
 # from common import logging
 # from collections import deque
 
-from core import clock, deque, Timer, top
+from core import clock, deque, Timer, top, INF
 
 
 # ======================================================================================================================
@@ -127,17 +127,11 @@ class AnnounceTable(dict):
 # ======================================================================================================================
 def TupleClass(*fields):
     class __TupleClass:
-        FIELDS = fields
+        __slots__ = fields
 
         def __init__(self, *args):
-            for k, v in zip(self.FIELDS, args):
+            for k, v in zip(self.__slots__, args):
                 setattr(self, k, v)
-
-        def __repr__(self):
-            return f'{self.__class__.__name__}{self.__dict__}'
-
-        def __iter__(self):
-            return iter(self.__dict__.values())
 
     return __TupleClass
 
@@ -266,7 +260,11 @@ class TimeSet:
     def __contains__(self, item):
         return item in self.table
 
-    def add(self, var):
+    def add(self, var) -> None:
+        """
+        会更新删除时间
+        :param var:Any
+        """
         self.table[var] = clock.time
         clock.timing(self.life_time, self.checkDel, var)
 
@@ -277,7 +275,7 @@ class TimeSet:
             pass
 
     def checkDel(self, var):
-        add_time = self.table.get(var)
+        add_time = self.table.get(var, None)
         if (add_time is not None) and (add_time + self.life_time <= clock.time):
             del self.table[var]
 
@@ -307,70 +305,16 @@ class TimeSet:
 #     print(tset)  # {}
 
 
-class Buffer:
-    pop = DEBUG_FUNC
-    overflow = EMPTY_FUNC
-
-    def __init__(self, rate, capacity):
-        self.rate = rate
-        self._rest = 0
-        self._capacity = capacity
-
-        self.queue = deque()
-        self.last_check_time = None
-        self.timer = Timer(self.check)
-
-    @property
-    def capacity(self):
-        return self._capacity
-
-    @capacity.setter
-    def capacity(self, value):
-        assert value >= 0
-        while len(self.queue) > value:
-            self.overflow(*self.queue.pop())
-        self._capacity = value
-
-    @property
-    def rest(self):
-        return self._rest
-
-    def append(self, *args):
-        if len(self.queue) >= self._capacity:
-            self.overflow(*args)
-        else:
-            self.queue.append(args)  # 保存参数是一个tuple
-            self.check()
-
-    def check(self):
-        if self.last_check_time != clock.time:
-            self.last_check_time = clock.time
-            self._rest = self.rate  # 复位剩余处理
-
-        while self.queue:
-            if self._rest > 0:
-                self._rest -= 1
-                self.pop(*self.queue.popleft())  # 保存参数是一个tuple
-            else:
-                if not self.timer:  # 如果定时器没被启动过
-                    self.timer.timing(1)  # 下一周期再进行检查
-                break
-
-
-from core.common import INF
-
-
 class LeakBucket:
-    Entry = TupleClass('size', 'rest', 'value')
+    Entry = TupleClass('value', 'size', 'rest')  # 内容, 尺寸， 剩余量
 
     pop = DEBUG_FUNC
     overflow = EMPTY_FUNC
 
     def __init__(self, rate, capacity):
         self.rate = rate
-        self._rest = rate
-        self._occupy = 0
-        self._last_reset_time = -INF  # -1 一个比0小的时间
+        self._rest = rate  # 当前周期中还能漏出尺寸值
+        self._last_reset_time = -INF  # 一个比0小的时间
 
         self._capacity = capacity
         self._size = 0
@@ -385,56 +329,45 @@ class LeakBucket:
     @capacity.setter
     def capacity(self, value):
         assert value >= 0
+        while self._size > value:
+            entry= self._queue.pop()  # 后进入，先溢出
+            self._size -= entry.size
+            self.overflow(entry.value)
         self._capacity = value
-        self.limit()
+
+    @property
+    def rest(self):
+        return self._rest
 
     @property
     def size(self):
         return self._size
 
-    def occupy(self):
-        self.reset()
-        return self._occupy
-
     def __iter__(self):
         return map(lambda entry: entry.value, self._queue)
 
     def append(self, value, size=1.0):
-        self._size += size
-        self._queue.append(self.Entry(size, size, value))
-        self.limit()
-        self.check()
-
-    def limit(self):
-        while self._size > self._capacity:
-            size, rest, value = self._queue.pop()
-            self._size -= size
+        if self._size + size <= self._capacity:
+            self._queue.append(self.Entry(value, size, size))
+            self.check()  # 激活
+        else:
             self.overflow(value)
 
     def check(self):
-        self.reset()
-        while self._queue:
-            if self._rest >= top(self._queue).rest:
-                size, rest, value = self._queue.popleft()
-                self._size -= size
-                self._rest -= rest
-                self.pop(value)  # XXX 什么情况用 clock.timing(0, self.pop, value)
-            else:
-                if not self.timer:
-                    top(self._queue).rest -= self._rest  # 消耗掉剩下的尺寸
-                    self._rest = 0
-                    self.timer.timing(1)  # 下一周期再进行检查
-                break
-
-    def reset(self):
-        if self._last_reset_time != clock.time:
-            if self._last_reset_time == clock.time - 1:
-                self._occupy = self.rate - self._rest
-            else:
-                self._occupy = 0
-
+        if self._last_reset_time != clock.time:  # 一个周期只进行一次重置
             self._rest = self.rate
             self._last_reset_time = clock.time
+
+        while self._queue and (not self.timer):  # 队列中有数据 且 没有定时计划
+            if self._rest >= top(self._queue).rest:  # 当前漏桶剩余量能漏出一个数据项
+                entry= self._queue.popleft()
+                self._rest -= entry.rest
+                self._size -= entry.size
+                self.pop(entry.value)
+            else:
+                top(self._queue).rest -= self._rest  # 消耗掉剩下的尺寸
+                self._rest = 0
+                self.timer.timing(1)  # 启动定时计划
 
 
 # if __name__ == '__main__':

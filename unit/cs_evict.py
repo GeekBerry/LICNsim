@@ -1,5 +1,6 @@
 import numpy
-from core import Timer, Unit, INF
+from core import Timer, Unit, INF, Bind
+
 
 class CSEvictUnit(Unit):
     """
@@ -7,43 +8,43 @@ class CSEvictUnit(Unit):
     """
     MODE_TYPES = ['CONST', 'FIFO', 'LRU', 'GEOMETRIC']
 
-    def __init__(self, life_time=INF, mode='CONST'):
-        self.table = {}  # {Name:Timer, ...}
+    def __init__(self, mode=None, life_time=INF):
+        self.table = {}  # {Name:Timer(self.discard), ...}
+        self._mode = mode
         self.life_time = life_time
-        self.mode = mode
-
-    @property
-    def mode(self):
-        return self._mode
-
-    @mode.setter
-    def mode(self, value: str):
-        assert value in self.MODE_TYPES
-        self._mode = value
 
     def install(self, announces, api):
         super().install(announces, api)
-        announces['csStore'].append(self.store)
-        announces['csEvict'].append(self.evict)
-        announces['csHit'].append(self.hit)
-        self.csDiscard = api['CS.discard']
+        announces['csStore'].append(self.storeEvent)
+        announces['csEvict'].append(self.evictEvent)
+        announces['csHit'].append(self.hitEvent)
 
-    def store(self, packet):
-        timer = self.table.setdefault(packet.name, Timer(self.csDiscard))
+    def discard(self, name):
+        self.api['CS.discard'](name)
 
-        if self.mode in ('FIFO', 'LRU'):
-            timer.timing(self.life_time, packet.name)
-        elif self.mode == 'GEOMETRIC':
-            life_time = numpy.random.geometric(1 / self.life_time)  # 几何分布
-            timer.timing(life_time, packet.name)
+    # -------------------------------------------------------------------------
+    def storeEvent(self, packet):
+        if self._mode is 'CONST':
+            return
 
-    def hit(self, packet):
-        assert packet.name in self.table
-        if self.mode == 'LRU':
-            self.table[packet.name].timing(self.life_time, packet.name)
+        if packet.name not in self.table:
+            self.table[packet.name] = Timer( Bind(self.discard, packet.name) )
 
-    def evict(self, packet):
+        if self._mode in ('FIFO', 'LRU'):
+            self.table[packet.name].timing(self.life_time)
+        elif self._mode == 'GEOMETRIC':
+            self.table[packet.name].timing( numpy.random.geometric(1/self.life_time) )  # 几何分布
+
+    def evictEvent(self, packet):
         del self.table[packet.name]
+
+    def hitEvent(self, packet):
+        assert packet.name in self.table
+        if self._mode == 'LRU':
+            self.table[packet.name].timing(self.life_time)
+
+    def missEvent(self, packet):
+        pass
 
 
 if __name__ == '__main__':
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     cs = ContentStoreUnit()
     cs.install(anno, api)
 
-    evict = CSEvictUnit(6, 'FIFO')
+    evict = CSEvictUnit('FIFO', 6)
     evict.install(anno, api)
 
     cs.store(dp_A)

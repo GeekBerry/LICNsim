@@ -1,5 +1,6 @@
 from core import INF, Packet
 from gui import *
+from debug import showCall
 
 
 class Controller(QWidget):
@@ -20,7 +21,9 @@ class Controller(QWidget):
             else:
                 tree_widget[key].setValues(value)
 
+    @showCall
     def refresh(self):
+        print(self.__class__)
         for widget in self.pair_dict.values():
             if widget.isVisible() and hasattr(widget, 'refresh'):  # 可见, 且是 BindWidget
                 widget.refresh()
@@ -28,22 +31,14 @@ class Controller(QWidget):
 
 # ----------------------------------------------------------------------------------------------------------------------
 class NodeController(Controller):
-    class ForwardController(Controller):
-        def __init__(self, parent, forward_unit):
+    class IOInfoContorller(Controller):
+        def __init__(self, parent, io_info_unit):
             super().__init__(parent)
-            self.forward_unit= forward_unit
+            self.io_info_unit= io_info_unit
+            self.pair_dict['pit'] = BindTable(self, ('Name','FaceIds'), self.getPITRows)
 
-            self.pair_dict['capacity'] = BindSpinBox(self, forward_unit.bucket, 'capacity', (0, INF))
-            self.pair_dict['size'] = BindLabel(self, forward_unit.bucket, 'size')
-
-            self.pair_dict['rate'] = BindSpinBox(self, forward_unit.bucket, 'rate', (0, INF))
-            # self.pair_dict['rest'] = BindLabel(self, forward_unit.bucket, 'rest')
-
-            self.pair_dict['queue'] = BindTable(self, ('FaceId', 'Packet'), self.getBucketRows )
-
-        def getBucketRows(self):
-            return list(self.forward_unit.bucket)
-            # return [ (face_id, packet) for (face_id, packet) in self.forward_unit]
+        def getPITRows(self):
+            return list(self.io_info_unit.pit.items())
 
     class ContentStoreController(Controller):
         def __init__(self, parent, cs_unit):
@@ -60,7 +55,7 @@ class NodeController(Controller):
     class EvictController(Controller):
         def __init__(self, parent, evict_unit):
             super().__init__(parent)
-            self.pair_dict['mode'] = BindComboBox(self, evict_unit, 'mode', evict_unit.MODE_TYPES)
+            self.pair_dict['mode'] = BindComboBox(self, evict_unit, '_mode', evict_unit.MODE_TYPES)
             self.pair_dict['life_time'] = BindSpinBox(self, evict_unit, 'life_time', (0, INF))
 
     class ReplaceController(Controller):
@@ -68,7 +63,7 @@ class NodeController(Controller):
             super().__init__(parent)
             self.replace_unit= replace_unit
 
-            self.pair_dict['mode'] = BindComboBox(self, replace_unit, 'mode', replace_unit.MODE_FIELD_MAP.keys())
+            self.pair_dict['mode'] = BindComboBox(self, replace_unit, '_mode', replace_unit.MODE_FIELD_MAP.keys())
             self.pair_dict['table'] = BindTable(self, replace_unit.db_table.getFields(), self.getReplaceTableRows)
 
         def getReplaceTableRows(self):
@@ -83,17 +78,19 @@ class NodeController(Controller):
 
         def __init__(self, parent, face_unit):
             super().__init__(parent)
+            self.face_unit= face_unit
+
+            self.pair_dict['capacity'] = BindSpinBox(self, face_unit.bucket, 'capacity', (0, INF))
+            self.pair_dict['size'] = BindLabel(self, face_unit.bucket, 'size')
+            self.pair_dict['rate'] = BindSpinBox(self, face_unit.bucket, 'rate', (0, INF))
+            self.pair_dict['rest'] = BindLabel(self, face_unit.bucket, 'rest')
+            self.pair_dict['queue'] = BindTable(self, ('FaceId', 'Packet'), self.getBucketRows )
+
             for face_id, entry in face_unit.table.items():
-                self.pair_dict[face_id] = self.EntryController(self, entry)
+                self.pair_dict[f'Face {face_id}'] = self.EntryController(self, entry)
 
-    class IOInfoContorller(Controller):
-        def __init__(self, parent, io_info_unit):
-            super().__init__(parent)
-            self.io_info_unit= io_info_unit
-            self.pair_dict['pit'] = BindTable(self, ('Name','FaceIds'), self.getPITRows)
-
-        def getPITRows(self):
-            return list(self.io_info_unit.pit.items())
+        def getBucketRows(self):
+            return list(self.face_unit.bucket)
 
     def __init__(self, parent, icn_node):
         super().__init__(parent)
@@ -103,10 +100,6 @@ class NodeController(Controller):
         unit = icn_node.units.get('info')
         if unit is not None:
             self.pair_dict['IOInfoUnit'] = self.IOInfoContorller(self, unit)
-
-        unit = icn_node.units.get('forward')
-        if unit is not None:
-            self.pair_dict['ForwardUnit'] = self.ForwardController(self, unit)
 
         unit = icn_node.units.get('cs')
         if unit is not None:

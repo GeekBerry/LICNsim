@@ -5,7 +5,6 @@ from gui.MainWindow import MainWindow
 from gui.Plugins import PlayerPlugin, PainterPlugin, InfoDialogPlugin, NameInfoPlugin, LogPlugin, LayoutPlugin, StatisticsPlugin
 from module import ModuleBase
 
-
 class GUIModule(ModuleBase):
     def __init__(self):
         self.app = QApplication(sys.argv)

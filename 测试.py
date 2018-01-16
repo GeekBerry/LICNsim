@@ -20,3 +20,18 @@
 # print(p, l)
 #
 
+from core import TupleClass
+
+
+A= TupleClass('x', 'y')
+
+a= A(1,2)
+
+print(dict(a))
+
+
+
+from collections import defaultdict
+
+d= defaultdict()
+

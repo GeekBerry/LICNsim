@@ -71,9 +71,9 @@ class Timer:
     def __bool__(self):
         return bool(self.event)
 
-    def timing(self, delay, *args):
+    def timing(self, delay):
         self.event.clear()
-        self.event= clock.timing(delay, self.func, *args)
+        self.event= clock.timing(delay, self.func)
 
     def cancel(self):
         self.event.clear()

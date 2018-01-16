@@ -1,36 +1,29 @@
-from core import Packet, Unit, LeakBucket, INF, Bind
-from unit import APP_LAYER_FACE_ID
+from core import Packet, Unit, LeakBucket, INF
 
 
 class ForwardUnitBase(Unit):
     """
-                                                      / hitEvent
-                +--------+                / inInterest
-    inPacket -> | Bucket | -> switchPacket            \ missEvent
-                +--------+                \ inData
+                        / hitEvent
+            / inInterest
+    inPacket            \ missEvent
+            \ inData
     """
+
     def __init__(self, rate=1, capacity=INF):
-        self.bucket = LeakBucket(rate, capacity)
+        # self.bucket = LeakBucket(rate, capacity)
+        pass
 
     def install(self, announces, api):
         super().install(announces, api)
-        api['Forward.getRate'] = lambda: self.bucket.rate
         announces['inPacket'].append(self.inPacket)
-        self.bucket.pop = self.switchPacket
-        self.bucket.overflow = announces['overflow']  # 溢出信号
 
     def inPacket(self, face_id, packet):
-        args = face_id, packet
-        self.bucket.append(args, size=1)
-
-    def switchPacket(self, args):
-        face_id, packet = args
         if packet.type is Packet.INTEREST:
             self.inInterest(face_id, packet)
         elif packet.type is Packet.DATA:
             self.inData(face_id, packet)
         else:
-            pass
+            pass  # 类型不明
 
     def inInterest(self, face_id, packet):
         data = self.api['CS.match'](packet)

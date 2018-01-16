@@ -1,7 +1,8 @@
 from debug import *
-from debug import channelFactor
+from unit.channel import channelFactor
 from module import *
 from module.loss_module import LossMonitor
+from unit.node import nodeFactory
 
 sim = Simulator()
 sim.install('hub', HubModule())

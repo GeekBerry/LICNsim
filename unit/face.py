@@ -1,8 +1,16 @@
 from collections import defaultdict
-from core import TimeSet, clock, Bind, Unit
+from core import TimeSet, clock, Bind, Unit, INF, LeakBucket
 
 
 class FaceUnit(Unit):
+    """
+                          +--------+
+    receive --(append)--> | bucket | --(pop)--> inPacket
+                          +--------+
+                         /          \
+                      rate        capacity
+    """
+
     class LoopChecker:
         def __init__(self, nonce_life_time):
             self.info_set = TimeSet(nonce_life_time)
@@ -34,7 +42,6 @@ class FaceUnit(Unit):
             else:
                 return True
 
-    # -------------------------------------------------------------------------
     class Face:
         def __init__(self):
             self.receivable = False
@@ -43,26 +50,32 @@ class FaceUnit(Unit):
             self.sendable = False
             self.out_channel = None
 
-    def __init__(self, nonce_life_time=100_000):
+    # -------------------------------------------------------------------------
+    def __init__(self, rate=1, capacity=INF, life_time=100_000):
         self.table = defaultdict(self.Face)
 
-        self.loop_checker = self.LoopChecker(nonce_life_time)
+        self.loop_checker = self.LoopChecker(life_time)
         self.repeat_checker = self.RepeatChecker()
+
+        self.bucket = LeakBucket(rate, capacity)
+        self.bucket.pop = self._inPacket
+        self.bucket.overflow = self.overflow
 
     def install(self, announces, api):
         super().install(announces, api)
 
-        self.api['Face.sends'] = self.sends
-        self.api['Face.receive'] = self.receive
-        self.api['Face.setInChannel'] = self.setInChannel
-        self.api['Face.setOutChannel'] = self.setOutChannel
-        self.api['Face.getInFaceIds'] = self.getInFaceIds
-        self.api['Face.getOutFaceIds'] = self.getOutFaceIds
+        api['Face.sends'] = self.sends
+        api['Face.receive'] = self.receive
+        api['Face.setInChannel'] = self.setInChannel
+        api['Face.setOutChannel'] = self.setOutChannel
+        api['Face.getInFaceIds'] = self.getInFaceIds
+        api['Face.getOutFaceIds'] = self.getOutFaceIds
+        api['Face.getRate'] = lambda: self.bucket.rate
 
     # -------------------------------------------------------------------------
     def setInChannel(self, face_id, channel):
         entry = self.table[face_id]
-        assert entry.in_channel is None  # 不允许重复设置
+        assert entry.in_channel is None  # 必须为空，不允许重复设置
         entry.receivable = True
         entry.in_channel = channel
         entry.in_channel.receiver = Bind(self.receive, face_id)
@@ -90,19 +103,31 @@ class FaceUnit(Unit):
     # -------------------------------------------------------------------------
     def sends(self, face_ids, packet):
         for face_id in face_ids:
-            clock.timing(0, self._send, face_id, packet)  # 保证 send 行为是在一个时间片末尾执行
+            if not self.table[face_id].sendable:
+                pass  # 接口不允许发送
+            elif self.repeat_checker.isRepeat(face_id, packet):
+                self.announces['repeatePacket'](face_id, packet)
+            else:
+                clock.timing(0, self._outPacket, face_id, packet)  # 利用定时器保证 send 行为是在一个时间片末尾执行
 
-    def _send(self, face_id, packet):
-        if not self.repeat_checker.isRepeat(face_id, packet):
-            if self.table[face_id].sendable:
-                self.table[face_id].out_channel.send(packet)
-                self.announces['outPacket'](face_id, packet)
-        else:
-            self.announces['repeatePacket'](face_id, packet)
+    def _outPacket(self, face_id, packet):
+        self.table[face_id].out_channel.send(packet)  # 发往接出信道
+        self.announces['outPacket'](face_id, packet)
 
     def receive(self, face_id, packet):
-        if not self.loop_checker.isLoop(packet):
-            if self.table[face_id].receivable:
-                self.announces['inPacket'](face_id, packet)
-        else:
+        if not self.table[face_id].receivable:
+            pass  # 接口不允许接收
+        elif self.loop_checker.isLoop(packet):
             self.announces['loopPacket'](face_id, packet)
+        else:
+            value = face_id, packet
+            self.bucket.append(value, size=1)  # 添加到接收队列, size= 1(个包), 最终触发 _inPacket
+
+    def _inPacket(self, value):
+        face_id, packet = value
+        self.announces['inPacket'](face_id, packet)
+
+    # -------------------------------------------------------------------------
+    def overflow(self, args):
+        face_id, packet = args
+        self.announces['overflow'](face_id, packet)

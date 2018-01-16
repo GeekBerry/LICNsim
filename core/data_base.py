@@ -64,6 +64,9 @@ class DataBaseTable:
     def getFields(self):
         return self.dblite.fields
 
+    def getIndicesFields(self):
+        return self.dblite.indices
+
     def addFields(self, **value_dict):
         for field, default in value_dict.items():
             self.dblite.add_field(field, default=default)

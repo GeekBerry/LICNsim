@@ -119,7 +119,7 @@ class NodeMonitor(ModuleBase):
         sim.loadNodeAnnounce('csMiss', self._missEvent)
         sim.loadNodeAnnounce('inPacket', self._inPacketEvent)
         sim.api['Monitor.getNodeTable'] = lambda: self.node_table
-        self.getNodeRate = lambda node_id: sim.node(node_id).api['Forward.getRate']()
+        self.getNodeRate = lambda node_id: sim.node(node_id).api['Face.getRate']()
 
     def _hitEvent(self, node_id, packet):
         record = self.node_table[node_id]

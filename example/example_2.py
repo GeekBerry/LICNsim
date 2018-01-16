@@ -1,6 +1,10 @@
 from core import *
 from debug import *
 from module import *
+from unit import *
+
+from unit.channel import OneStepChannel
+from unit.node import nodeFactory
 
 sim = Simulator()
 sim.install('hub', HubModule())
@@ -16,7 +20,7 @@ sim.install('statistics', StatisticsModule())
 
 # ----------------------------------------------------------------------------------------------------------------------
 NodeType = nodeFactory(
-    cs_capacity=500,
+    cs_capacity= 500,
     replace_mode='FIFO',
     # evict_mode='GEOMETRIC',
     # evict_life_time=100,
@@ -52,11 +56,11 @@ def uniformAsk(node_ids, packet):
 Loop(uniformAsk, list(sim.nodes()), ip_A)
 Loop(uniformAsk, list(sim.nodes()), ip_B)
 
-if __name__ == '__main__' and 0:
+if __name__ == '__main__' and 1:
     sim.showGUI()
     # prcfile('sim.showGUI()')
 
-if __name__ == '__main__' and 1:
+if __name__ == '__main__' and 0:
     for i in range(1_000):
         clock.step()
 

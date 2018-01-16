@@ -1,10 +1,8 @@
-import networkx
-
 from core import *
-from unit.node import *
-from unit.channel import *
-from module import *
 from debug import *
+from module import *
+from unit.channel import *
+from unit.node import ExampleNode
 
 sim = Simulator()
 sim.install('hub', HubModule())
