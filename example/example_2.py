@@ -20,12 +20,22 @@ sim.install('statistics', StatisticsModule())
 
 # ----------------------------------------------------------------------------------------------------------------------
 NodeType = nodeFactory(
+    node_type='router',
+
+    recv_rate=1,
+    recv_capacity=INF,
+    nonce_life_time=100_000,
+
     cs_capacity= 500,
-    replace_mode='FIFO',
-    # evict_mode='GEOMETRIC',
-    # evict_life_time=100,
+    replace_mode= 'FIFO',
+    # evict_mode=None,  # 'CONST', 'FIFO', 'LRU', 'GEOMETRIC'
+    # evict_life_time=None,
+
+    # AppType=AppUnit,
+    # InfoType= IOInfoUnit,
     ForwardType= ShortestForwardUnit,
 )
+
 
 from exper_cb.test_bed_graph import test_bed_graph
 graph= test_bed_graph
@@ -39,18 +49,13 @@ sim.node(cs_id).store(dp_B)
 
 
 def uniformAsk(node_ids, packet):
-    # if random.random() < math.exp(-clock.time / 1000):
-    #     node_ids = (0, 0), (4, 4), (0, 4), (4, 0)
+    # if random.random() < 0.1:
     #     node_id = random.choice(node_ids)
     #     sim.node(node_id).ask(packet.fission())
 
-    if random.random() < 0.1:
+    if random.random() < math.exp(-clock.time/1000):
         node_id = random.choice(node_ids)
         sim.node(node_id).ask(packet.fission())
-
-    # if random.random() < math.exp(-clock.time/1000):
-    #     node_id = random.choice(node_ids)
-    #     sim.node(node_id).ask(packet.fission())
 
 
 Loop(uniformAsk, list(sim.nodes()), ip_A)

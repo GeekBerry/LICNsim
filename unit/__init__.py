@@ -6,3 +6,4 @@ from unit.application import *
 from unit.io_info import IOInfoUnit
 from unit.forward import *
 from unit.node import *
+from unit.channel import *

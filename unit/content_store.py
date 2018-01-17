@@ -4,7 +4,7 @@ from core import Unit, NameTable, Packet
 class ContentStoreUnit(Unit):
     def __init__(self, capacity=10000):
         self._capacity = capacity
-        self.size = 0  # 已经占用的尺寸 0<= size <= _capacity
+        self.size = 0  # 已经占用的尺寸 0 <= size <= _capacity
         self.table = NameTable()
 
     @property

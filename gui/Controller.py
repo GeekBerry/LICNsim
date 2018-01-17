@@ -1,6 +1,5 @@
 from core import INF, Packet
 from gui import *
-from debug import showCall
 
 
 class Controller(QWidget):
@@ -21,9 +20,7 @@ class Controller(QWidget):
             else:
                 tree_widget[key].setValues(value)
 
-    @showCall
     def refresh(self):
-        print(self.__class__)
         for widget in self.pair_dict.values():
             if widget.isVisible() and hasattr(widget, 'refresh'):  # 可见, 且是 BindWidget
                 widget.refresh()
@@ -34,8 +31,8 @@ class NodeController(Controller):
     class IOInfoContorller(Controller):
         def __init__(self, parent, io_info_unit):
             super().__init__(parent)
-            self.io_info_unit= io_info_unit
-            self.pair_dict['pit'] = BindTable(self, ('Name','FaceIds'), self.getPITRows)
+            self.io_info_unit = io_info_unit
+            self.pair_dict['pit'] = BindTable(self, ('Name', 'FaceIds'), self.getPITRows)
 
         def getPITRows(self):
             return list(self.io_info_unit.pit.items())
@@ -61,7 +58,7 @@ class NodeController(Controller):
     class ReplaceController(Controller):
         def __init__(self, parent, replace_unit):
             super().__init__(parent)
-            self.replace_unit= replace_unit
+            self.replace_unit = replace_unit
 
             self.pair_dict['mode'] = BindComboBox(self, replace_unit, '_mode', replace_unit.MODE_FIELD_MAP.keys())
             self.pair_dict['table'] = BindTable(self, replace_unit.db_table.getFields(), self.getReplaceTableRows)
@@ -78,13 +75,13 @@ class NodeController(Controller):
 
         def __init__(self, parent, face_unit):
             super().__init__(parent)
-            self.face_unit= face_unit
+            self.face_unit = face_unit
 
             self.pair_dict['capacity'] = BindSpinBox(self, face_unit.bucket, 'capacity', (0, INF))
             self.pair_dict['size'] = BindLabel(self, face_unit.bucket, 'size')
             self.pair_dict['rate'] = BindSpinBox(self, face_unit.bucket, 'rate', (0, INF))
             self.pair_dict['rest'] = BindLabel(self, face_unit.bucket, 'rest')
-            self.pair_dict['queue'] = BindTable(self, ('FaceId', 'Packet'), self.getBucketRows )
+            self.pair_dict['queue'] = BindTable(self, ('FaceId', 'Packet'), self.getBucketRows)
 
             for face_id, entry in face_unit.table.items():
                 self.pair_dict[f'Face {face_id}'] = self.EntryController(self, entry)
@@ -130,5 +127,4 @@ class EdgeController(Controller):
         self.pair_dict['queue'] = BindTable(self, Packet.HEAD_FIELDS, self.getQueueRows)
 
     def getQueueRows(self):
-        return [packet.head() for packet in self.icn_edge.queue() ]
-
+        return [packet.head() for packet in self.icn_edge.queue()]

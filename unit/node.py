@@ -11,7 +11,7 @@ class NodeBase(Hardware):
 
 
 def nodeFactory(
-        node_type='router',
+        node_type='router',  # enum('server', 'router', 'client')
 
         recv_rate=1,
         recv_capacity=INF,
@@ -19,7 +19,7 @@ def nodeFactory(
 
         cs_capacity=None,
         replace_mode=None,
-        evict_mode=None,
+        evict_mode=None,  # enum('CONST', 'FIFO', 'LRU', 'GEOMETRIC')
         evict_life_time=None,
 
         AppType=AppUnit,

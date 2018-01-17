@@ -1,11 +1,12 @@
 from core import *
 from debug import *
+
 from exper_cb.test_bed_graph import test_bed_graph
+from exper_cb.reporter_module import ReporterModule
+
 from module import *
 from unit import *
 # -----------------------------------------------------------------------------
-from unit.channel import OneStepChannel
-
 sim = Simulator()
 sim.install('hub', HubModule())
 sim.install('monitor', MonitorModule())
@@ -16,6 +17,8 @@ sim.install('track', StoreTrackModule())
 sim.install('log', LogModule())
 sim.install('db', DBModule(10))
 sim.install('statistics', StatisticsModule())
+
+sim.install('reporter', ReporterModule(Name('p'), 'result.txt') )
 
 # -----------------------------------------------------------------------------
 
@@ -54,9 +57,9 @@ def uniformAsk(node_ids):
 Loop(uniformAsk, list(sim.nodes()), delta=10)
 
 if __name__ == '__main__':
-    sim.showGUI()
+    # sim.showGUI()
 
-    # for i in range(1000):
-    #     clock.step()
+    for i in range(1000):
+        clock.step()
 
     print(sim.modules['db'].selectWhere())
