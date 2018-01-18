@@ -1,4 +1,6 @@
+import pandas
 import matplotlib.pyplot as plt
+from core import clock, floor
 from module import ModuleBase
 
 
@@ -14,8 +16,23 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
         sim.plotNodes = self.plotNodes
         sim.showPlot = self.show
 
-        self.selectWhere = sim.api['DBModule.selectWhere']
+        self.DELTA= sim.api['DBModule.getDelta']()  # 分度值跟随数据库记录
+        self.FIELDS= sim.api['DBModule.getFields']()
+        self.query = sim.api['DBModule.query']
 
+    def selectWhere(self, **where) -> pandas.DataFrame:
+        init_data = {'time': range(0, clock.time+1, self.DELTA)}  # 生成列表
+        frame = pandas.DataFrame(data=init_data, columns=self.FIELDS).set_index('time').fillna(0)  # 生成全 0 表
+        records = self.query(**where)
+
+        # 用 records 数据覆盖 fream
+        for record in records:
+            time = floor(record['time'], self.DELTA)
+            for field in frame.columns:
+                if isinstance( record[field], (int, float) ):
+                    frame.loc[time][field] += record[field]
+
+        return frame
     # -------------------------------------------------------------------------
     def accessNamesFigure(self, title: str):
         """
@@ -130,7 +147,7 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
         :param node_ids: (node_id, ...)
         :return: None
         """
-        figure = self.accessNamesFigure(f'节点比较图：{node_ids}')
+        figure = self.accessNodesFigure(f'节点比较图：{node_ids}')
         for node_id in node_ids:  # 逐条绘制 node 比较曲线
             self.drawNode(figure, node_id)
 

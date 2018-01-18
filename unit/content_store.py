@@ -1,8 +1,9 @@
+import random
 from core import Unit, NameTable, Packet
 
 
 class ContentStoreUnit(Unit):
-    def __init__(self, capacity=10000):
+    def __init__(self, capacity):
         self._capacity = capacity
         self.size = 0  # 已经占用的尺寸 0 <= size <= _capacity
         self.table = NameTable()
@@ -28,10 +29,9 @@ class ContentStoreUnit(Unit):
 
     def store(self, data):
         """
-        :param data: 数据包
-        :return:
+        :param data:Packet 数据包
+        :return: None
         """
-
         if data.size > self._capacity:
             return False  # 包过大, 不能插入
 
@@ -39,7 +39,7 @@ class ContentStoreUnit(Unit):
             return False  # 重名包, 不再插入或覆盖  TODO 交给用户选择覆盖还是丢弃
 
         self.limit(self._capacity - data.size)  # 腾出足够空间
-        data= data.fission()  # XXX 是否需要构造一个新的包
+        # data= data.fission()  # XXX 是否需要构造一个新的包
         self.insert(data)  # 插入
 
     def match(self, packet):  # TODO 多项匹配, 条件匹配
@@ -47,9 +47,9 @@ class ContentStoreUnit(Unit):
         :param packet: 兴趣包
         :return: Packet 数据包
         """
-        data = self.table.get(packet.name)  # 完全匹配法
+        data = self.table.get(packet.name)  # 名字完全匹配法
         if data is not None:
-            # data = data.fission()  XXX 是否需要构造一个新的包
+            data = data.fission()  # 构造一个新包， 以免网络中存在相同Nonce的数据包
             self.announces['csHit'](data)
             return data
         else:
@@ -81,13 +81,28 @@ class ContentStoreUnit(Unit):
             self.discard(next(name_iter))
 
 
+class LCPContentStoreUnit(ContentStoreUnit):
+    def __init__(self, capacity, probability:float):
+        super().__init__(capacity)
+        self.probability= probability
+
+    def store(self, data):
+        if random.random() < self.probability:
+            return super().store(data)
+        else:
+            self.announces['csIgnore'](data)
+            return False
 
 
+class LCDContentStoreUnit(ContentStoreUnit):
+    def __init__(self, capacity, energy=1):
+        super().__init__(capacity)
+        self.energy= energy
 
-
-
-
-
+    def match(self, packet):
+        data= super().match(packet)
+        if data is not None:
+            TODO
 
 
 

@@ -348,6 +348,7 @@ class LeakBucket:
 
     def append(self, value, size=1.0):
         if self._size + size <= self._capacity:
+            self._size += size
             self._queue.append(self.Entry(value, size, size))
             self.check()  # 激活
         else:

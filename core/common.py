@@ -38,6 +38,10 @@ def tops(iterable, num):
     return [value for index, value in zip(range(num), iterable) ]
 
 
+def floor(num:int, alpha:int):
+    return (num//alpha)*alpha
+
+
 def threshold(min, value, max):
     if value<min: return min
     if value>max: return max

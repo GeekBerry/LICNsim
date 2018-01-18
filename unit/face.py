@@ -10,7 +10,6 @@ class FaceUnit(Unit):
                          /          \
                       rate        capacity
     """
-
     class LoopChecker:
         def __init__(self, nonce_life_time):
             self.info_set = TimeSet(nonce_life_time)

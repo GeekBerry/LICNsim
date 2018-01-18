@@ -42,15 +42,8 @@ class AppUnit(Unit):  # 一个网络层指向网络层自己的 ChannelBase
 class GuidedAppUnit(AppUnit):
     def ask(self, packet):
         packet.path = self.api['Track.getForwardPath'](packet.name)
-
-        if packet.path is None:
-            return  # 没有目标数据源，直接丢弃
-
-        # FIXME 实验中设计的奇怪的距离计算方式，应该放到哪里好？
-        if len(packet.path) > 0:
-            distance = len(packet.path) - 1
+        if packet.path is not None:
+            self.announces['distance'](packet, len(packet.path))
+            super().ask(packet)
         else:
-            distance = 0
-
-        self.announces['distance'](packet, distance)
-        super().ask(packet)
+            return  # 没有目标数据源，直接丢弃

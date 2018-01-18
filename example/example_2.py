@@ -61,11 +61,11 @@ def uniformAsk(node_ids, packet):
 Loop(uniformAsk, list(sim.nodes()), ip_A)
 Loop(uniformAsk, list(sim.nodes()), ip_B)
 
-if __name__ == '__main__' and 1:
+if __name__ == '__main__' and 0:
     sim.showGUI()
     # prcfile('sim.showGUI()')
 
-if __name__ == '__main__' and 0:
+if __name__ == '__main__' and 1:
     for i in range(1_000):
         clock.step()
 

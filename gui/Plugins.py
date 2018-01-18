@@ -253,7 +253,6 @@ class LayoutPlugin(MainWindowPlugin):
         self.api['Scene.setLayout'](self.getLayout())
         self.last_clicked_ratio = ratio
 
-    @showCall
     def sceneNodeMoved(self, node_id, pos):
         if self.group_box.checkedButton() is self.topology_ratio:
             self.topology_layout[node_id] = pos  # 拓扑图模式下修改缓存的位置信息

@@ -13,19 +13,20 @@ class Packet:
     def randomNonce():
         return random.randint(0, 1 << 32)  # 随机数 范围[0,2^32) 4个字节
 
-    def __init__(self, name, type, size:int, **kwargs):
+    def __init__(self, name, type, size:int):
         self.name= name  # 包名
         self.type= type  # 包类型
         self.size= size  # 包大小
         self.nonce= self.randomNonce()
-        # for k, v in kwargs.items():
-        #     setattr(self, k, v)
 
     def head(self):  # 文件头部, 能区别两个包
         return self.name, self.type, self.size, self.nonce
 
     def fission(self):  # 分裂成另一个包, 除了nonce域外全都一样
-        return Packet(self.name, self.type, self.size)
+        packet= copy.copy(self)
+        packet.nonce= Packet.randomNonce()
+        return packet
+        # return Packet(self.name, self.type, self.size)  没有其他属性时可以写作
 
     def __hash__(self):
         return self.nonce

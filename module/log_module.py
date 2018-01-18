@@ -23,12 +23,17 @@ class LogModule(ModuleBase):
         sim.loadNodeAnnounce('csEvict', self.csEvict)
         sim.loadNodeAnnounce('inPacket', self.inPacket)
         sim.loadNodeAnnounce('outPacket', self.outPacket)
-        # sim.loadEdgeAnnounce('send', self.send)
-        # sim.loadEdgeAnnounce('transfer', self.transfer)
-        # sim.loadEdgeAnnounce('loss', self.loss)
-        # sim.loadEdgeAnnounce('arrive', self.arrive)
 
-        # TODO overflow, ...
+        sim.loadNodeAnnounce('csHit', self.csHit)
+        sim.loadNodeAnnounce('csMiss', self.csMiss)
+        sim.loadNodeAnnounce('loopPacket', self.loopPacket)
+        sim.loadNodeAnnounce('overflow', self.overflow)
+
+        sim.loadEdgeAnnounce('send', self.send)
+        sim.loadEdgeAnnounce('transfer', self.transfer)
+        sim.loadEdgeAnnounce('loss', self.loss)
+        sim.loadEdgeAnnounce('arrive', self.arrive)
+        # TODO hit, miss, overflow, ...
 
     def csStore(self, node_id, packet):
         self.db_table[next(self.index_iter)] = {
@@ -40,6 +45,12 @@ class LogModule(ModuleBase):
             'time': clock.time, 'node_id': node_id, 'action': 'evict',
             'name': str(packet.name), 'packet_type': packet.type, 'size': packet.size, 'nonce': packet.nonce}
 
+    def csHit(self, node_id, packet):
+        print(clock.time, node_id, 'csHit', packet)
+
+    def csMiss(self, node_id, packet):
+        print(clock.time, node_id, 'csMiss', packet)
+
     def inPacket(self, node_id, face_id, packet):
         self.db_table[next(self.index_iter)] = {
             'time': clock.time, 'node_id': node_id, 'action': 'in', 'face_id': face_id,
@@ -50,14 +61,21 @@ class LogModule(ModuleBase):
             'time': clock.time, 'node_id': node_id, 'action': 'out', 'face_id': face_id,
             'name': str(packet.name), 'packet_type': packet.type, 'size': packet.size, 'nonce': packet.nonce}
 
-    # def send(self, edge_id, packet):
-    #     print(edge_id, 'send', packet)
-    #
-    # def transfer(self, edge_id, packet):
-    #     print(edge_id, 'transfer', packet)
-    #
-    # def loss(self, edge_id, packet):
-    #     print(edge_id, 'loss', packet)
-    #
-    # def arrive(self, edge_id, packet):
-    #     print(edge_id, 'arrive', packet)
+    def loopPacket(self, node_id, face_id, packet):
+        print(clock.time, node_id, 'loopPacket', face_id, packet)
+
+    def overflow(self, node_id, face_id, packet):
+        print(clock.time, node_id, 'overflow', face_id, packet)
+
+    # -------------------------------------------------------------------------
+    def send(self, edge_id, packet):
+        print(clock.time, edge_id, 'send', packet)
+
+    def transfer(self, edge_id, packet):
+        print(clock.time, edge_id, 'transfer', packet)
+
+    def loss(self, edge_id, packet):
+        print(clock.time, edge_id, 'loss', packet)
+
+    def arrive(self, edge_id, packet):
+        print(clock.time, edge_id, 'arrive', packet)

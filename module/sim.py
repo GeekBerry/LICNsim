@@ -64,9 +64,9 @@ class Simulator:
           /     \
         s2       c2
         >>> sim= Simulator()
-        >>> sim.createGraph({'A':['B']}, RouterNodeType, WiredChannelType)
-        >>> sim.createGraph({'A':['s1', 's2']}, ServerNodeType, WiredChannelType)
-        >>> sim.createGraph({'B':['c1', 'c2']}, ClientNodeType, WirelessChannelType)
+        >>> sim.createGraph({'A':['B']}, NodeType, ChannelType)
+        >>> sim.createGraph({'A':['s1', 's2']}, NodeType, ChannelType)
+        >>> sim.createGraph({'B':['c1', 'c2']}, NodeType, ChannelType)
 
         :param graph: 要合并的图
         :param NodeType: 新增节点类型

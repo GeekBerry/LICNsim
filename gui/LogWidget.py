@@ -1,11 +1,10 @@
-from PyQt5.QtWidgets import QWidget, QAbstractItemView
+from PyQt5.QtWidgets import QWidget
 
-from core import clock, tops
+from core import tops
 from gui import UIFrom
 from gui.ui.log_widget import Ui_log_widget
 
 from algorithm.recur_parser import SymbolTable, Stream, sym, re
-from debug import showCall
 
 
 class QueryParser(SymbolTable):
@@ -14,18 +13,18 @@ class QueryParser(SymbolTable):
         Int = sym(re.compile('-?\d+'), name='Int')
         Str = sym(re.compile(r"\'([^\'])*\'"), name='Str')
         Tuple = sym(re.compile(r'(\([^\)]*\))'), name='Tuple')
-        Field = sym(['index', 'time', 'node_id', 'action', 'face_id', 'name', 'type','size', 'nonce'], name='Field')
+        Field = sym(['index', 'time', 'node_id', 'action', 'face_id', 'name', 'type', 'size', 'nonce'], name='Field')
 
         self['Time'] = 'T'
         self['Expre'] = self['Time'], Ends, ['+', '-'], Ends, Int  # 只接受时间的加减形式
         Var = self['Expre'] | self['Time'] | Str | Int
         self['InEntry'] = Field, Ends, 'in', Ends, Tuple
         self['EqEntry'] = Field, Ends, '=', Ends, Var
-        self['CmpEntry'] = sym(Var, Ends, ['<=', '<'], name='LeftCmp')*(0,1), \
+        self['CmpEntry'] = sym(Var, Ends, ['<=', '<'], name='LeftCmp') * (0, 1), \
                            Ends, Field, Ends, \
-                           sym(['<=', '<'], Ends, Var, name='RightCmp')*(0,1)
+                           sym(['<=', '<'], Ends, Var, name='RightCmp') * (0, 1)
         Entry = self['EqEntry'] | self['CmpEntry'] | self['InEntry']
-        self['Start'] = sym(Ends, Entry, Ends, [',',None])*(0,...)
+        self['Start'] = sym(Ends, Entry, Ends, [',', None]) * (0, ...)
 
     def Time(self, match):
         return 'clock.time'
@@ -52,29 +51,26 @@ if __name__ == '__main__':
     import sys
     from algorithm.recur_parser import DebugStream
 
-    parser= QueryParser()
+    parser = QueryParser()
     s = DebugStream("action in ('in','out')", log_stream=sys.stdout)
     p = s.parser(parser['Start'])
     print(p, s.eof())
 
 
-
 @UIFrom(Ui_log_widget)
 class LogWidget(QWidget):
-    MAX_SHOW_RECORD_NUM= 100
+    MAX_SHOW_RECORD_NUM = 100
+    QUERY_SYM = QueryParser()['Start']
 
     def __init__(self, parent, announces, api):
         self.ui.button.pressed.connect(self.refresh)
         self.ui.edit.editingFinished.connect(self.refresh)
         self.ui.check.stateChanged.connect(self.playSteps)
 
-        self.announces= announces
-        self.api= api
         announces['playSteps'].append(self.playSteps)
-        self.head_fields= api['LogMoudle.getFields']
+        self.getFields = api['LogMoudle.getFields']
         self.db_query = api['LogMoudle.query']
-
-        self.__last_query_key = None  # (time, query_str)
+        self.announces = announces
 
     def playSteps(self, steps):
         if self.ui.check.checkState():
@@ -84,19 +80,17 @@ class LogWidget(QWidget):
         text = self.ui.edit.text()
         query_str = self._parser(text)
         if query_str is None:
-            return None
+            return  # 没有查询字符串
 
         records = self._query(query_str)
         if records is None:
-            return  # 没有 LogMoudle ？？？
+            return  # 查询失败
 
         self._draw(records)
-        self.__last_query_key = (clock.time, text)
 
-    def _parser(self, text):
-        # 查询操作
-        stream= Stream(text)
-        query_str = stream.parser( QueryParser()['Start'] )
+    def _parser(self, text):  # 查询操作
+        stream = Stream(text)
+        query_str = stream.parser(self.QUERY_SYM)
 
         if not stream.eof():
             self.announces['logQueryMessage']('Parser Failed')
@@ -106,7 +100,7 @@ class LogWidget(QWidget):
 
     def _query(self, condition_str):
         try:
-            exec(f'records= self.db_query({condition_str})')
+            exec(f'records= self.db_query({condition_str})')  # 拼凑查询语句， 查询结果放入 locals()['records']
         except Exception as err:
             self.announces['logQueryMessage'](err.args[0])
             return None
@@ -114,12 +108,15 @@ class LogWidget(QWidget):
             self.announces['logQueryMessage']('Done')
             return locals()['records']
 
-    def _draw(self, records):
-        # 显示表
-        self.ui.table.setHeads( *self.head_fields() )
+    def _draw(self, records):  # 显示表
+        self.ui.table.setHeads(*self.getFields())
+
         if records is not None:
-            records= tops(records, self.MAX_SHOW_RECORD_NUM)  # 先生成列表，才能统计长度
+            self.ui.table.setSortingEnabled(False)  # 取消排序结果
+
+            records = tops(records, self.MAX_SHOW_RECORD_NUM)  # 先生成列表，才能统计长度
             self.ui.table.setRowCount(len(records))
             for row, record in enumerate(records):
-                self.ui.table.setRow(  row, *map( str, record.values() )  )
+                self.ui.table.setRow(row, *record.values())
 
+            self.ui.table.setSortingEnabled(True)  # 重新允许排序

@@ -20,18 +20,10 @@
 # print(p, l)
 #
 
-from core import TupleClass
+d= {1:100, 2:200}
 
+d2= {1:1000, 2:2000}
 
-A= TupleClass('x', 'y')
+d.update(d2)
 
-a= A(1,2)
-
-print(dict(a))
-
-
-
-from collections import defaultdict
-
-d= defaultdict()
-
+print(d, d2)

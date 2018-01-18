@@ -1,4 +1,4 @@
-from core import Packet, Unit, LeakBucket, INF
+from core import Packet, Unit, INF
 
 
 class ForwardUnitBase(Unit):

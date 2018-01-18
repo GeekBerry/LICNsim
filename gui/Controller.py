@@ -91,7 +91,7 @@ class NodeController(Controller):
 
     def __init__(self, parent, icn_node):
         super().__init__(parent)
-        self.pair_dict['node type'] = QLabel(icn_node.__class__.__name__)
+        self.pair_dict['node type'] = QLabel(icn_node.node_type)
 
         # XXX 以什么作unit判断依据? key 还是 unit 的类型?
         unit = icn_node.units.get('info')
