@@ -1,31 +1,7 @@
 import random
 import networkx
 import numpy
-from PyQt5.QtCore import QPointF
 
-
-# class FixedAsk:
-#     def __init__(self, lam):
-#         self.lam = lam
-#
-#     def __call__(self, t):
-#         return self.lam
-#
-#
-# class PossionAsk:
-#     def __init__(self, lam):
-#         self.lam = lam
-#
-#     def __call__(self, t):
-#         return numpy.random.poisson(self.lam)
-#
-#
-# class ExponentAsk:
-#     def __init__(self, lam):
-#         self.lam = lam
-#
-#     def __call__(self, t):
-#         return 1 if random.random() < numpy.exp(-t * self.lam) else 0
 
 
 # =======================================================================================================================
@@ -125,6 +101,8 @@ def graphApproximateDiameter(graph, sample_num=10):  # 得到graph近似直径
 
 # =======================================================================================================================
 # 计算引力和斥力
+# from PyQt5.QtCore import QPointF
+#
 # def layoutPosition(neibor_table, pos_table, ratio):
 #     """
 #     :param neibor_table: {node_id:[ner_id, ...], ...}

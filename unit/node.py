@@ -18,13 +18,15 @@ def nodeFactory(
         nonce_life_time=100_000,
 
         cs_capacity=None,
+        cs_probability= 1.0,
         replace_mode=None,
         evict_mode=None,  # enum('CONST', 'FIFO', 'LRU', 'GEOMETRIC')
         evict_life_time=None,
 
         AppType=AppUnit,
-        InfoType= IOInfoUnit,
-        ForwardType= FloodForwardUnit,
+        InfoType=IOInfoUnit,
+        ForwardType=FloodForwardUnit,
+        ContentStoreType=ContentStoreUnit,
 ):
     MODE_FIELD_MAP = {'FIFO': 'c_time', 'LRU': 'a_time', 'LFU': 'hit_count'}
 
@@ -41,7 +43,7 @@ def nodeFactory(
 
         # 配置CS模块
         if cs_capacity is not None:
-            node.install('cs', ContentStoreUnit(capacity=cs_capacity))
+            node.install('cs', ContentStoreType(capacity=cs_capacity, probability=cs_probability))
 
         # 配置替换模块
         if replace_mode is not None:
@@ -65,4 +67,3 @@ def nodeFactory(
         return node
 
     return factor
-

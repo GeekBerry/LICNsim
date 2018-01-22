@@ -1,9 +1,15 @@
 import random
 from core import Unit, NameTable, Packet
 
+from debug import showCall
+
 
 class ContentStoreUnit(Unit):
-    def __init__(self, capacity):
+    def __init__(self, capacity:int, **kwargs):
+        """
+        :param capacity:int
+        :param kwargs: 子类可能利用到的属性
+        """
         self._capacity = capacity
         self.size = 0  # 已经占用的尺寸 0 <= size <= _capacity
         self.table = NameTable()
@@ -16,7 +22,7 @@ class ContentStoreUnit(Unit):
     def capacity(self, value):
         assert 0 < value
         self.limit(value)
-        self._capacity= value
+        self._capacity = value
 
     def install(self, announces, api):
         super().install(announces, api)
@@ -82,9 +88,9 @@ class ContentStoreUnit(Unit):
 
 
 class LCPContentStoreUnit(ContentStoreUnit):
-    def __init__(self, capacity, probability:float):
+    def __init__(self, capacity, probability: float):
         super().__init__(capacity)
-        self.probability= probability
+        self.probability = probability
 
     def store(self, data):
         if random.random() < self.probability:
@@ -95,24 +101,13 @@ class LCPContentStoreUnit(ContentStoreUnit):
 
 
 class LCDContentStoreUnit(ContentStoreUnit):
-    def __init__(self, capacity, energy=1):
-        super().__init__(capacity)
-        self.energy= energy
-
     def match(self, packet):
-        data= super().match(packet)
+        data = super().match(packet)
         if data is not None:
-            TODO
+            data.stored= False
+        return data
 
-
-
-
-
-
-
-
-
-
-
-
-
+    def store(self, data):
+        if not hasattr(data, 'stored') or (not data.stored):
+            data.stored = True
+            super().store(data)

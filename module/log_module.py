@@ -46,10 +46,12 @@ class LogModule(ModuleBase):
             'name': str(packet.name), 'packet_type': packet.type, 'size': packet.size, 'nonce': packet.nonce}
 
     def csHit(self, node_id, packet):
-        print(clock.time, node_id, 'csHit', packet)
+        # print(clock.time, node_id, 'csHit', packet)
+        pass
 
     def csMiss(self, node_id, packet):
-        print(clock.time, node_id, 'csMiss', packet)
+        # print(clock.time, node_id, 'csMiss', packet)
+        pass
 
     def inPacket(self, node_id, face_id, packet):
         self.db_table[next(self.index_iter)] = {
@@ -62,20 +64,26 @@ class LogModule(ModuleBase):
             'name': str(packet.name), 'packet_type': packet.type, 'size': packet.size, 'nonce': packet.nonce}
 
     def loopPacket(self, node_id, face_id, packet):
-        print(clock.time, node_id, 'loopPacket', face_id, packet)
+        # print(clock.time, node_id, 'loopPacket', face_id, packet)
+        pass
 
     def overflow(self, node_id, face_id, packet):
-        print(clock.time, node_id, 'overflow', face_id, packet)
+        # print(clock.time, node_id, 'overflow', face_id, packet)
+        pass
 
     # -------------------------------------------------------------------------
     def send(self, edge_id, packet):
-        print(clock.time, edge_id, 'send', packet)
+        # print(clock.time, edge_id, 'send', packet)
+        pass
 
     def transfer(self, edge_id, packet):
-        print(clock.time, edge_id, 'transfer', packet)
+        # print(clock.time, edge_id, 'transfer', packet)
+        pass
 
     def loss(self, edge_id, packet):
-        print(clock.time, edge_id, 'loss', packet)
+        # print(clock.time, edge_id, 'loss', packet)
+        pass
 
     def arrive(self, edge_id, packet):
-        print(clock.time, edge_id, 'arrive', packet)
+        # print(clock.time, edge_id, 'arrive', packet)
+        pass

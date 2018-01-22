@@ -320,7 +320,7 @@ class LeakBucket:
         self._size = 0
         self._queue = deque()
 
-        self.timer = Timer(self.check)
+        self.timer = Timer(self._check)
 
     @property
     def capacity(self):
@@ -350,11 +350,11 @@ class LeakBucket:
         if self._size + size <= self._capacity:
             self._size += size
             self._queue.append(self.Entry(value, size, size))
-            self.check()  # 激活
+            self._check()  # 激活
         else:
             self.overflow(value)
 
-    def check(self):
+    def _check(self):
         if self._last_reset_time != clock.time:  # 一个周期只进行一次重置
             self._rest = self.rate
             self._last_reset_time = clock.time

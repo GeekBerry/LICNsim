@@ -1,6 +1,7 @@
+import numpy
 from collections import defaultdict
 
-from algorithm.graph_algo import graphNearestPath
+from algorithm.graph_algo import graphNearestPath, graphHoops
 from module import ModuleBase
 
 
@@ -18,6 +19,7 @@ class StoreTrackModule(ModuleBase):
         sim.loadNodeAnnounce('csEvict', self._evictEvent)
         sim.setNodeAPI('Track.getForwardPath', self.getForwardPath)
         sim.setNodeAPI('Track.getForwardFace', self.getForwardFace)
+        sim.api['Track.getDisperse']= self.getDisperse
 
     def _storeEvent(self, node_id, packet):
         self.table[packet.name].add(node_id)
@@ -26,6 +28,14 @@ class StoreTrackModule(ModuleBase):
         self.table[packet.name].discard(node_id)
         if len(self.table[packet.name]) == 0:
             del self.table[packet.name]
+
+    def getDisperse(self, center, name):
+        disperse= []
+        for hoop in graphHoops(self.graph, center):
+            store= len(set(hoop) & self.table[name])
+            count= len(hoop)
+            disperse.append(store/count)
+        return numpy.var(disperse)
 
     def getForwardPath(self, node_id, name):
         path = graphNearestPath(self.graph, node_id, self.table[name])

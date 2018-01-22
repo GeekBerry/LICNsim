@@ -17,9 +17,10 @@ class ExperDBModule(DBModule):
 
 
 class ReporterModule(ModuleBase):
-    REPORT_FIELD = ['Time', 'CSNum', 'Store', 'Evict', 'AskNum', 'StepDist', 'AllDist']
+    REPORT_FIELD = ['Time', 'CSNum', 'Store', 'Evict', 'AskNum', 'StepDist', 'AllDist', 'Disperse']
 
-    def __init__(self, report_name, file_name, delta):
+    def __init__(self, center_node, report_name, file_name, delta):
+        self.center_node = center_node
         self.report_name = report_name
         self.file_name = file_name
         self.delta = delta
@@ -28,13 +29,14 @@ class ReporterModule(ModuleBase):
         self.last_report_time = clock.time
 
         self.frame = {
-            'store': 0, 'evict': 0, 'ask': 0, 'respond': 0, 'distance': 0, 'out_interest': 0, 'out_data': 0,
+            'store': 0, 'evict': 0, 'ask': 0, 'respond': 0, 'out_interest': 0, 'out_data': 0, 'distance': 0,
             'cs_num': 0, 'pend_num': 0, 'ask_count': 0, 'dist_count': 0,
-            'step_dist': None, 'all_dist': None,
+            'step_dist': None, 'all_dist': None, 'disperse': None,
         }
 
     def setup(self, sim):
         self.query = sim.api['DBModule.query']
+        self.getDisperse = sim.api['Track.getDisperse']
 
         self.file = open(self.file_name, 'w')  # FIXME with as
         self.writeHead()
@@ -81,6 +83,8 @@ class ReporterModule(ModuleBase):
         except ZeroDivisionError:
             self.frame['all_dist'] = None
 
+        self.frame['disperse'] = self.getDisperse(self.center_node, self.report_name)
+
     def writeHead(self):
         head_str = '\t'.join(self.REPORT_FIELD)
 
@@ -90,7 +94,7 @@ class ReporterModule(ModuleBase):
             self.file.write('\n')
 
     def writeLine(self):
-        fields = ('time', 'cs_num', 'store', 'evict', 'ask', 'step_dist', 'all_dist')
+        fields = ('time', 'cs_num', 'store', 'evict', 'ask', 'step_dist', 'all_dist', 'disperse')
         line_str = '\t'.join([str(self.frame[field]) for field in fields])
 
         print(line_str)
