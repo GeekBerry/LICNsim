@@ -3,18 +3,6 @@ import re, sys
 REGULAR_TYPE = type(re.compile(''))
 
 
-def cond_map(func, iterable, end=None):
-    """
-    将func 作用于 iterable上，生成列表，但遇到第一个 end 结果时，列表生成结束
-    >>> list( cond_map(lambda x:x, [1,2,None,3]) )
-    [1,2]
-    """
-    for each in map(func, iterable):
-        if each == end:
-            raise StopIteration
-        yield each
-
-
 # =============================================================================
 class Stream:
     def __init__(self, string, begin=0, end=None):
@@ -41,11 +29,13 @@ class Stream:
         #  TODO 可以在此函数做 cache: { (index, symbol):result, ...}
         index = self.index
 
-        match = symbol.match(self)
-        result= None if match is None else symbol.func(match)  # XXX match 为 None 则不再调用归约函数
+        result = symbol.match(self)
+        if result is not None:  # 使得 func 不用处理 None
+            result = symbol.func(result)
 
-        if result is None:
+        if result is None:  # 解析失败
             self.index = index
+
         return result
 
 
@@ -75,30 +65,37 @@ class DebugStream(Stream):
 
 
 # =============================================================================
-def sym(arg, *args, name=None, func=None):
-    def toSymbol(arg):
-        if type(arg) is SymbolTable.SymbolKey:
-            return arg
+def sym(*args, name=None, func=None):
+    # 生成 arg
+    if len(args) > 1:
+        arg = args  # type(arg) is tuple
+    elif len(args) < 0:
+        arg = None
+    else:
+        arg = args[0]
 
-        if isinstance(arg, Symbol):
-            symbol = arg
-        elif type(arg) is str:
-            symbol = SymbolString(arg)
-        elif type(arg) is tuple:
-            symbol = SymbolAll(*arg)
-        elif type(arg) is list:
-            symbol = SymbolAny(*arg)
-        elif type(arg) is REGULAR_TYPE:
-            symbol = SymbolRegular(arg)
-        elif arg is None:
-            symbol = SymbolEmpty()
-        elif isinstance(arg, Exception):
-            symbol = SymbolException(arg)
-        else:
-            raise TypeError(f'未知类型 {type(arg)}')
-        return symbol
+    # 依据 arg 生成 symbol
+    if type(arg) is SymbolKey:
+        assert name is None and func is None
+        return arg
+    elif isinstance(arg, Symbol):
+        assert name is None and func is None
+        return arg
+    elif type(arg) is str:
+        symbol = SymbolString(arg)
+    elif type(arg) is tuple:
+        symbol = SymbolAll(*arg)
+    elif type(arg) is list:
+        symbol = SymbolAny(*arg)
+    elif type(arg) is REGULAR_TYPE:
+        symbol = SymbolRegular(arg)
+    elif arg is None:
+        symbol = SymbolEmpty()
+    elif isinstance(arg, Exception):
+        symbol = SymbolException(arg)
+    else:
+        raise TypeError(f'未知类型 {type(arg)}')
 
-    symbol = SymbolAll(arg, *args) if args else toSymbol(arg)
     if name is not None:
         symbol.name = name
 
@@ -120,6 +117,9 @@ class Symbol:
             return SymbolRepeat(self, arg, arg)
 
         raise ValueError(f'未知参数{arg}')
+
+    def __hash__(self):
+        return id(self)
 
     def __add__(self, other):
         return SymbolAll(self, sym(other))
@@ -149,39 +149,17 @@ class SymbolEmpty(Symbol):
         return ''
 
 
-class SymbolException(Symbol):
-    name = 'EXCEPT'
-
-    def __init__(self, exception):
-        self.exception = exception
-
-    def match(self, stream):
-        if isinstance(stream, DebugStream):  # 是 debug 模式
-            expect_str = []
-            expect_str.append('\nParserStack(Name: Symbol)\n')
-            for i, symbol in enumerate(stream.stack):
-                expect_str.append(f'{"    "*i}{symbol.name}: {symbol}\n')
-
-            before = stream.before().replace('\n', r'\n')
-            behind = stream.behind().replace('\n', r'\n')
-            expect_str.append(f'{before}{behind}\n')
-            expect_str.append(f'{" "*len(before)}^\n')
-
-            sys.stderr.write(''.join(expect_str))
-        raise self.exception
-
-    def __str__(self):
-        return f'{self.exception.__class__.__name__}({"".join(map(repr, self.exception.args))})'
-
-
 class SymbolString(Symbol):
     def __init__(self, string):
         self.string = string
 
     def match(self, stream):
-        result = cond_map(lambda pair: pair[0] if pair[0] == pair[1] else None, zip(self.string, stream))
-        result = ''.join(result)
-        return result if result == self.string else None
+        result = stream.string[stream.index: stream.index + len(self.string)]
+        if result == self.string:
+            stream.index += len(self.string)
+            return result
+        else:
+            return None
 
     def __str__(self):
         return repr(self.string)
@@ -211,8 +189,14 @@ class SymbolAll(Symbol):
         return self
 
     def match(self, stream):
-        result = list(cond_map(lambda each: stream.parser(each), self.seq))
-        return result if len(result) == len(self.seq) else None
+        results = []
+        for each in self.seq:
+            result = stream.parser(each)
+            if result is not None:
+                results.append(result)
+            else:
+                return None
+        return results
 
     def __str__(self):
         return f"({','.join(map(repr, self.seq))})"
@@ -228,9 +212,9 @@ class SymbolAny(Symbol):
 
     def match(self, stream):
         for each in self.seq:
-            each_match = stream.parser(each)
-            if each_match is not None:
-                return each_match
+            result = stream.parser(each)
+            if result is not None:
+                return result
         return None
 
     def __str__(self):
@@ -244,31 +228,57 @@ class SymbolRepeat(Symbol):
         self.most = most
 
     def match(self, stream):
-        result = []
-        while True:
-            each_match = stream.parser(self.symbol)
-            if each_match is None:
-                break
-            elif (self.most is not ...) and (len(result) > self.most):
-                break
+        results = []
+        while (self.most is ...) or (len(results) < self.most):
+            result = stream.parser(self.symbol)
+            if result is not None:
+                results.append(result)
             else:
-                result.append(each_match)
-        return result if len(result) >= self.least else None
+                break
+        return results if len(results) >= self.least else None
 
     def __str__(self):
         most = "..." if self.most is ... else self.most
         return f'{self.symbol}*({self.least},{most})'
 
 
+class SymbolException(Symbol):
+    name = 'EXCEPT'
+
+    def __init__(self, exception):
+        self.exception = exception
+
+    def match(self, stream):
+        if isinstance(stream, DebugStream):  # 是 debug 模式
+            expect_str = list()
+            expect_str.append('\nParserStack(Name: Symbol)\n')
+            for i, symbol in enumerate(stream.stack):
+                expect_str.append(f'{"    "*i}{symbol.name}: {symbol}\n')
+
+            before = stream.before().replace('\n', r'\n')
+            behind = stream.behind().replace('\n', r'\n')
+            expect_str.append(f'{before}{behind}\n')
+            expect_str.append(f'{" "*len(before)}^\n')
+
+            sys.stderr.write(''.join(expect_str))
+        raise self.exception
+
+    def __str__(self):
+        return f'{self.exception.__class__.__name__}({"".join(map(repr, self.exception.args))})'
+
+
 # ==========================================================================================
+class SymbolKey(str):  # 非终结符占位符
+    pass
+
+
 class SymbolTable(dict):
-    class SymbolKey(str):
-        pass
-
     def __setitem__(self, key, value):
-        assert type(value) is not self.SymbolKey  # 不允许 self[Key] = self[一个未绑定Key]
+        assert type(value) is not SymbolKey  # 不能直接使用未绑定符号
 
-        symbol = sym(value, name=key)
+        symbol = sym(value)
+        if not symbol.name:
+            symbol.name = key
         if hasattr(self, key):  # 查找对应的翻译函数
             symbol.func = getattr(self, key)
         super().__setitem__(key, symbol)
@@ -277,41 +287,31 @@ class SymbolTable(dict):
         try:
             return super().__getitem__(item)
         except KeyError:
-            return self.SymbolKey(item)
+            return SymbolKey(item)  # 创建一个引用
 
-    def check(self):
-        # 记录检查过的序列，注意只有序列会被递归检查， 所以只检查序列
+    def backfill(self):
         self.__checked_seq = set()
+        for key, each in self.items():
+            self[key] = self._check(each)
+        del self.__checked_seq
 
-        for k, each in self.items():
-            if type(each) is self.SymbolKey:
-                self[k] = self.get(each)
+    def _check(self, symbol) -> Symbol:
+        if type(symbol) is SymbolKey:
+            return self[symbol]
+
+        assert isinstance(symbol, Symbol)
+        if symbol not in self.__checked_seq:
+            self.__checked_seq.add(symbol)
+
+            if type(symbol) is SymbolRepeat:
+                symbol.symbol = self._check(symbol.symbol)
+            elif type(symbol) in (SymbolAll, SymbolAny):
+                for i, each in enumerate(symbol.seq):
+                    symbol.seq[i] = self._check(each)
             else:
-                self._checkSymbol(each)
+                pass  # 终结符
 
-    def _checkSeq(self, seq):
-        if id(seq) in self.__checked_seq:
-            return
-
-        for i, each in enumerate(seq):
-            if type(each) is self.SymbolKey:
-                seq[i] = self.get(each)
-            else:
-                self._checkSymbol(each)
-
-        self.__checked_seq.add(id(seq))
-
-    def _checkSymbol(self, symbol):
-        assert type(symbol) is not self.SymbolKey
-
-        if type(symbol) in (SymbolAll, SymbolAny):
-            self._checkSeq(symbol.seq)
-        elif type(symbol) is SymbolRepeat:
-            if type(symbol.symbol) is self.SymbolKey:
-                symbol.symbol = self.get(symbol.symbol)
-            self._checkSymbol(symbol.symbol)
-        else:  # 是终结符
-            pass
+        return symbol
 
 
 # ==========================================================================================
@@ -323,10 +323,10 @@ if __name__ == '__main__':
             integer = sym(re.compile(r'[0-9]+'), name='integer', func=int)
             # 非终结符
             self['Start'] = ends, self['Expr'], ends
-            self['Expr'] = self['Term'], sym(ends, ['+', '-'], ends, self['Term'])*(0, ...)
-            self['Term'] = self['Fact'], sym(ends, ['*', '/'], ends, self['Fact'])*(0, ...)
+            self['Expr'] = self['Term'], sym(ends, ['+', '-'], ends, self['Term']) * (0, ...)
+            self['Term'] = self['Fact'], sym(ends, ['*', '/'], ends, self['Fact']) * (0, ...)
             self['Fact'] = sym('(', ends, self['Expr'], ends, ')') | integer | Exception('expect Fact')
-            self.check()  # 回填地址
+            self.backfill()  # 回填地址
 
         def Start(self, match):
             return match[1]  # Start -> Ends Var Ends
@@ -355,7 +355,9 @@ if __name__ == '__main__':
             else:  # Var -> Int
                 return match
 
-    s = DebugStream(' 1 + ( 2 * 3 ) ')
-    p = s.parser(CaluParser()['Start'])
-    print(p, s.eof())  # 7 True
 
+    s = DebugStream(' 1 / 2 * 3 ', )  # log_stream=sys.stdout
+    parser = CaluParser()
+
+    p = s.parser(parser['Start'])
+    print(p, s.eof())  # 1.5 True

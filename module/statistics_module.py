@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from core import clock, floor
 from module import ModuleBase
 
+from debug import showCall
 
 class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
     def setup(self, sim):
@@ -20,6 +21,7 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
         self.FIELDS= sim.api['DBModule.getFields']()
         self.query = sim.api['DBModule.query']
 
+    @showCall
     def selectWhere(self, **where) -> pandas.DataFrame:
         init_data = {'time': range(0, clock.time+1, self.DELTA)}  # 生成列表
         frame = pandas.DataFrame(data=init_data, columns=self.FIELDS).set_index('time').fillna(0)  # 生成全 0 表
@@ -34,6 +36,7 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
 
         return frame
     # -------------------------------------------------------------------------
+    @showCall
     def accessNamesFigure(self, title: str):
         """
         创建或打开一个名为 title 的名字窗口
@@ -60,6 +63,7 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
 
         return figure
 
+    @showCall
     def drawName(self, figure, name):
         """
         将名为 name 的名字信息绘制
@@ -88,6 +92,7 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
         figure.axes[3].plot(frame.index, frame['hit_ratio'], label=str(name), )
         figure.axes[3].legend(bbox_to_anchor=(1.0, 1), loc=1, borderaxespad=0.)  # 添加图例
 
+    @showCall
     def plotNames(self, *names):
         """
         绘制多个名字的比较图
@@ -97,6 +102,7 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
         figure = self.accessNamesFigure(f'名字比较图：{names}')
         for name in names:  # 逐条绘制 name 比较曲线
             self.drawName(figure, name)
+        plt.show()  # FIXME 网络节点数量大时会出问题
 
     # -------------------------------------------------------------------------
     def accessNodesFigure(self, title: str):
@@ -150,6 +156,7 @@ class StatisticsModule(ModuleBase):  # 依赖于DBModule及其内部数据结构
         figure = self.accessNodesFigure(f'节点比较图：{node_ids}')
         for node_id in node_ids:  # 逐条绘制 node 比较曲线
             self.drawNode(figure, node_id)
+        plt.show()
 
     def show(self):
         plt.show()

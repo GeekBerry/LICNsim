@@ -71,7 +71,6 @@ if __name__ == '__main__' and 1:
 
     sim.plotNames(ip_A.name, ip_B.name)
     sim.plotNodes('BUPT', 'UCLA')
-    sim.showPlot()
 
 if __name__ == '__main__' and 0:
     import time

@@ -20,6 +20,13 @@ class ReporterModule(ModuleBase):
     REPORT_FIELD = ['Time', 'CSNum', 'Store', 'Evict', 'AskNum', 'StepDist', 'AllDist', 'Disperse']
 
     def __init__(self, center_node, report_name, file_name, delta):
+        """
+        是要用报告生成模块
+        :param center_node:网络中心节点， 通常为数据源节点
+        :param report_name:Name 要追踪的名字
+        :param file_name:str 记录文件名
+        :param delta:int 记录时间间隔
+        """
         self.center_node = center_node
         self.report_name = report_name
         self.file_name = file_name
@@ -48,7 +55,6 @@ class ReporterModule(ModuleBase):
         self.last_report_time = clock.time
         self.timer.timing(self.delta)
 
-    # @showCall
     def generate(self, start_t, end_t):
         records = self.query(time=lambda t: start_t <= t < end_t, name=self.report_name)
 
@@ -74,7 +80,7 @@ class ReporterModule(ModuleBase):
 
         # 非直接记录计算
         try:
-            self.frame['step_dist'] = self.frame['dist_count'] / self.frame['ask']
+            self.frame['step_dist'] = self.frame['distance'] / self.frame['ask']
         except ZeroDivisionError:
             self.frame['step_dist'] = None
 

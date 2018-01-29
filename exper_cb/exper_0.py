@@ -16,9 +16,9 @@ SourceNode = nodeFactory(
 
 ExperNode = nodeFactory(
     cs_capacity=100,
-    cs_probability=0.5,
-    evict_mode='FIFO',
-    evict_life_time=1000,
+    cs_probability= 0.5,
+    evict_mode= 'GEOMETRIC',
+    evict_life_time= 20_000,
 
     AppType=GuidedAppUnit,
     ForwardType=GuidedForwardUnit,
@@ -28,8 +28,8 @@ ExperNode = nodeFactory(
 MarginNode = nodeFactory(
     cs_capacity=100,
 
-    evict_mode='GEOMETRIC',
-    evict_life_time=1000,
+    evict_mode='LRU',
+    evict_life_time= 20_000,
 
     AppType=GuidedAppUnit,
     ForwardType=GuidedForwardUnit,
@@ -49,7 +49,7 @@ sim.install('gui', GUIModule())
 sim.install('track', StoreTrackModule())
 
 sim.install('log', LogModule())
-sim.install('db', ExperDBModule(10))
+sim.install('db', ExperDBModule(1000))
 sim.install('statistics', StatisticsModule())
 
 # -------------------------  拓扑结构创建  -------------------------------------
@@ -57,36 +57,41 @@ sim.install('statistics', StatisticsModule())
 STORE_NODE = 'BUPT'
 sim.createNode(STORE_NODE, SourceNode)
 sim.createGraph(test_bed_graph, ExperNode, OneStepChannel)
-# for node_id in test_bed_graph:
-#     sub_node_ids = [f'{node_id}_{i}' for i in range(4)]
-#     sim.createGraph({node_id: sub_node_ids}, MarginNode, OneStepChannel)
-sim.install('reporter', ReporterModule(STORE_NODE, NAME, 'result.txt', 100))
+for node_id in test_bed_graph:
+    sub_node_ids = [f'{node_id}_{i}' for i in range(100)]
+    sim.createGraph({node_id: sub_node_ids}, MarginNode, OneStepChannel)
+sim.install('reporter', ReporterModule(STORE_NODE, NAME, 'test_bed lam100 cs20 LCP0.5 .txt', 1000))
 
-# STORE_NODE = (5,5)
-# graph= networkx.grid_2d_graph(11, 11)
+# STORE_NODE = (50, 50)
+# graph= networkx.grid_2d_graph(101, 101)
 # sim.createNode(STORE_NODE, SourceNode)
 # sim.createGraph(graph, ExperNode, OneStepChannel)
-# sim.install('reporter', ReporterModule(STORE_NODE, NAME, 'result.txt', 100))
+# sim.install('reporter', ReporterModule(STORE_NODE, NAME, 'test_bed lam100 cs20 LCP0.5 .txt', 1000))
 
 # ---------------------------  实验配置  -------------------------------------
 
 sim.node(STORE_NODE).store(d_packet)  # 储存数据包
 
-
 def uniformAsk(node_ids):
     node_id = random.choice(node_ids)
     sim.node(node_id).ask(i_packet.fission())
 
-
-Loop(uniformAsk, list(sim.nodes()), delta=10)
+Loop(uniformAsk, list(sim.nodes()), delta=1000//100)
 
 if __name__ == '__main__':
     # sim.showGUI()
 
-    for i in range(10000):
+    for i in range(300_000+1):
         clock.step()
-    #
-    # sim.plotNames(NAME)
-    # sim.showPlot()
 
-    print(list(sim.modules['db'].db_table.query()))
+    # sim.plotNames(NAME)
+
+    # print(list(sim.modules['db'].db_table.query()))
+
+
+# def main():
+#     for i in range(1_000+1):
+#         clock.step()
+#     # sim.plotNames(NAME)
+#
+# prcfile('main()')
