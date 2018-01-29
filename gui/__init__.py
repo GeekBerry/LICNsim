@@ -1,2 +1,2 @@
-from common import *
-from widgets import *
+from gui.common import *
+from gui.widgets import *

@@ -19,7 +19,7 @@ class ExperDBModule(DBModule):
 class ReporterModule(ModuleBase):
     REPORT_FIELD = ['Time', 'CSNum', 'Store', 'Evict', 'AskNum', 'StepDist', 'AllDist', 'Disperse']
 
-    def __init__(self, center_node, report_name, file_name, delta):
+    def __init__(self, center_node, report_name, delta, file_name):
         """
         是要用报告生成模块
         :param center_node:网络中心节点， 通常为数据源节点

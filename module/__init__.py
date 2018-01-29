@@ -16,7 +16,7 @@ from module.log_module import LogModule
 from module.store_track_module import StoreTrackModule
 from module.loss_module import LossMonitor
 from module.db_module import DBModule
-from statistics_module import StatisticsModule
+from module.statistics_module import StatisticsModule
 
 
 
