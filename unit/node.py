@@ -26,7 +26,7 @@ def nodeFactory(
         AppType=AppUnit,
         InfoType=IOInfoUnit,
         ForwardType=FloodForwardUnit,
-        ContentStoreType=ContentStoreUnit,
+        ContentStoreType= ContentStoreUnit,
 ):
     MODE_FIELD_MAP = {'FIFO': 'c_time', 'LRU': 'a_time', 'LFU': 'hit_count'}
 

@@ -17,7 +17,7 @@ class ExperDBModule(DBModule):
 
 
 class ReporterModule(ModuleBase):
-    REPORT_FIELD = ['Time', 'CSNum', 'Store', 'Evict', 'AskNum', 'StepDist', 'AllDist', 'Disperse']
+    REPORT_FIELD = ['Time', 'CSNum', 'Store', 'Evict', 'AskNum', 'StepDist', 'AllDist', 'Disperse', 'Frequency']
 
     def __init__(self, center_node, report_name, delta, file_name):
         """
@@ -89,7 +89,10 @@ class ReporterModule(ModuleBase):
         except ZeroDivisionError:
             self.frame['all_dist'] = None
 
-        self.frame['disperse'] = self.getDisperse(self.center_node, self.report_name)
+        disperse, frequency= self.getDisperse(self.center_node, self.report_name)
+        self.frame['disperse'] = disperse
+        self.frame['frequency'] = frequency
+
 
     def writeHead(self):
         head_str = '\t'.join(self.REPORT_FIELD)
@@ -100,10 +103,10 @@ class ReporterModule(ModuleBase):
             self.file.write('\n')
 
     def writeLine(self):
-        fields = ('time', 'cs_num', 'store', 'evict', 'ask', 'step_dist', 'all_dist', 'disperse')
+        fields = ('time', 'cs_num', 'store', 'evict', 'ask', 'step_dist', 'all_dist', 'disperse', 'frequency')
         line_str = '\t'.join([str(self.frame[field]) for field in fields])
 
-        print(line_str)
+        print(clock.time)  # print(line_str)
         if self.file:
             self.file.write(line_str)
             self.file.write('\n')

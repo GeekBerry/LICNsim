@@ -24,9 +24,6 @@ class CSEvictUnit(Unit):
 
     # -------------------------------------------------------------------------
     def storeEvent(self, packet):
-        if self._mode is 'CONST':
-            return
-
         if packet.name not in self.table:
             self.table[packet.name] = Timer( Bind(self.discard, packet.name) )
 

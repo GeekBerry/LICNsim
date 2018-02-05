@@ -7,7 +7,7 @@ from debug import showCall
 
 
 class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
-    MIN_SIZE, MAX_SIZE = 10, 40
+    MIN_SIZE, MAX_SIZE = 10, 20
 
     press_callback= EMPTY_FUNC
     release_callback= EMPTY_FUNC
@@ -35,7 +35,7 @@ class NodeItem(QGraphicsItem):  # 面向图形界面, 负责控制显示效果
 
         # 面向图形界面, 负责控制显示效果
         self.style = {
-            'name': f'Node {node_id}',
+            'name': f' {node_id}',
             'color': Qt.white,
             'shape': 'Pie',  # ('Pie', 'Rect', QPixmap)
             'size': 0.5,  # 0~1 的中间值

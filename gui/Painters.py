@@ -125,10 +125,10 @@ class PropertyPainter(Painter):
 
 # ======================================================================================================================
 class NameStorePainter(Painter):
-    background_color = QColor(255, 220, 220)
+    background_color = Qt.white  # QColor(255, 220, 220)
     name_table = None
 
-    EMPTY_COLOR = Qt.lightGray
+    EMPTY_COLOR = QColor(255, 255, 0)  # Qt.lightGray
     STORE_COLOR = TRANS_D_COLOR = QColor(255, 0, 0)
     WEAK_STORE_COLOR = WEAK_TRANS_D_COLOR = QColor(255, 200, 200)
     PEND_COLOR = TRANS_I_COLOR = QColor(0, 255, 0)
@@ -164,7 +164,7 @@ class NameStorePainter(Painter):
 
             for edge_id in record.trans_i:
                 self.edges_color[edge_id] = self.TRANS_I_COLOR if (
-                sub_name == self.show_name) else self.WEAK_TRANS_I_COLOR
+                    sub_name == self.show_name) else self.WEAK_TRANS_I_COLOR
         # 后描绘数据情况，以覆盖同请求相交的部分
         for sub_name in self.name_table.descendant(self.show_name):  # 对于数据包，查找后缀
             record = self.name_table[sub_name]
@@ -173,7 +173,7 @@ class NameStorePainter(Painter):
 
             for edge_id in record.trans_d:
                 self.edges_color[edge_id] = self.TRANS_D_COLOR if (
-                sub_name == self.show_name) else self.WEAK_TRANS_D_COLOR
+                    sub_name == self.show_name) else self.WEAK_TRANS_D_COLOR
         return True
 
     def renderNode(self, node_id) -> dict:

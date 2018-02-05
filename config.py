@@ -1,7 +1,7 @@
 import os
 POJECT_PATH= os.path.dirname(__file__)
 
-BACKGROUND_MAP_IMAGE= f'{POJECT_PATH}/gui/images/background_map.png'
+BACKGROUND_MAP_IMAGE= '' # f'{POJECT_PATH}/gui/images/background_map.png'
 
 PROPERTY_ACTION_IMAGE= f'{POJECT_PATH}/gui/images/property.png'
 STORE_ACTION_IMAGE= f'{POJECT_PATH}/gui/images/store.png'

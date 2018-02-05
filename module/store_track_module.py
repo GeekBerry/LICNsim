@@ -35,7 +35,7 @@ class StoreTrackModule(ModuleBase):
             store= len(set(hoop) & self.table[name])
             count= len(hoop)
             disperse.append(store/count)
-        return numpy.var(disperse)
+        return numpy.var(disperse), numpy.mean(disperse)
 
     def getForwardPath(self, node_id, name):
         path = graphNearestPath(self.graph, node_id, self.table[name])
