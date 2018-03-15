@@ -34,6 +34,8 @@ class Clock:
         self._time= 0  # int 当前时间
         self._todo= defaultdict(deque)  # { time:deque( event,...), } 要被执行的事件列表
 
+        self.debug_count_event = 0
+
     @property
     def time(self):
         return self._time
@@ -43,6 +45,7 @@ class Clock:
             queue= self._todo[self._time]
             while queue:  # 特别的, 能在遍历时添加
                 queue.popleft().execute()
+                self.debug_count_event += 1
             del self._todo[self._time]
         self._time += 1
 

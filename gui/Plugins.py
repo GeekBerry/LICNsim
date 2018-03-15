@@ -291,7 +291,7 @@ class LayoutPlugin(MainWindowPlugin):
 
     def _getTopologyLayout(self) -> dict:
         graph = self.api['Sim.graph']()
-        layout = networkx.spring_layout(graph, scale=500, iterations=50)  # scale 单位pix
+        layout = networkx.spring_layout(graph, scale=300, iterations=50)  # scale 单位pix
         # FIXME spring_layout 中, 利用已有pos迭代, 会出现扭曲. 参数: pos= self.topology_layout
         return layout
 
